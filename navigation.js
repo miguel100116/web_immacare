@@ -305,3 +305,14 @@ document.addEventListener('DOMContentLoaded', function () {
       localStorage.removeItem('selectedSpecialization');
   }
 });
+
+//hide the other in learnmore
+document.addEventListener("DOMContentLoaded", function() {
+  const sectionId = window.location.hash.substring(1); // Get the fragment from the URL
+  if (sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+          section.style.display = 'block'; // Show the selected section
+      }
+  }
+});
