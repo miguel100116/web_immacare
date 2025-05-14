@@ -316,3 +316,40 @@ document.addEventListener("DOMContentLoaded", function() {
       }
   }
 });
+
+
+// document.getElementById("login-form").addEventListener("submit", async function (e) {
+//   e.preventDefault();
+
+//   const signupEmail = e.target.signupEmail.value;
+//   const signupPassword = e.target.signupPassword.value;
+
+//   try {
+//     const response = await fetch("/login", {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json"
+//       },
+//       body: JSON.stringify({ signupEmail, signupPassword })
+//     });
+
+//     const result = await response.text();
+
+//     if (result.includes("✅ Login successful") || response.redirected) {
+//       // ✅ Set flag in localStorage
+//       localStorage.setItem("isLoggedIn", "true");
+
+//       // ✅ Redirect to main.html
+//       window.location.href = "/main.html";
+//     } else {
+//       alert(result); // ❌ Show error message (wrong password/email)
+//     }
+//   } catch (err) {
+//     console.error("Login failed", err);
+//     alert("❌ Login failed due to a server error.");
+//   }
+// });
+
+
+
+//NEW TODAY

@@ -1,31 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign Up - ImmaCare+</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
     <script src="navigation.js"></script>
-
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="signup-box">
-            <img src="logo.png" alt="ImmaCare+ Logo" class="logo">
-            <h2>Create an Account</h2>
-            <form id="signupForm">
-                <input type="text" id="fullName" placeholder="Full Name" required>
-                <input type="email" id="signupEmail" placeholder="Email" required>
-                <input type="Age" id="Age" placeholder="Age" required>
-                <input type="Sex" id="Sex" placeholder="Sex" required>
-                <input type="Phone Numbe" id="Phone Numbe" placeholder="Phone Number" required>
-                <input type="password" id="signupPassword" placeholder="Password" required>
-                <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+      <div class="signup-box">
+        <img src="logo.png" alt="ImmaCare+ Logo" class="logo" />
+        <h2>Create an Account</h2>
+        <!-- <form id="signupForm" action="/post" method="POST">
+                <input type="text" id="fullName" name="fullname" placeholder="Full Name" required>
+                <input type="email" id="signupEmail" name="signupEmail" placeholder="Email" required>
+                <input type="text" id="Age" name="Age" placeholder="Age" required>
+                <input type="text" id="Sex" name="Sex" placeholder="Sex" required>
+                <input type="text" id="PhoneNumber" name="PhoneNumber" placeholder="Phone Number" required>
+                <input type="password" id="signupPassword" name="signupPassword" placeholder="Password" required>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required>
                 <button type="submit">SIGN UP</button>
             </form>
-            <p>Already have an Account? <a href="login.html">Login Here</a></p>
-        </div>
+             -->
+        <form id="signupForm" action="/post" method="POST" class="signup-form">
+          <!-- Full Name (letters only) -->
+          <input
+            type="text"
+            id="fullName"
+            name="fullname"
+            placeholder="Full Name"
+            pattern="[A-Za-z ]+"
+            title="Only letters and spaces allowed"
+            maxlength="50"
+            required
+          />
+
+          <!-- Email (max 50 chars) -->
+          <input
+            type="email"
+            id="signupEmail"
+            name="signupEmail"
+            placeholder="Email"
+            maxlength="50"
+            required
+          />
+
+          <!-- Age (number only) -->
+          <input
+            type="number"
+            id="Age"
+            name="Age"
+            placeholder="Age"
+            min="1"
+            max="120"
+            required
+          />
+
+          <!-- Gender Radio Buttons -->
+          <div class="gender-selection">
+            <label>
+              <input type="radio" name="Sex" value="male" required /> Male
+            </label>
+            <label>
+              <input type="radio" name="Sex" value="female" /> Female
+            </label>
+          </div>
+
+          <!-- Phone Number (numbers only) -->
+          <input
+            type="tel"
+            id="PhoneNumber"
+            name="PhoneNumber"
+            placeholder="Phone Number"
+            pattern="[0-9]*"
+            maxlength="15"
+            title="Only numbers allowed"
+            required
+          />
+
+          <!-- Password -->
+          <input
+            type="password"
+            id="signupPassword"
+            name="signupPassword"
+            placeholder="Password"
+            maxlength="50"
+            required
+          />
+
+          <!-- Confirm Password -->
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            placeholder="Confirm Password"
+            maxlength="50"
+            required
+          />
+
+          <button type="submit">SIGN UP</button>
+        </form>
+        <p>Already have an Account? <a href="login.html">Login Here</a></p>
+      </div>
     </div>
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
