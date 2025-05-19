@@ -318,38 +318,124 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-// document.getElementById("login-form").addEventListener("submit", async function (e) {
-//   e.preventDefault();
+document.getElementById("login-form").addEventListener("submit", async function (e) {
+  e.preventDefault();
 
-//   const signupEmail = e.target.signupEmail.value;
-//   const signupPassword = e.target.signupPassword.value;
+  const signupEmail = e.target.signupEmail.value;
+  const signupPassword = e.target.signupPassword.value;
 
-//   try {
-//     const response = await fetch("/login", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json"
-//       },
-//       body: JSON.stringify({ signupEmail, signupPassword })
-//     });
+  try {
+    const response = await fetch("/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ signupEmail, signupPassword })
+    });
 
-//     const result = await response.text();
+    const result = await response.text();
 
-//     if (result.includes("✅ Login successful") || response.redirected) {
-//       // ✅ Set flag in localStorage
-//       localStorage.setItem("isLoggedIn", "true");
+    if (result.includes("✅ Login successful") || response.redirected) {
+      // ✅ Set flag in localStorage
+      localStorage.setItem("isLoggedIn", "true");
 
-//       // ✅ Redirect to main.html
-//       window.location.href = "/main.html";
-//     } else {
-//       alert(result); // ❌ Show error message (wrong password/email)
-//     }
-//   } catch (err) {
-//     console.error("Login failed", err);
-//     alert("❌ Login failed due to a server error.");
-//   }
-// });
+      // ✅ Redirect to main.html
+      window.location.href = "/main.html";
+    } else {
+      alert(result); // ❌ Show error message (wrong password/email)
+    }
+  } catch (err) {
+    console.error("Login failed", err);
+    alert("❌ Login failed due to a server error.");
+  }
+});
 
 
 
 //NEW TODAY
+// window.onload = async () => {
+//       try {
+//         const res = await fetch("/getUser");
+//         if (!res.ok) throw new Error("Network error");
+//         const data = await res.json();
+
+//         if (data.loggedIn) {
+//           document.getElementById("login-link").innerHTML =
+//             `<a href="#" onclick="showProfile()">PROFILE</a>`;
+//           document.getElementById("profile-name").innerText = data.fullname;
+//           document.getElementById("profile-email").innerText = data.signupEmail;
+//         }
+//       } catch (err) {
+//         console.error("Error fetching user info:", err);
+//       }
+//     };
+
+//     function showProfile() {
+//       const profileSection = document.getElementById("profile-section");
+//       profileSection.style.display =
+//         profileSection.style.display === "block" ? "none" : "block";
+//     }
+
+//     function logout() {
+//       window.location.href = "/logout";
+//     }
+
+// 2nd
+// window.onload = async () => {
+//   try {
+//     const res = await fetch("/getUser");
+//     if (!res.ok) throw new Error("Network error");
+
+//     const data = await res.json();
+
+//     const loginLink = document.getElementById("login-link");
+
+//     if (data.loggedIn) {
+//       loginLink.innerHTML = `<a href="profile.html">PROFILE</a>`;
+//     } else {
+//       loginLink.innerHTML = `<a href="login.html">LOGIN</a>`;
+//     }
+//   } catch (err) {
+//     console.error("Error fetching user info:", err);
+//   }
+// };
+
+
+// window.onload = async () => {
+//   try {
+//     const res = await fetch("/getUser", { credentials: "include" });
+//     if (!res.ok) throw new Error("Network error");
+
+//     const data = await res.json();
+
+//     const loginLink = document.getElementById("login-link");
+//     const signupLink = document.getElementById("signup-link");
+//     const navLinks = document.getElementById("nav-links");
+
+//     if (data.loggedIn) {
+//       loginLink.innerHTML = "PROFILE";
+//       loginLink.href = "profile.html";
+
+//       if (signupLink) signupLink.style.display = "none";
+
+//       if (!document.getElementById("logout-link")) {
+//         const logoutLink = document.createElement("a");
+//         logoutLink.href = "/logout";
+//         logoutLink.id = "logout-link";
+//         logoutLink.innerText = "LOGOUT";
+//         navLinks.appendChild(logoutLink);
+//       }
+//     } else {
+//       loginLink.innerHTML = "LOGIN";
+//       loginLink.href = "login.html";
+
+//       if (signupLink) signupLink.style.display = "inline";
+
+//       const logoutLink = document.getElementById("logout-link");
+//       if (logoutLink) logoutLink.remove();
+//     }
+//   } catch (err) {
+//     console.error("Error fetching user info:", err);
+//   }
+// };
+

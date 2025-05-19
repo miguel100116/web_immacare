@@ -48,6 +48,7 @@ body {
 .navbar a {
   color: white;
   text-decoration: none;
+  font-size: 20px;
   margin: 0 20px;
   font-weight: bold;
   position: relative; 
@@ -338,13 +339,13 @@ display: inline-block; /* Ensures the element respects text alignment */
   text-align: center;
   overflow: hidden;
   padding: 40px 20px;
-  transition: all 0.4s ease-in-out;
+  /* transition: all 0.4s ease-in-out; */
 }
 
-.container_services:hover {
+/* .container_services:hover {
   background-color: #002d82;
   transform: scale(1.10);
-}
+} */
 
 .title {
   font-size: 24px;
