@@ -121,6 +121,12 @@ function togglePassword() {
     passwordField.type = passwordField.type === "password" ? "text" : "password";
   }
 }
+function togglePassword() {
+  const passwordField = document.getElementById("confirmPassword");
+  if (passwordField) {
+    passwordField.type = passwordField.type === "confirmPassword" ? "text" : "confirmPassword";
+  }
+}
 
 // Debounce utility to optimize input events
 function debounce(func, delay = 300) {
