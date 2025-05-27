@@ -107,6 +107,66 @@
 //   });
 // });
 
+// Wait until the DOM is fully loaded
+document.addEventListener("DOMContentLoaded", () => {
+  // Toggle password visibility
+  const togglePassword = document.querySelector("#togglePassword");
+  const password = document.querySelector("#signupPassword");
+
+  if (togglePassword && password) {
+    togglePassword.addEventListener("click", function () {
+      const type = password.getAttribute("type") === "password" ? "text" : "password";
+      password.setAttribute("type", type);
+      this.classList.toggle("fa-eye-slash");
+    });
+  }
+
+  // Signup form validation
+  const form = document.getElementById("signupForm");
+  const fullNameInput = document.getElementById("fullName");
+  const phoneInput = document.getElementById("PhoneNumber");
+  const emailInput = document.getElementById("signupEmail");
+  const confirmPassword = document.getElementById("confirmPassword");
+
+  if (form && fullNameInput && phoneInput && emailInput && password && confirmPassword) {
+    // Prevent special characters and numbers in full name
+    fullNameInput.addEventListener("input", () => {
+      fullNameInput.value = fullNameInput.value.replace(/[^A-Za-z\s]/g, "");
+    });
+
+    // Prevent typing anything other than numbers in phone input
+    phoneInput.addEventListener("input", () => {
+      phoneInput.value = phoneInput.value.replace(/[^0-9]/g, "").slice(0, 11);
+    });
+
+    form.addEventListener("submit", (e) => {
+      // Check password match
+      if (password.value !== confirmPassword.value) {
+        e.preventDefault();
+        alert("Passwords do not match.");
+        return;
+      }
+
+      // Extra email format check
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailInput.value)) {
+        e.preventDefault();
+        alert("Please enter a valid email address.");
+        return;
+      }
+
+      // Phone number should be exactly 11 digits and start with "09"
+      if (phoneInput.value.length !== 11 || !phoneInput.value.startsWith("09")) {
+        e.preventDefault();
+        alert("Phone number must be 11 digits and start with '09'.");
+        return;
+      }
+
+      // Final form is good
+      alert("Sign-up successful!");
+    });
+  }
+});
 
 
 
