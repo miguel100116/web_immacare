@@ -107,71 +107,58 @@
 //   });
 // });
 
-// Wait until the DOM is fully loaded
 document.addEventListener("DOMContentLoaded", () => {
-  // Toggle password visibility
-  const togglePassword = document.querySelector("#togglePassword");
-  const password = document.querySelector("#signupPassword");
-
-  if (togglePassword && password) {
-    togglePassword.addEventListener("click", function () {
-      const type = password.getAttribute("type") === "password" ? "text" : "password";
-      password.setAttribute("type", type);
-      this.classList.toggle("fa-eye-slash");
-    });
-  }
-
-  // Signup form validation
   const form = document.getElementById("signupForm");
   const fullNameInput = document.getElementById("fullName");
   const phoneInput = document.getElementById("PhoneNumber");
   const emailInput = document.getElementById("signupEmail");
+  const password = document.getElementById("signupPassword");
   const confirmPassword = document.getElementById("confirmPassword");
 
-  if (form && fullNameInput && phoneInput && emailInput && password && confirmPassword) {
-    // Prevent special characters and numbers in full name
-    fullNameInput.addEventListener("input", () => {
-      fullNameInput.value = fullNameInput.value.replace(/[^A-Za-z\s]/g, "");
-    });
+  // Restrict Full Name: Only letters and spaces
+  fullNameInput.addEventListener("input", () => {
+    fullNameInput.value = fullNameInput.value.replace(/[^A-Za-z\s]/g, "");
+  });
 
-    // Prevent typing anything other than numbers in phone input
-    phoneInput.addEventListener("input", () => {
-      phoneInput.value = phoneInput.value.replace(/[^0-9]/g, "").slice(0, 11);
-    });
+  // Restrict Phone: Only numbers, max 11 digits
+  phoneInput.addEventListener("input", () => {
+    phoneInput.value = phoneInput.value.replace(/[^0-9]/g, "").slice(0, 11);
+  });
 
-    form.addEventListener("submit", (e) => {
-      // Check password match
-      if (password.value !== confirmPassword.value) {
-        e.preventDefault();
-        alert("Passwords do not match.");
-        return;
-      }
+  form.addEventListener("submit", (e) => {
+    const fullName = fullNameInput.value.trim();
+    const email = emailInput.value.trim();
 
-      // Extra email format check
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(emailInput.value)) {
-        e.preventDefault();
-        alert("Please enter a valid email address.");
-        return;
-      }
+    // Full Name Validation
+    if (fullName === "") {
+      e.preventDefault();
+      alert("Full name is required.");
+      return;
+    }
+    if (!/^[A-Za-z\s]+$/.test(fullName)) {
+      e.preventDefault();
+      alert("Full name must contain only letters and spaces.");
+      return;
+    }
 
-      // Phone number should be exactly 11 digits and start with "09"
-      if (phoneInput.value.length !== 11 || !phoneInput.value.startsWith("09")) {
-        e.preventDefault();
-        alert("Phone number must be 11 digits and start with '09'.");
-        return;
-      }
+    // Email Format Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      e.preventDefault();
+      alert("Please enter a valid email address.");
+      return;
+    }
 
-      // Final form is good
-      alert("Sign-up successful!");
-    });
-  }
+    // Password Match Check
+    if (password.value !== confirmPassword.value) {
+      e.preventDefault();
+      alert("Passwords do not match.");
+      return;
+    }
+
+    // Optional: You can add password strength rules here too
+  });
 });
-
-
-
-
-
 
 
 // Toggle password visibility
@@ -378,37 +365,39 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-document.getElementById("login-form").addEventListener("submit", async function (e) {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const signupEmail = e.target.signupEmail.value;
-  const signupPassword = e.target.signupPassword.value;
+  const email = e.target.signupEmail.value.trim();
+  const password = e.target.signupPassword.value;
+
+  const errorMessage = document.getElementById('errorMessage');
+  errorMessage.textContent = '';
 
   try {
-    const response = await fetch("/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ signupEmail, signupPassword })
+    const res = await fetch('http://localhost:5300/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // if you are using sessions and cookies
+      body: JSON.stringify({ signupEmail: email, signupPassword: password }),
     });
 
-    const result = await response.text();
+    const data = await res.json();
 
-    if (result.includes("✅ Login successful") || response.redirected) {
-      // ✅ Set flag in localStorage
-      localStorage.setItem("isLoggedIn", "true");
-
-      // ✅ Redirect to main.html
-      window.location.href = "/main.html";
-    } else {
-      alert(result); // ❌ Show error message (wrong password/email)
+    if (!res.ok) {
+      errorMessage.textContent = data.error || 'Login failed';
+      return;
     }
+
+    // On success, redirect
+    window.location.href = data.redirect || '/main.html';
+
   } catch (err) {
-    console.error("Login failed", err);
-    alert("❌ Login failed due to a server error.");
+    errorMessage.textContent = 'An error occurred. Please try again.';
+    console.error(err);
   }
 });
+
 
 
 

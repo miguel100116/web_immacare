@@ -5,35 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - ImmaCare+</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="navigation.js"></script>
+    <script defer src="navigation.js"></script>
   </head>
   <body>
     <header class="header">
-      <img class="header_logo" src="pics/immaculate.png" alt="">
+      <img class="header_logo" src="pics/immaculate.png" alt="ImmaCare+ Logo" />
       <nav class="navbar">
-          <a href="#home" data-nav="main.html" id="home-link" >HOME</a>
-          <a href="#doctors" data-nav="doctors.html">DOCTORS</a>
-          <a href="#appointment" data-nav="appointment.html">APPOINTMENT</a>
-          <a href="#container_services"  data-nav="services.html" >SERVICES</a>
-          <a href="#login" data-nav="login.html" class="active">LOGIN</a>
+        <a href="#" data-nav="main.html" id="home-link">HOME</a>
+        <a href="#" data-nav="doctors.html">DOCTORS</a>
+        <a href="#" data-nav="appointment.html">APPOINTMENT</a>
+        <a href="#" data-nav="services.html">SERVICES</a>
+         <a href="#" data-nav="profile.html" id="profile-link">PROFILE</a>
+        <!-- <a href="#" data-nav="login.html" id="login-link" class="active">LOGIN</a> -->
+        
       </nav>
-      <a href="#download" class="download-btn">Download the App</a>
-  </header>
-    </div>
+      <a href="#" class="download-btn">Download the App</a>
+    </header>
+
     <div class="container">
       <div class="login-box">
-        <img src="logo.png" alt="ImmaCare+ Logo" class="logo" />
+        <img src="pics/logo.png" alt="ImmaCare+ Logo" class="logo" />
         <h2>Login to your Account</h2>
-        <!-- nag add ng id sa baba -->
-        <form action="/login" method="POST" id="login-form">
-          <input type="email" name="signupEmail" placeholder="Email" required>
-          <input type="password" name="signupPassword" placeholder="Password" required>
-          <button type="submit">Login</button>
-      </form>
-        <p>Do not have an Account? <a href="signup.html">Sign Up Here</a></p>
+
+       <form id="loginForm">
+  <input type="email" id="email" name="signupEmail" placeholder="Email" required />
+  <input type="password" id="password" name="signupPassword" placeholder="Password" required />
+  <p><a href="forgotpassword.html">Forgot Password?</a></p>
+  <div id="errorMessage" style="color: red; margin-top: 8px;"></div>
+  <button type="submit">Login</button>
+</form>
+
+
+        <p>Don't have an account? <a href="signup.html">Sign Up Here</a></p>
       </div>
     </div>
-    <script src="script.js"></script>
   </body>
-  
 </html>
