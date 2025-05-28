@@ -14,7 +14,7 @@
             <a href="#home" data-nav="main.html" id="home-link" >HOME</a>
             <a href="#doctors" data-nav="doctors.html">DOCTORS</a>
             <a href="#appointment" data-nav="appointment.html" class="active">APPOINTMENT</a>
-            <a href="#container_services" data-nav="services.html"  >SERVICES</a>
+            <a href="myappointments.html">MY APPOINTMENTS</a>
             <a href="#login" data-nav="login.html">LOGIN</a>
         </nav>
         <a href="#download" class="download-btn">Download the App</a>
@@ -22,72 +22,127 @@
     <div class="appointment-wrapper">
     <div class="appointment-container">
         <h2 class="form-title">Patient Appointment Form</h2>
-        <form class="appointment-form">
-            <div class="form-field">
-                <label for="name">Name*</label>
-                <input type="text" id="name" name="name" required placeholder="Name">
-            </div>
-            <div class="form-field">
-                <label for="address">Address*</label>
-                <input type="text" id="address" name="address" required placeholder="Address">
-            </div>
-            <div class="form-field" >
-                <label for="age">Age*</label>
-                <input type="number" id="age" name="age" required placeholder="Age">
-            </div>
-            <div class="form-field">
-                <label for="phone">Phone Number*</label>
-                <input type="tel" id="phone" name="phone" required placeholder="Phone">
-            </div>
-            <div class="form-field">
-                <label for="specialization">Specialization*</label>
-                <select id="specialization" name="specialization" required>
-                    <option value="">Select Specialization</option>
-                    <option value="SURGERY">Surgery</option>
-                    <option value="CARDIOLOGY">Cardiology</option>
-                    <option value="DERMATOLOGY">Dermatology</option>
-                    <option value="DENTISTRY">Dentistry</option>
-                    <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
-                </select>
-            </div>
-            <div class="form-field">
-                <label for="doctor">Doctor*</label>
-                <select id="doctorName" name="doctor" required>
-                    <option value="">Select Doctor</option>
-                    <option value="Alarcon, Mark">Alarcon, Mark</option>
-                    <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
-                    <option value="Santos, Clara">Dr. Clara Santos</option>
-                    <option value="Reyes, John">Dr.Reyes, John</option>
-                    <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
-                    <option value="Matthew, Martin">Matthew, Martin</option>
-                    <option value="Brian, Yvonne">Brian, Yvonne</option>
-                </select>
-            </div>
-            <div class="form-field">
-                <label for="date">Date*</label>
-                <input type="date" id="date" name="date" required>
-            </div>
-            <div class="form-field">
-                <label for="time">Time*</label>
-                <select id="time" name="time" required>
-                    <option value="">Select Time</option>
-                    <option value="9:00 AM">9:00 AM</option>
-                    <option value="10:00 AM">10:00 AM</option>
-                    <option value="11:00 AM">11:00 AM</option>
-                    <option value="2:00 PM">2:00 PM</option>
-                    <option value="3:00 PM">3:00 PM</option>
-                    <option value="4:00 PM">4:00 PM</option>
-                </select>
-            </div>
-            <div class="form-field">
-                <label for="reason">Reason for Visit*</label>
-                <textarea id="reason" name="reason" rows="4" required></textarea>
-            </div>
-            <div class="form-note">
-                <p class="reminder-text">REMINDER: Please note that the Doctor's schedule might change without prior notice.</p>
-            </div>
-            <button type="submit" class="submit-btn">SUBMIT</button>
-        </form>
+
+<!--         
+    <form class="appointment-form" id="userDataForm" method="POST" action="/save-data">
+  <div class="form-field">
+    <label for="name">Name*</label>
+    <input type="text" id="name" name="patientName" required placeholder="Name">
+  </div>
+  <div class="form-field">
+    <label for="address">Address*</label>
+    <input type="text" id="address" name="address" required placeholder="Address">
+  </div>
+  <div class="form-field">
+    <label for="age">Age*</label>
+    <input type="number" id="age" name="age" required placeholder="Age">
+  </div>
+  <div class="form-field">
+    <label for="phone">Phone Number*</label>
+    <input type="tel" id="phone" name="phone" required placeholder="Phone">
+  </div>
+  <div class="form-field">
+    <label for="specialization">Specialization*</label>
+    <select id="specialization" name="specialization" required>
+      <option value="">Select Specialization</option>
+      <option value="SURGERY">Surgery</option>
+      <option value="CARDIOLOGY">Cardiology</option>
+      <option value="DERMATOLOGY">Dermatology</option>
+      <option value="DENTISTRY">Dentistry</option>
+      <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
+    </select>
+  </div>
+  <div class="form-field">
+    <label for="doctor">Doctor*</label>
+    <select id="doctorName" name="doctorName" required>
+      <option value="">Select Doctor</option>
+      <option value="Alarcon, Mark">Alarcon, Mark</option>
+      <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
+      <option value="Santos, Clara">Dr. Clara Santos</option>
+      <option value="Reyes, John">Dr. Reyes, John</option>
+      <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
+      <option value="Matthew, Martin">Matthew, Martin</option>
+      <option value="Brian, Yvonne">Brian, Yvonne</option>
+    </select>
+  </div>
+  <div class="form-field">
+    <label for="date">Date*</label>
+    <input type="date" id="date" name="date" required>
+  </div>
+  <div class="form-field">
+    <label for="time">Time*</label>
+    <select id="time" name="time" required>
+      <option value="">Select Time</option>
+      <option value="9:00 AM">9:00 AM</option>
+      <option value="10:00 AM">10:00 AM</option>
+      <option value="11:00 AM">11:00 AM</option>
+      <option value="2:00 PM">2:00 PM</option>
+      <option value="3:00 PM">3:00 PM</option>
+      <option value="4:00 PM">4:00 PM</option>
+    </select>
+  </div>
+  <div class="form-field">
+    <label for="reason">Reason*</label>
+    <textarea id="reason" name="reason" rows="3" placeholder="Reason for Appointment" required></textarea>
+  </div>
+  <button type="submit">Submit</button>
+</form> -->
+<form id="userDataForm" method="POST" action="/save-data">
+  <label for="patientName">Name*</label>
+  <input type="text" id="patientName" name="patientName" required placeholder="Name">
+
+  <label for="address">Address*</label>
+  <input type="text" id="address" name="address" required placeholder="Address">
+
+  <label for="age">Age*</label>
+  <input type="number" id="age" name="age" required placeholder="Age">
+
+  <label for="phone">Phone Number*</label>
+  <input type="tel" id="phone" name="phone" required placeholder="Phone">
+
+  <label for="specialization">Specialization*</label>
+  <select id="specialization" name="specialization" required>
+    <option value="">Select Specialization</option>
+    <option value="SURGERY">Surgery</option>
+    <option value="CARDIOLOGY">Cardiology</option>
+    <option value="DERMATOLOGY">Dermatology</option>
+    <option value="DENTISTRY">Dentistry</option>
+    <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
+  </select>
+
+  <label for="doctorName">Doctor*</label>
+  <select id="doctorName" name="doctorName" required>
+    <option value="">Select Doctor</option>
+    <option value="Alarcon, Mark">Alarcon, Mark</option>
+    <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
+    <option value="Santos, Clara">Dr. Clara Santos</option>
+    <option value="Reyes, John">Dr. Reyes, John</option>
+    <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
+    <option value="Matthew, Martin">Matthew, Martin</option>
+    <option value="Brian, Yvonne">Brian, Yvonne</option>
+  </select>
+
+  <label for="date">Date*</label>
+  <input type="date" id="date" name="date" required>
+
+  <label for="time">Time*</label>
+  <select id="time" name="time" required>
+    <option value="">Select Time</option>
+    <option value="9:00 AM">9:00 AM</option>
+    <option value="10:00 AM">10:00 AM</option>
+    <option value="11:00 AM">11:00 AM</option>
+    <option value="2:00 PM">2:00 PM</option>
+    <option value="3:00 PM">3:00 PM</option>
+    <option value="4:00 PM">4:00 PM</option>
+  </select>
+
+  <label for="reason">Reason*</label>
+  <textarea id="reason" name="reason" rows="3" placeholder="Reason for Appointment" required></textarea>
+
+  <button type="submit">Submit</button>
+</form>
+
+
     </div>
     
 </div>
