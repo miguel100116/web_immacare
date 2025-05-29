@@ -99,7 +99,7 @@
 // // })
 
 
-const bcrypt = require('bcrypt');
+
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -109,6 +109,7 @@ const nodemailer = require("nodemailer");
 const port = 5300;
 
 const app = express();
+const port = 5300;
 
 // === Enable CORS before any routes ===
 app.use(cors({
@@ -146,6 +147,7 @@ const userSchema = new mongoose.Schema({
      resetPasswordToken: String,
   resetPasswordExpires: Date
 });
+const Appointment = mongoose.model("Appointment", appointmentSchema);
 
 const Users = mongoose.model("data", userSchema);
 
@@ -175,7 +177,16 @@ app.get('/', (req, res) => {
 });
 
 // === Registration Route ===
+// Serve HTML pages
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/main.html', (req, res) => res.sendFile(path.join(__dirname, 'main.html')));
+app.get('/confirmation.html', (req, res) => res.sendFile(path.join(__dirname, 'confirmation.html')));
+
+
+// Register new user
 app.post('/post', async (req, res) => {
+  try {
     const { fullname, signupEmail, Age, Sex, PhoneNumber, signupPassword, confirmPassword } = req.body;
 
     if (signupPassword !== confirmPassword) {
@@ -329,10 +340,9 @@ app.get('/verify', async (req, res) => {
 
 // === Login Route ===
 app.post('/login', async (req, res) => {
+  try {
     const { signupEmail, signupPassword } = req.body;
-
-    try {
-        const user = await Users.findOne({ signupEmail });
+    const user = await Users.findOne({ signupEmail });
 
         if (!user) {
             return res.status(400).json({ error: "Account not found." });
@@ -530,176 +540,9 @@ app.get('/logout', (req, res) => {
     });
 });
 
+
+
 // === Start Server ===
 app.listen(port, () => {
-    console.log(`🚀 Server started on http://localhost:${port}`);
-});
-
-
-// //legitttttttttttttttttttt
-// const express = require('express');
-// const mongoose = require('mongoose');
-// const session = require('express-session');
-// const cors = require('cors');
-// const path = require('path');
-// const port = 5300;
-
-// const app = express();
-
-// // ✅ Middleware
-// app.use(cors({
-//     origin: 'http://localhost:5300', // frontend origin (NO filename here!)
-//     credentials: true
-// }));
-
-// app.use(express.static(__dirname));
-// app.use(express.urlencoded({ extended: true }));
-// app.use(express.json());
-// app.use(session({
-//     secret: 'immacareSecretKey123',
-//     resave: false,
-//     saveUninitialized: true,
-//     cookie: { secure: false } // true if using HTTPS
-// }));
-
-// // ✅ MongoDB Atlas connection
-// mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.net/accounts?retryWrites=true&w=majority');
-// const db = mongoose.connection;
-// db.once('open', () => {
-//     console.log("✅ MongoDB Atlas connected successfully.");
-// });
-
-// // ✅ MongoDB Schema
-// const userSchema = new mongoose.Schema({
-//     fullname: String,
-//     signupEmail: String,
-//     Age: String,
-//     Sex: String,
-//     PhoneNumber: String,
-//     signupPassword: String,
-//     confirmPassword: String
-// });
-// const Users = mongoose.model("data", userSchema);
-
-// // ✅ Serve HTML files
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'signup.html'));
-// });
-// app.get('/main.html', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'main.html'));
-// });
-// app.get('/doctor.html', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'doctor.html'));
-// });
-// app.get('/profile.html', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'profile.html'));
-// });
-// app.get('/login.html', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'login.html'));
-// });
-
-// // ✅ Registration
-// app.post('/post', async (req, res) => {
-//     const { fullname, signupEmail, Age, Sex, PhoneNumber, signupPassword, confirmPassword } = req.body;
-
-//     if (signupPassword !== confirmPassword) {
-//         return res.send("❌ Passwords do not match");
-//     }
-
-//     const user = new Users({
-//         fullname,
-//         signupEmail,
-//         Age,
-//         Sex,
-//         PhoneNumber,
-//         signupPassword,
-//         confirmPassword
-//     });
-
-//     await user.save();
-
-//     req.session.user = {
-//         fullname,
-//         signupEmail
-//     };
-
-//     console.log("✅ User registered:", user);
-//     res.redirect('/main.html');
-// });
-
-// // ✅ Login
-// app.post('/login', async (req, res) => {
-//     const { signupEmail, signupPassword } = req.body;
-
-//     try {
-//         const user = await Users.findOne({ signupEmail });
-
-//         if (!user) return res.send("❌ No account found with that email.");
-//         if (user.signupPassword !== signupPassword) return res.send("❌ Incorrect password.");
-
-//         req.session.user = {
-//             fullname: user.fullname,
-//             signupEmail: user.signupEmail
-//         };
-
-//         console.log("✅ Login successful:", user.fullname);
-//         res.redirect('/main.html');
-//     } catch (error) {
-//         console.error("Login error:", error);
-//         res.status(500).send("❌ Internal Server Error");
-//     }
-// });
-
-// // ✅ Session checker for navbar JS
-// app.get('/getUser', (req, res) => {
-//     if (req.session && req.session.user) {
-//         res.json({
-//             loggedIn: true,
-//             fullname: req.session.user.fullname,
-//             signupEmail: req.session.user.signupEmail
-//         });
-//     } else {
-//         res.json({ loggedIn: false });
-//     }
-// });
-
-// // ✅ Logout
-// app.get('/logout', (req, res) => {
-//     req.session.destroy(err => {
-//         if (err) return res.send("Error logging out");
-//         res.redirect('/');
-//     });
-// });
-
-// // ✅ Start server
-// app.listen(port, () => {
-//     console.log(`🚀 Server started at: http://localhost:${port}`);
-// });
-
-const appointmentSchema = new mongoose.Schema({
-  doctorName: String,
-  specialization: String,
-  date: String,
-  time: String,
-  patientName: String,
-  patientEmail: String,
-});
-
-const Appointment = mongoose.model("appointments", appointmentSchema);
-
-// Save appointment
-app.post('/appointment', async (req, res) => {
-  const appointment = new Appointment(req.body);
-  await appointment.save();
-  res.send("✅ Appointment scheduled!");
-});
-
-// Fetch all appointments
-app.get('/appointments', async (req, res) => {
-  try {
-    const appointments = await Appointment.find({});
-    res.json(appointments);
-  } catch (error) {
-    res.status(500).send("Error fetching appointments");
-  }
+  console.log(`🚀 Server started at http://localhost:${port}`);
 });

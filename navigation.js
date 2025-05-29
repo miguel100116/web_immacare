@@ -488,3 +488,17 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 //   }
 // };
 
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("/check-auth")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.loggedIn) {
+        const loginLink = document.getElementById("login-link");
+        if (loginLink) {
+          loginLink.textContent = "PROFILE";
+          loginLink.href = "profile.html"; // Link to profile page
+        }
+      }
+    })
+    .catch((err) => console.error("Auth check failed:", err));
+});
