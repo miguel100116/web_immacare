@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reset Password - ImmaCare+</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="reset-password-box">
+      <h2>Reset Your Password</h2>
+      <form id="resetPasswordForm">
+        <input type="password" id="newPassword" name="newPassword" placeholder="New Password" required />
+        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required />
+        <div id="message" style="color: red; margin-top: 8px;"></div>
+        <button type="submit">Reset Password</button>
+      </form>
+      <p><a href="login.html">Back to Login</a></p>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (!token) {
+      document.body.innerHTML = '<p>Invalid or missing token.</p>';
+    }
+
+    document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const newPassword = e.target.newPassword.value;
+      const confirmPassword = e.target.confirmPassword.value;
+      const message = document.getElementById('message');
+      message.textContent = '';
+
+      if (newPassword !== confirmPassword) {
+        message.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      try {
+        const res = await fetch('http://localhost:5300/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          message.textContent = data.error || 'Failed to reset password.';
+          return;
+        }
+
+        message.style.color = 'green';
+        message.textContent = 'Password reset successful! Redirecting to login...';
+
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 3000);
+
+      } catch (err) {
+        message.textContent = 'An error occurred. Please try again.';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
+     

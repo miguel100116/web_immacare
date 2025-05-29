@@ -34,7 +34,7 @@
             title="Only letters and spaces allowed"
             maxlength="50"
             required
-          />
+          required>
 
           <!-- Email (max 50 chars) -->
           <input
@@ -43,8 +43,9 @@
             name="signupEmail"
             placeholder="Email"
             maxlength="50"
-            required
-          />
+            
+            
+          required>
 
           <!-- Age (number only) -->
           <input
@@ -54,8 +55,8 @@
             placeholder="Age"
             min="1"
             max="120"
-            required
-          />
+            
+          required>
 
           <!-- Gender Radio Buttons -->
           <div class="gender-selection">
@@ -98,8 +99,9 @@
             maxlength="50"
             required
           />
+          
 
-          <button type="submit" >SIGN UP</button>
+          <button onclick="sendVerification()">Sign Up</button>
         </form>
         <p>Already have an Account? <a href="login.html">Login Here</a></p>
       </div>

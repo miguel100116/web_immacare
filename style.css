@@ -1307,16 +1307,6 @@ h2 {
   border-radius: 5px;
 }
 
-
-
-
-
-
-
-
-
-
-
 .signup-form {
   max-width: 400px; /* Limit form width */
   margin: 0 auto; /* Center form on the page */
@@ -1393,3 +1383,10 @@ label {
     font-size: 16px; /* Slightly smaller button text */
   }
 }
+.error-message {
+  color: red;
+  font-size: 0.9rem;
+  display: block;
+  margin-top: 4px;
+}
+

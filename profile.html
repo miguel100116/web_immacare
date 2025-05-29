@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="navigation.js"></script>
+</head>
+<body>
+  <header class="header">
+    <img class="header_logo" src="pics/immaculate.png" alt="">
+    <nav class="navbar">
+      <a href="#home" data-nav="main.html" id="home-link">HOME</a>
+      <a href="#doctors" data-nav="doctors.html">DOCTORS</a>
+      <a href="#appointment" data-nav="appointment.html">APPOINTMENT</a>
+      <a href="#services" data-nav="services.html">SERVICES</a>
+      <a href="#profile" data-nav="profile.html" class="active">PROFILE</a>
+      <!-- Logout link here -->
+      <a href="#" id="auth-link">LOGOUT</a>
+    </nav>
+    <a href="#download" class="download-btn">Download the App</a>
+  </header>
+
+  <div class="card">
+    <h2 id="name">Loading...</h2>
+    <p id="email"></p>
+    <!-- Logout button (optional if you already have LOGOUT in nav) -->
+    <button id="logout-btn">Logout</button>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+</html>

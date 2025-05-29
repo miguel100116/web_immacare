@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@getbrevo/brevo": "^2.2.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "mongoose": "^8.15.1",
+    "nodemailer": "^7.0.3",
+    "sib-api-v3-sdk": "^8.5.0",
+    "twilio": "^5.6.1"
+  }
+}
