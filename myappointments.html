@@ -192,7 +192,7 @@
               })
               .then(res => res.json())
               .then(() => location.reload())
-              .catch(err => console.error("❌ Failed to reschedule:", err));
+              .catch(err => console.error("Failed to reschedule:", err));
             }
           });
         });
@@ -206,12 +206,12 @@
                 method: "DELETE",
               })
               .then(() => location.reload())
-              .catch(err => console.error("❌ Failed to cancel:", err));
+              .catch(err => console.error("Failed to cancel:", err));
             }
           });
         });
       })
-      .catch((err) => console.error("❌ Failed to load appointments:", err));
+      .catch((err) => console.error("Failed to load appointments:", err));
   </script>
 </body>
 </html>
