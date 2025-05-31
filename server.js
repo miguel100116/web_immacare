@@ -106,10 +106,11 @@ const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require("nodemailer");
+const bcrypt = require('bcrypt'); // Add this import
+const UserData = require('./models/UserData');
 const port = 5300;
 
 const app = express();
-const port = 5300;
 
 // === Enable CORS before any routes ===
 app.use(cors({
@@ -124,7 +125,8 @@ app.use(express.json());
 app.use(session({
     secret: 'immacareSecretKey123',
     resave: false,
-    saveUninitialized: true
+    saveUninitialized: true,
+    cookie: { secure: false }
 }));
 
 // === MongoDB Atlas Connection ===
@@ -136,20 +138,28 @@ db.once('open', () => {
 
 // === User Schema ===
 const userSchema = new mongoose.Schema({
-    fullname: { type: String, required: true, unique: false },  // optional: remove unique if you want
+    fullname: { type: String, required: true },
     signupEmail: { type: String, required: true, unique: true },
     Age: String,
     Sex: String,
     PhoneNumber: String,
     signupPassword: String,
     isVerified: { type: Boolean, default: false },
-
-     resetPasswordToken: String,
-  resetPasswordExpires: Date
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 });
-const Appointment = mongoose.model("Appointment", appointmentSchema);
+
+// === Appointment Schema (if needed) ===
+const appointmentSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'data' },
+    date: Date,
+    time: String,
+    service: String,
+    status: { type: String, default: 'pending' }
+});
 
 const Users = mongoose.model("data", userSchema);
+const Appointment = mongoose.model("Appointment", appointmentSchema);
 
 // === Check if email exists ===
 app.post('/check-email', async (req, res) => {
@@ -171,42 +181,36 @@ app.post('/check-fullname', async (req, res) => {
     }
 });
 
-// === Serve signup page ===
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'signup.html'));
-});
-
-// === Registration Route ===
-// Serve HTML pages
+// === Serve HTML pages ===
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'signup.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/main.html', (req, res) => res.sendFile(path.join(__dirname, 'main.html')));
 app.get('/confirmation.html', (req, res) => res.sendFile(path.join(__dirname, 'confirmation.html')));
 
-
-// Register new user
+// === Registration Route ===
 app.post('/post', async (req, res) => {
-  try {
-    const { fullname, signupEmail, Age, Sex, PhoneNumber, signupPassword, confirmPassword } = req.body;
-
-    if (signupPassword !== confirmPassword) {
-        return res.status(400).json({ error: "❌ Passwords do not match" });
-    }
-    
-    if (signupPassword.length < 8 || !/[A-Z]/.test(signupPassword) ||
-        !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) ||
-        !/[^A-Za-z0-9]/.test(signupPassword)) {
-        return res.status(400).json({ error: "Password must meet complexity requirements" });
-    }
-    
-
     try {
+        const { fullname, signupEmail, Age, Sex, PhoneNumber, signupPassword, confirmPassword } = req.body;
+
+        // Password validation
+        if (signupPassword !== confirmPassword) {
+            return res.status(400).json({ error: "❌ Passwords do not match" });
+        }
+        
+        if (signupPassword.length < 8 || !/[A-Z]/.test(signupPassword) ||
+            !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) ||
+            !/[^A-Za-z0-9]/.test(signupPassword)) {
+            return res.status(400).json({ error: "Password must meet complexity requirements" });
+        }
+
+        // Check for existing users
         const emailExists = await Users.findOne({ signupEmail });
         if (emailExists) return res.status(400).json({ error: "Email already registered" });
 
         const nameExists = await Users.findOne({ fullname });
         if (nameExists) return res.status(400).json({ error: "Full name already registered" });
 
+        // Validation
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) {
             return res.status(400).json({ error: "Please enter a valid email address" });
         }
@@ -219,36 +223,34 @@ app.post('/post', async (req, res) => {
             return res.status(400).json({ error: "Please enter a valid phone number (at least 10 digits)" });
         }
 
-       const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
+        // Hash password
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
 
-const user = new Users({
-    fullname,
-    signupEmail,
-    Age,
-    Sex,
-    PhoneNumber,
-    signupPassword: hashedPassword,
-    confirmPassword: hashedPassword
-});
-await user.save();
-
-        req.session.user = { fullname, signupEmail };
-        console.log("✅ User registered:", user);
+        const user = new Users({
+            fullname,
+            signupEmail,
+            Age,
+            Sex,
+            PhoneNumber,
+            signupPassword: hashedPassword
+        });
+        
+        await user.save();
 
         // === Email Sending Setup with Brevo ===
         const transporter = nodemailer.createTransport({
             host: "smtp-relay.brevo.com",
             port: 587,
-            secure: false, // Use TLS
+            secure: false,
             auth: {
-                user: "8e2a3f001@smtp-brevo.com", // 
+                user: "8e2a3f001@smtp-brevo.com",
                 pass: "8hDCQ6NnwAV5JBHs"
             }
         });
 
         const mailOptions = {
-            from: '"ImmaCare+ <deguzmanjatrish@gmail.com>', // 
+            from: '"ImmaCare+" <deguzmanjatrish@gmail.com>',
             to: signupEmail,
             subject: "Verify your account - ImmaCare+",
             html: `
@@ -271,21 +273,58 @@ await user.save();
             `
         };
 
+        // Test the transporter before sending
+        try {
+            await transporter.verify();
+            console.log("✅ SMTP connection verified");
+        } catch (error) {
+            console.error("❌ SMTP connection failed:", error);
+            return res.status(500).json({ 
+                success: false,
+                error: "Email service is currently unavailable. Account created but verification email could not be sent." 
+            });
+        }
+
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.log("Email sending error:", error);
-                return res.status(500).json({ error: "Error sending verification email." });
+                return res.status(500).json({ 
+                    success: false,
+                    error: "Account created but verification email could not be sent. Please contact support." 
+                });
             }
             console.log("✅ Verification email sent:", info.response);
-            res.status(201).json({ 
-                success: true, 
-                message: "Registration successful! Please check your email to verify your account." 
+            res.status(201).json({
+                success: true,
+                message: "Registration successful! Please check your email to verify your account."
             });
         });
-
     } catch (error) {
-        console.error("Registration error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("Registration error details:", {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        
+        // Handle specific errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ 
+                success: false,
+                error: "Please check your input and try again." 
+            });
+        }
+        
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false,
+                error: "An account with this email already exists." 
+            });
+        }
+        
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to create account. Please try again later." 
+        });
     }
 });
 
@@ -340,186 +379,40 @@ app.get('/verify', async (req, res) => {
 
 // === Login Route ===
 app.post('/login', async (req, res) => {
-  try {
-    const { signupEmail, signupPassword } = req.body;
-    const user = await Users.findOne({ signupEmail });
+    try {
+        const { signupEmail, signupPassword } = req.body;
+        const user = await Users.findOne({ signupEmail });
 
         if (!user) {
-            return res.status(400).json({ error: "Account not found." });
+            return res.status(400).json({ error: "❌ No account found with that email." });
         }
 
+        // Check if email is verified
         if (!user.isVerified) {
-            return res.status(400).json({ error: "Please verify your email before logging in." });
+            return res.status(400).json({ error: "❌ Please verify your email before logging in." });
         }
 
-      const isMatch = await bcrypt.compare(signupPassword, user.signupPassword);
-if (!isMatch) {
-    return res.status(400).json({ error: "Incorrect password." });
-}
+        // Compare hashed password
+        const isPasswordValid = await bcrypt.compare(signupPassword, user.signupPassword);
+        if (!isPasswordValid) {
+            return res.status(400).json({ error: "❌ Incorrect password." });
+        }
 
-
+        // Save session
         req.session.user = {
             fullname: user.fullname,
             signupEmail: user.signupEmail
         };
 
         console.log("✅ Login successful:", user.fullname);
-        res.status(200).json({ redirect: '/main.html' });
+        res.json({ success: true, message: "Login successful!" });
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({ error: "❌ Internal Server Error" });
     }
 });
-const crypto = require('crypto');
 
-// Add a field to userSchema for reset token and expiration
-
-
-// Forgot password route
-app.post('/forgotpassword', async (req, res) => {
-  const { signupEmail } = req.body;
-
-  try {
-    const user = await Users.findOne({ signupEmail });
-    if (!user) {
-      return res.status(400).json({ error: "No account with that email found." });
-    }
-
-    // Generate token and expiration (e.g. 1 hour)
-    const token = crypto.randomBytes(20).toString('hex');
-    const expiration = Date.now() + 3600000; // 1 hour from now
-
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = expiration;
-    await user.save();
-
-    // Send email with reset link
-    const resetUrl = `http://localhost:5300/reset-password?token=${token}`;
-
-    const mailOptions = {
-      from: '"ImmaCare+ Support" <deguzmanjatrish@gmail.com>',
-      to: signupEmail,
-      subject: "Password Reset Request - ImmaCare+",
-      html: `
-        <p>Hello ${user.fullname},</p>
-        <p>You requested a password reset. Click the link below to reset your password:</p>
-        <a href="${resetUrl}">Reset Password</a>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log("Email sending error:", error);
-        return res.status(500).json({ error: "Failed to send reset email." });
-      }
-      console.log("Password reset email sent:", info.response);
-      res.json({ success: true, message: "Password reset email sent." });
-    });
-
-  } catch (error) {
-    console.error("Forgot password error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-app.post('/request-reset', async (req, res) => {
-  const { signupEmail } = req.body;
-
-  try {
-    const user = await Users.findOne({ signupEmail });
-    if (!user) return res.status(400).json({ error: "Email not found" });
-
-    // Generate token (random string)
-    const token = crypto.randomBytes(20).toString('hex');
-
-    // Set token and expiration (1 hour)
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour in ms
-    await user.save();
-
-    // Send reset email using Brevo SMTP (nodemailer)
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: "8e2a3f001@smtp-brevo.com",
-        pass: "8hDCQ6NnwAV5JBHs"
-      }
-    });
-
-    const resetUrl = `http://localhost:5300/reset-password?token=${token}`;
-
-    const mailOptions = {
-      from: `"ImmaCare+" <deguzmanjatrish@gmail.com>`,
-      to: signupEmail,
-      subject: "Password Reset Request",
-      html: `
-        <h3>Hello ${user.fullname},</h3>
-        <p>You requested a password reset. Click the link below to reset your password. This link is valid for 1 hour.</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>If you didn't request this, please ignore this email.</p>
-      `
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Password reset email error:", error);
-        return res.status(500).json({ error: "Error sending password reset email" });
-      }
-      console.log("✅ Password reset email sent:", info.response);
-      res.status(200).json({ message: "Password reset email sent. Please check your inbox." });
-    });
-
-  } catch (error) {
-    console.error("Request reset error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-app.post('/reset-password', async (req, res) => {
-  const { token, newPassword, confirmPassword } = req.body;
-
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: "Passwords do not match" });
-  }
-
-  // Same password validation as signup can be done here
-  if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) ||
-      !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) ||
-      !/[^A-Za-z0-9]/.test(newPassword)) {
-    return res.status(400).json({ error: "Password must meet complexity requirements" });
-  }
-
-  try {
-    const user = await Users.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: "Password reset token is invalid or has expired" });
-    }
-const hashedPassword = await bcrypt.hash(newPassword, 10);
-user.signupPassword = hashedPassword; // ✅ secure
-user.confirmPassword = hashedPassword;
-
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-
-    await user.save();
-
-    res.status(200).json({ message: "Password has been reset successfully." });
-  } catch (error) {
-    console.error("Reset password error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-
-
-// === Get Current User ===
+// === Get User Session ===
 app.get('/getUser', (req, res) => {
     if (req.session.user) {
         res.json({
@@ -532,17 +425,331 @@ app.get('/getUser', (req, res) => {
     }
 });
 
-// === Logout ===
+// === Get User Data Route ===
+app.get('/get-user-data', async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.user) {
+            return res.status(401).json({ 
+                success: false,
+                error: "Please log in to view your data." 
+            });
+        }
+
+        // Find the user
+        const user = await Users.findOne({ signupEmail: req.session.user.signupEmail });
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: "User not found." 
+            });
+        }
+
+        // Get user data
+        const userData = await UserData.findOne({ userId: user._id });
+
+        res.json({
+            success: true,
+            userData: userData
+        });
+
+    } catch (error) {
+        console.error("Get user data error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to retrieve user data. Please try again later." 
+        });
+    }
+});
+
+
+// === Logout Route ===
 app.get('/logout', (req, res) => {
     req.session.destroy(err => {
-        if (err) return res.send("Error logging out");
-        res.redirect('/');
+        if (err) return res.status(500).json({ error: "Error logging out" });
+        res.json({ success: true, message: "Logged out successfully" });
     });
+});
+
+// === Start Server ===
+app.listen(port, () => {
+    console.log(`🚀 Server started at http://localhost:${port}`);
+});
+// === Save Appointment Route ===
+app.post('/save-appointment', async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.user) {
+            return res.status(401).json({ 
+                success: false,
+                error: "Please log in to book an appointment." 
+            });
+        }
+
+        const { date, time, service, notes } = req.body;
+
+        // Validation
+        if (!date || !time || !service) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Please fill in all required fields (date, time, and service)." 
+            });
+        }
+
+        // Find the user
+        const user = await Users.findOne({ signupEmail: req.session.user.signupEmail });
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: "User not found." 
+            });
+        }
+
+        // Check if appointment time is in the future
+        const appointmentDateTime = new Date(`${date}T${time}`);
+        if (appointmentDateTime <= new Date()) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Please select a future date and time." 
+            });
+        }
+
+        // Check for conflicting appointments (optional)
+        const existingAppointment = await Appointment.findOne({
+            userId: user._id,
+            date: new Date(date),
+            time: time,
+            status: { $ne: 'cancelled' }
+        });
+
+        if (existingAppointment) {
+            return res.status(400).json({ 
+                success: false,
+                error: "You already have an appointment at this time." 
+            });
+        }
+
+        // Create new appointment
+        const appointment = new Appointment({
+            userId: user._id,
+            date: new Date(date),
+            time: time,
+            service: service,
+            notes: notes || '',
+            status: 'pending'
+        });
+
+        await appointment.save();
+        
+        res.json({ 
+            success: true, 
+            message: "Appointment booked successfully!",
+            appointment: {
+                id: appointment._id,
+                date: appointment.date,
+                time: appointment.time,
+                service: appointment.service,
+                status: appointment.status
+            }
+        });
+
+    } catch (error) {
+        console.error("Save appointment error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to book appointment. Please try again later." 
+        });
+    }
 });
 
 
 
-// === Start Server ===
-app.listen(port, () => {
-  console.log(`🚀 Server started at http://localhost:${port}`);
+
+// === Update Appointment Route ===
+app.put('/update-appointment/:id', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ 
+                success: false,
+                error: "Please log in to update appointments." 
+            });
+        }
+
+        const { id } = req.params;
+        const { date, time, service, notes, status } = req.body;
+
+        // Find the user
+        const user = await Users.findOne({ signupEmail: req.session.user.signupEmail });
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: "User not found." 
+            });
+        }
+
+        // Find and update the appointment
+        const appointment = await Appointment.findOneAndUpdate(
+            { _id: id, userId: user._id },
+            { 
+                ...(date && { date: new Date(date) }),
+                ...(time && { time }),
+                ...(service && { service }),
+                ...(notes !== undefined && { notes }),
+                ...(status && { status })
+            },
+            { new: true }
+        );
+
+        if (!appointment) {
+            return res.status(404).json({ 
+                success: false,
+                error: "Appointment not found." 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Appointment updated successfully!",
+            appointment: appointment
+        });
+
+    } catch (error) {
+        console.error("Update appointment error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to update appointment. Please try again later." 
+        });
+    }
+});
+
+// === Cancel Appointment Route ===
+app.delete('/cancel-appointment/:id', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ 
+                success: false,
+                error: "Please log in to cancel appointments." 
+            });
+        }
+
+        const { id } = req.params;
+
+        // Find the user
+        const user = await Users.findOne({ signupEmail: req.session.user.signupEmail });
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: "User not found." 
+            });
+        }
+
+        // Find and update appointment status to cancelled
+        const appointment = await Appointment.findOneAndUpdate(
+            { _id: id, userId: user._id },
+            { status: 'cancelled' },
+            { new: true }
+        );
+
+        if (!appointment) {
+            return res.status(404).json({ 
+                success: false,
+                error: "Appointment not found." 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Appointment cancelled successfully!",
+            appointment: appointment
+        });
+
+    } catch (error) {
+        console.error("Cancel appointment error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to cancel appointment. Please try again later." 
+        });
+    }
+});
+
+// === Get Available Time Slots Route ===
+app.get('/available-slots', async (req, res) => {
+    try {
+        const { date } = req.query;
+
+        if (!date) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Please provide a date." 
+            });
+        }
+
+        // Define available time slots (customize as needed)
+        const allTimeSlots = [
+            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+            '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
+        ];
+
+        // Get booked appointments for the date
+        const bookedAppointments = await Appointment.find({
+            date: new Date(date),
+            status: { $ne: 'cancelled' }
+        }).select('time');
+
+        const bookedTimes = bookedAppointments.map(apt => apt.time);
+        const availableSlots = allTimeSlots.filter(slot => !bookedTimes.includes(slot));
+
+        res.json({
+            success: true,
+            date: date,
+            availableSlots: availableSlots,
+            bookedSlots: bookedTimes
+        });
+
+    } catch (error) {
+        console.error("Get available slots error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to get available time slots." 
+        });
+    }
+});
+
+// === Get Appointments Route ===
+app.get('/get-appointments', async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.user) {
+            return res.status(401).json({ 
+                success: false,
+                error: "Please log in to view your appointments." 
+            });
+        }
+
+        // Find the user
+        const user = await Users.findOne({ signupEmail: req.session.user.signupEmail });
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                error: "User not found." 
+            });
+        }
+
+        // Get all appointments for this user
+        const appointments = await Appointment.find({ userId: user._id })
+            .sort({ date: 1, time: 1 }); // Sort by date and time
+
+        res.json({
+            success: true,
+            appointments: appointments,
+            count: appointments.length
+        });
+
+    } catch (error) {
+        console.error("Get appointments error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Unable to retrieve appointments. Please try again later." 
+        });
+    }
 });
