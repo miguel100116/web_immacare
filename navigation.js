@@ -107,9 +107,58 @@
 //   });
 // });
 
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("signupForm");
+  const fullNameInput = document.getElementById("fullName");
+  const phoneInput = document.getElementById("PhoneNumber");
+  const emailInput = document.getElementById("signupEmail");
+  const password = document.getElementById("signupPassword");
+  const confirmPassword = document.getElementById("confirmPassword");
 
+  // Restrict Full Name: Only letters and spaces
+  fullNameInput.addEventListener("input", () => {
+    fullNameInput.value = fullNameInput.value.replace(/[^A-Za-z\s]/g, "");
+  });
 
+  // Restrict Phone: Only numbers, max 11 digits
+  phoneInput.addEventListener("input", () => {
+    phoneInput.value = phoneInput.value.replace(/[^0-9]/g, "").slice(0, 11);
+  });
 
+  form.addEventListener("submit", (e) => {
+    const fullName = fullNameInput.value.trim();
+    const email = emailInput.value.trim();
+
+    // Full Name Validation
+    if (fullName === "") {
+      e.preventDefault();
+      alert("Full name is required.");
+      return;
+    }
+    if (!/^[A-Za-z\s]+$/.test(fullName)) {
+      e.preventDefault();
+      alert("Full name must contain only letters and spaces.");
+      return;
+    }
+
+    // Email Format Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      e.preventDefault();
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    // Password Match Check
+    if (password.value !== confirmPassword.value) {
+      e.preventDefault();
+      alert("Passwords do not match.");
+      return;
+    }
+
+    // Optional: You can add password strength rules here too
+  });
+});
 
 
 
@@ -327,22 +376,20 @@ document.getElementById("login-form").addEventListener("submit", async function 
   try {
     const response = await fetch("/login", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ signupEmail, signupPassword })
     });
 
-    const result = await response.text();
+    const result = await response.json();
 
-    if (result.includes("✅ Login successful") || response.redirected) {
-      // ✅ Set flag in localStorage
+    if (result.redirect) {
       localStorage.setItem("isLoggedIn", "true");
-
-      // ✅ Redirect to main.html
-      window.location.href = "/main.html";
-    } else {
-      alert(result); // ❌ Show error message (wrong password/email)
+      window.location.href = result.redirect; // ✅ Proper redirect
+    } else if (result.error) {
+      alert("❌ " + result.error);
     }
   } catch (err) {
     console.error("Login failed", err);
