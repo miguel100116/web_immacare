@@ -581,24 +581,64 @@ app.post('/reset-password', async (req, res) => {
 app.post('/save-data', ensureAuthenticated, async (req, res) => { // PROTECTED
   try {
     console.log("📨 Received appointment data:", req.body);
+    const { doctorName, date, time, patientName, specialization, reason, address, age, phone } = req.body; // Destructure for clarity
+
+    // === START: Double Booking Check ===
+    const existingAppointment = await Appointment.findOne({
+      doctorName: doctorName,
+      date: date,
+      time: time,
+      status: { $ne: 'Cancelled' } // Only consider Scheduled or Completed appointments as booked
+    });
+
+    if (existingAppointment) {
+      // For regular users, we might not want to send a JSON error if the form submission isn't AJAX.
+      // Sending a redirect with an error message is common.
+      // Or, if your appointment.html form uses AJAX, send JSON.
+      // For now, let's assume a redirect for this route.
+      console.warn(`WARN: Double booking attempt by ${req.session.user.signupEmail} for Dr. ${doctorName} at ${date} ${time}`);
+      return res.redirect(`/appointment.html?error=${encodeURIComponent(`Dr. ${doctorName} is already booked at ${time} on ${date}. Please choose a different time or date.`)}`);
+      // If using AJAX on client-side for this form:
+      // return res.status(409).json({ error: `Dr. ${doctorName} is already booked at ${time} on ${date}. Please choose a different time or date.` });
+    }
+    // === END: Double Booking Check ===
+
+    let patientEmailForDb = '';
+    let userIdForDb = '';
+
     if (req.session.user && req.session.user.signupEmail) {
-      req.body.patientEmail = req.session.user.signupEmail;
-      req.body.userId = req.session.user.id; // Store userId with appointment
+      patientEmailForDb = req.session.user.signupEmail;
+      userIdForDb = req.session.user.id;
     } else {
-        // This case should ideally not happen if ensureAuthenticated works
-        return res.status(401).send("User not authenticated to save appointment.");
+      // This case should ideally not happen if ensureAuthenticated works
+      return res.status(401).send("User not authenticated to save appointment.");
     }
 
-    const appointment = new Appointment(req.body);
+    const appointmentData = {
+        doctorName,
+        specialization,
+        date,
+        time,
+        patientName: patientName || req.session.user.fullname, // Use provided or session fullname
+        patientEmail: patientEmailForDb,
+        address,
+        age,
+        phone,
+        reason,
+        userId: userIdForDb,
+        status: 'Scheduled' // Default status
+    };
+
+    const appointment = new Appointment(appointmentData);
     await appointment.save();
 
     console.log("✅ Appointment saved:", appointment);
-    // Consider sending a JSON response instead of redirect for XHR requests
-    // For now, redirect is fine if your form submits traditionally or you handle redirect on client
-    res.redirect('/appointment.html?message=Appointment Saved!'); // Or a success page
+    res.redirect('/myappointments.html?message=Appointment%20Saved%20Successfully!'); // Redirect to myappointments
   } catch (err) {
     console.error("❌ Error saving appointment:", err);
-    res.status(500).send("Failed to save appointment");
+    // Send a generic error message or redirect to an error page
+    res.status(500).redirect(`/appointment.html?error=${encodeURIComponent("Failed to save appointment. Please try again.")}`);
+    // If using AJAX: res.status(500).json({ error: "Failed to save appointment. Please try again." });
   }
 });
 
@@ -628,6 +668,50 @@ app.get('/api/admin/appointments', ensureAdmin, async (req, res) => {
     console.error("SERVER ERROR in GET /api/admin/appointments:", err);
     res.status(500).json({ error: 'Server error fetching appointments' });
   }
+});
+
+app.post('/api/admin/appointments', ensureAdmin, async (req, res) => {
+    try {
+        const {
+            patientName, patientEmail, doctorName, specialization, date, time,
+            reason, address, age, phone, status // status can be set by admin
+        } = req.body;
+
+        // Add more validation as needed
+        if (!patientName || !doctorName || !date || !time || !status) {
+            return res.status(400).json({ error: 'Missing required fields for new appointment.' });
+        }
+
+        // === START: Double Booking Check ===
+        const existingAppointment = await Appointment.findOne({
+          doctorName: doctorName,
+          date: date,
+          time: time,
+          status: { $ne: 'Cancelled' } // Only consider Scheduled or Completed appointments
+        });
+
+        if (existingAppointment) {
+          console.warn(`ADMIN WARN: Double booking attempt for Dr. ${doctorName} at ${date} ${time}`);
+          return res.status(409).json({ error: `Dr. ${doctorName} is already booked at ${time} on ${date}. Please choose a different time or date.` }); // 409 Conflict
+        }
+        // === END: Double Booking Check ===
+
+        const newAppointment = new Appointment({
+            patientName, patientEmail, doctorName, specialization, date, time,
+            reason, address, age, phone, status
+            // userId can be tricky for admin-created appointments unless admin selects a user.
+            // For now, it might be null or linked to the admin if necessary.
+        });
+        await newAppointment.save();
+        console.log('✅ New appointment created by admin:', newAppointment._id);
+        res.status(201).json(newAppointment);
+    } catch (err) {
+        console.error('Error creating new appointment by admin:', err);
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ error: err.message });
+        }
+        res.status(500).json({ error: 'Server error creating appointment.' });
+    }
 });
 
 app.get('/get-appointments', ensureAuthenticated, async (req, res) => { // PROTECTED

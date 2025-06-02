@@ -4,196 +4,226 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <script src="navigation.js"></script>
+    <!-- If navigation.js is in a subfolder, update path -->
+    <script src="navigation/navigation.js" defer></script>
     <title>Appointment Form</title>
+    <style>
+        /* Basic Modal Styles (if not in style.css) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
     <header class="header">
-        <img class="header_logo" src="pics/immaculate.png" alt="">
+        <img class="header_logo" src="pics/immaculate.png" alt="Immaculate Conception Lying-In Logo">
         <nav class="navbar">
             <a href="#home" data-nav="main.html" id="home-link">HOME</a>
             <a href="#doctors" data-nav="doctors.html" id="doctors-link">DOCTORS</a>
-            <a href="#appointment" data-nav="appointment.html" id="appointment-link">APPOINTMENT</a>
-            <a href="myappointments.html" id="myappointments-link">MY APPOINTMENTS</a>
-
+            <a href="#appointment" data-nav="appointment.html" id="appointment-link" data-requires-login="true" style="display: none;">APPOINTMENT</a>
+            <a href="myappointments.html" id="myappointments-link" data-requires-login="true" style="display: none;">MY APPOINTMENTS</a>
             <a href="#login" data-nav="login.html" id="nav-login-link" class="nav-item-logged-out">LOGIN</a>
-            <a href="/logout" id="nav-logout-link" class="nav-item-logged-in">LOGOUT</a>
+            <a href="/logout" id="nav-logout-link" style="display: none;" class="nav-item-logged-in">LOGOUT</a>
         </nav>
         <a href="#download" class="download-btn">Download the App</a>
     </header>
+
     <div class="appointment-wrapper">
-    <div class="appointment-container">
-        <h2 class="form-title">Patient Appointment Form</h2>
+        <div class="appointment-container">
+            <h2 class="form-title">Patient Appointment Form</h2>
 
-<!--         
-    <form class="appointment-form" id="userDataForm" method="POST" action="/save-data">
-  <div class="form-field">
-    <label for="name">Name*</label>
-    <input type="text" id="name" name="patientName" required placeholder="Name">
-  </div>
-  <div class="form-field">
-    <label for="address">Address*</label>
-    <input type="text" id="address" name="address" required placeholder="Address">
-  </div>
-  <div class="form-field">
-    <label for="age">Age*</label>
-    <input type="number" id="age" name="age" required placeholder="Age">
-  </div>
-  <div class="form-field">
-    <label for="phone">Phone Number*</label>
-    <input type="tel" id="phone" name="phone" required placeholder="Phone">
-  </div>
-  <div class="form-field">
-    <label for="specialization">Specialization*</label>
-    <select id="specialization" name="specialization" required>
-      <option value="">Select Specialization</option>
-      <option value="SURGERY">Surgery</option>
-      <option value="CARDIOLOGY">Cardiology</option>
-      <option value="DERMATOLOGY">Dermatology</option>
-      <option value="DENTISTRY">Dentistry</option>
-      <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
-    </select>
-  </div>
-  <div class="form-field">
-    <label for="doctor">Doctor*</label>
-    <select id="doctorName" name="doctorName" required>
-      <option value="">Select Doctor</option>
-      <option value="Alarcon, Mark">Alarcon, Mark</option>
-      <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
-      <option value="Santos, Clara">Dr. Clara Santos</option>
-      <option value="Reyes, John">Dr. Reyes, John</option>
-      <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
-      <option value="Matthew, Martin">Matthew, Martin</option>
-      <option value="Brian, Yvonne">Brian, Yvonne</option>
-    </select>
-  </div>
-  <div class="form-field">
-    <label for="date">Date*</label>
-    <input type="date" id="date" name="date" required>
-  </div>
-  <div class="form-field">
-    <label for="time">Time*</label>
-    <select id="time" name="time" required>
-      <option value="">Select Time</option>
-      <option value="9:00 AM">9:00 AM</option>
-      <option value="10:00 AM">10:00 AM</option>
-      <option value="11:00 AM">11:00 AM</option>
-      <option value="2:00 PM">2:00 PM</option>
-      <option value="3:00 PM">3:00 PM</option>
-      <option value="4:00 PM">4:00 PM</option>
-    </select>
-  </div>
-  <div class="form-field">
-    <label for="reason">Reason*</label>
-    <textarea id="reason" name="reason" rows="3" placeholder="Reason for Appointment" required></textarea>
-  </div>
-  <button type="submit">Submit</button>
-</form> -->
-<form id="userDataForm" method="POST" action="/save-data">
-  <label for="patientName">Name*</label>
-  <input type="text" id="patientName" name="patientName" required placeholder="Name">
+            <div id="form-message-area" style="text-align:center; margin-bottom:15px; font-weight:bold; min-height: 1.2em;"></div>
 
-  <label for="address">Address*</label>
-  <input type="text" id="address" name="address" required placeholder="Address">
+            <form id="userDataForm" method="POST" action="/save-data">
+                <label for="patientName">Name*</label>
+                <input type="text" id="patientName" name="patientName" required placeholder="Name">
 
-  <label for="age">Age*</label>
-  <input type="number" id="age" name="age" required placeholder="Age">
+                <label for="address">Address*</label>
+                <input type="text" id="address" name="address" required placeholder="Address">
 
-  <label for="phone">Phone Number*</label>
-  <input type="tel" id="phone" name="phone" required placeholder="Phone">
+                <label for="age">Age*</label>
+                <input type="number" id="age" name="age" required placeholder="Age">
 
-  <label for="specialization">Specialization*</label>
-  <select id="specialization" name="specialization" required>
-    <option value="">Select Specialization</option>
-    <option value="SURGERY">Surgery</option>
-    <option value="CARDIOLOGY">Cardiology</option>
-    <option value="DERMATOLOGY">Dermatology</option>
-    <option value="DENTISTRY">Dentistry</option>
-    <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
-  </select>
+                <label for="phone">Phone Number*</label>
+                <input type="tel" id="phone" name="phone" required placeholder="Phone">
 
-  <label for="doctorName">Doctor*</label>
-  <select id="doctorName" name="doctorName" required>
-    <option value="">Select Doctor</option>
-    <option value="Alarcon, Mark">Alarcon, Mark</option>
-    <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
-    <option value="Santos, Clara">Dr. Clara Santos</option>
-    <option value="Reyes, John">Dr. Reyes, John</option>
-    <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
-    <option value="Matthew, Martin">Matthew, Martin</option>
-    <option value="Brian, Yvonne">Brian, Yvonne</option>
-  </select>
+                <label for="specialization">Specialization*</label>
+                <select id="specialization" name="specialization" required>
+                    <option value="">Select Specialization</option>
+                    <option value="SURGERY">Surgery</option>
+                    <option value="CARDIOLOGY">Cardiology</option>
+                    <option value="DERMATOLOGY">Dermatology</option>
+                    <option value="DENTISTRY">Dentistry</option>
+                    <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
+                </select>
 
-  <label for="date">Date*</label>
-  <input type="date" id="date" name="date" required>
+                <label for="doctorName">Doctor*</label>
+                <select id="doctorName" name="doctorName" required>
+                    <option value="">Select Doctor</option>
+                    <option value="Alarcon, Mark">Alarcon, Mark</option>
+                    <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
+                    <option value="Santos, Clara">Dr. Clara Santos</option>
+                    <option value="Reyes, John">Dr. Reyes, John</option>
+                    <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
+                    <option value="Matthew, Martin">Matthew, Martin</option>
+                    <option value="Brian, Yvonne">Brian, Yvonne</option>
+                </select>
 
-  <label for="time">Time*</label>
-  <select id="time" name="time" required>
-    <option value="">Select Time</option>
-    <option value="9:00 AM">9:00 AM</option>
-    <option value="10:00 AM">10:00 AM</option>
-    <option value="11:00 AM">11:00 AM</option>
-    <option value="2:00 PM">2:00 PM</option>
-    <option value="3:00 PM">3:00 PM</option>
-    <option value="4:00 PM">4:00 PM</option>
-  </select>
+                <label for="date">Date*</label>
+                <input type="date" id="date" name="date" required>
 
-  <label for="reason">Reason*</label>
-  <textarea id="reason" name="reason" rows="3" placeholder="Reason for Appointment" required></textarea>
+                <label for="time">Time*</label>
+                <select id="time" name="time" required>
+                    <option value="">Select Time</option>
+                    <option value="09:00 AM">09:00 AM</option>
+                    <option value="09:30 AM">09:30 AM</option>
+                    <option value="10:00 AM">10:00 AM</option>
+                    <option value="10:30 AM">10:30 AM</option>
+                    <option value="11:00 AM">11:00 AM</option>
+                    <option value="11:30 AM">11:30 AM</option>
+                    <option value="01:00 PM">01:00 PM</option>
+                    <option value="01:30 PM">01:30 PM</option>
+                    <option value="02:00 PM">02:00 PM</option>
+                    <option value="02:30 PM">02:30 PM</option>
+                    <option value="03:00 PM">03:00 PM</option>
+                    <option value="03:30 PM">03:30 PM</option>
+                    <option value="04:00 PM">04:00 PM</option>
+                    <option value="04:30 PM">04:30 PM</option>
+                </select>
 
-  <button type="submit">Submit</button>
-</form>
+                <label for="reason">Reason*</label>
+                <textarea id="reason" name="reason" rows="3" placeholder="Reason for Appointment" required></textarea>
 
-
+                <button type="submit">Submit</button>
+            </form>
+        </div>
     </div>
-    
-</div>
 
-<footer class="footer">
-    <div class="footer-section logo-section">
-      <img src="/pics/immaculate.png" alt="ImmaCare+ Logo" class="footer_logo">
-      <p class="tagline">Your health and well-being is our priority</p>
-    </div>
-  
-    <div class="footer_map">
-      <h4>Our Location</h4>
-      <iframe 
-      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.1234567890123!2d121.082083!3d14.575654!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397c9f23fd59f47%3A0x4e4e7a7d8a8a8a8a!2s233%20Dr%20Pilapil%20St%2C%20Pasig%2C%201600%20Metro%20Manila!5e0!3m2!1sen!2sph!4v1234567890123!5m2!1sen!2sph"  
-      allowfullscreen="" 
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade">
+    <footer class="footer">
+    </footer>
 
-  </iframe>
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeConfirmationModal">×</span>
+            <h3>Appointment Confirmation</h3>
+            <p id="confirmationMessage">Your appointment has been successfully booked!</p>
+            <button id="confirmBtn" class="btn">OK</button>
+        </div>
     </div>
-  
-    <div class="footer-section">
-      <h4>Address</h4>
-      <p><i class="fas fa-map-marker-alt"></i> 233 Doctor Pilapil St. Brgy San Miguel, Pasig City</p>
-  
-      <h4>Work Hours</h4>
-      <p><i class="far fa-calendar-alt"></i> Monday - Sunday</p>
-      <p><i class="far fa-clock"></i> 24/7</p>
-    </div>
-  
-    <div class="footer-section">
-      <h4>Contact Us</h4>
-      <p><i class="fas fa-phone"></i> +639 12 3456 789 | (02) 1234 5678</p>
-      <p>
-        <i class="fab fa-facebook-square"></i>
-        <a href="https://www.facebook.com" target="_blank">Immaculate Conception Lying-In & Multispecialty Clinic</a>
-      </p>
-    </div>
-  </footer>
-  <div id="confirmationModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h3>Appointment Confirmation</h3>
-      <p id="confirmationMessage">Your appointment has been successfully booked!</p>
-      <button id="confirmBtn" class="btn">Confirm</button>
-    </div>
-    <script src="auth.js"></script>
-    <script src="navigation/navigation.js" defer></script>
-    <script src="navigation/login.js" defer></script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageArea = document.getElementById('form-message-area');
+            const confirmationModal = document.getElementById('confirmationModal');
+            const closeModalButton = document.getElementById('closeConfirmationModal');
+            const confirmModalButton = document.getElementById('confirmBtn');
+            const confirmationMessageEl = document.getElementById('confirmationMessage'); // For custom messages
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorMsg = urlParams.get('error');
+            const successMsg = urlParams.get('message'); // Check if success message is for THIS page
+
+            if (errorMsg) {
+                messageArea.textContent = decodeURIComponent(errorMsg);
+                messageArea.style.color = 'red';
+                // Ensure confirmation modal is NOT shown if there's an error
+                if (confirmationModal) {
+                    confirmationModal.style.display = 'none';
+                }
+            } else if (successMsg && window.location.pathname.endsWith('/appointment.html')) {
+                // Only show success modal IF the success message is intended for THIS appointment.html page
+                // (Your current server logic redirects to myappointments.html on success, so this might not be hit often from /save-data)
+                if (messageArea) { // Also show it in the message area if you want
+                    messageArea.textContent = decodeURIComponent(successMsg);
+                    messageArea.style.color = 'green';
+                }
+                if (confirmationModal && confirmationMessageEl) {
+                    confirmationMessageEl.textContent = decodeURIComponent(successMsg); // Use the message from URL
+                    confirmationModal.style.display = 'flex'; // Use flex or block as per your modal CSS
+                }
+            } else {
+                // No error and no specific success message for this page, ensure modal is hidden
+                if (confirmationModal) {
+                    confirmationModal.style.display = 'none';
+                }
+            }
+
+            // Modal close functionality
+            if (closeModalButton) {
+                closeModalButton.onclick = function() {
+                    if (confirmationModal) confirmationModal.style.display = 'none';
+                }
+            }
+            if (confirmModalButton) { // "OK" button in modal
+                confirmModalButton.onclick = function() {
+                    if (confirmationModal) confirmationModal.style.display = 'none';
+                    // Optionally redirect or clear URL params
+                    // window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+            // Close modal if clicked outside of it
+            window.onclick = function(event) {
+                if (event.target == confirmationModal) {
+                    if (confirmationModal) confirmationModal.style.display = 'none';
+                }
+            }
+
+            // Pre-fill form if doctor and specialization are in URL (from doctors.html)
+            const doctorParam = urlParams.get('doctor');
+            const specParam = urlParams.get('specialization');
+            if (doctorParam) {
+                const doctorSelect = document.getElementById('doctorName');
+                if (doctorSelect) doctorSelect.value = decodeURIComponent(doctorParam);
+            }
+            if (specParam) {
+                const specSelect = document.getElementById('specialization');
+                if (specSelect) specSelect.value = decodeURIComponent(specParam);
+            }
+
+        });
+    </script>
 </body>
-
 </html>
