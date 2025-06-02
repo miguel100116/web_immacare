@@ -32,7 +32,12 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease-in-out;
 }
-
+.nav-item-logged-in {
+    display: none; /* Will be shown by JS if user is logged in */
+}
+.nav-item-logged-out {
+    display: inline; /* Or block/flex depending on your nav. Will be hidden by JS if user is logged in */
+}
 .header_logo {
   height: 3cm; /* You can adjust this value */
   width:auto; /* Keeps the aspect ratio */

@@ -5,35 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - ImmaCare+</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="navigation.js"></script>
+    <script src="navigation.js" defer></script> 
   </head>
   <body>
     <header class="header">
-      <img class="header_logo" src="pics/immaculate.png" alt="">
+      <img class="header_logo" src="pics/immaculate.png" alt="Immaculate Conception Lying-In Logo">
       <nav class="navbar">
-          <a href="#home" data-nav="main.html" id="home-link" >HOME</a>
-          <a href="#doctors" data-nav="doctors.html">DOCTORS</a>
-          <a href="#appointment" data-nav="appointment.html">APPOINTMENT</a>
-          <a href="myappointments.html">MY APPOINTMENTS</a>
-          <a href="#login" data-nav="login.html" class="active">LOGIN</a>
+          <a href="#home" data-nav="main.html" id="home-link">HOME</a>
+          <a href="#doctors" data-nav="doctors.html" id="doctors-link">DOCTORS</a>
+          <a href="#appointment" data-nav="appointment.html" id="appointment-link">APPOINTMENT</a>
+          <a href="myappointments.html" id="myappointments-link">MY APPOINTMENTS</a>
+
+          <a href="#login" data-nav="login.html" id="nav-login-link" class="nav-item-logged-out">LOGIN</a>
+          <a href="/logout" id="nav-logout-link" class="nav-item-logged-in">LOGOUT</a>
       </nav>
       <a href="#download" class="download-btn">Download the App</a>
-  </header>
-    </div>
+    </header>
     <div class="container">
       <div class="login-box">
         <img src="logo.png" alt="ImmaCare+ Logo" class="logo" />
         <h2>Login to your Account</h2>
-        <!-- nag add ng id sa baba -->
-        <form action="/login" method="POST" id="login-form">
+        <div id="message-area" style="color: red; margin-bottom: 10px; min-height: 1.2em;"></div>
+        <form id="login-form">
           <input type="email" name="signupEmail" placeholder="Email" required>
           <input type="password" name="signupPassword" placeholder="Password" required>
           <button type="submit">Login</button>
-      </form>
+        </form>
         <p>Do not have an Account? <a href="signup.html">Sign Up Here</a></p>
+        <!-- <p style="margin-top: 10px;"><a href="forgot-password.html">Forgot Password?</a></p> -->
       </div>
     </div>
-    <!-- <script src="script.js"></script> -->
+    <script src="navigation/navigation.js" defer></script>
+    <script src="navigation/login.js" defer></script>
   </body>
-  
 </html>

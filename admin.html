@@ -1,130 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmaCare Admin Dashboard</title>
+    <link rel="stylesheet" href="static/styles.css"> <!-- Make sure this path is correct -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Basic styles - you'll likely have more in styles.css */
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background-color: #f4f6f9;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Sidebar, Main Content, etc. styles would be in static/styles.css or here */
+
+        /* Navigation Fixes */
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .nav-item {
+            cursor: pointer;
+        }
+        .nav-item.active {
+            background-color: rgba(0,0,0,0.1); /* Example active style */
+        }
+        /* Add styles for .sidebar, .main-content, .top-bar, etc. if not in external CSS */
+    </style>
 </head>
 <body>
-  <div class="container mt-5">
-    <h1>Admin Dashboard</h1>
-    <ul class="nav nav-tabs" id="adminTab" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button
-          class="nav-link active"
-          id="users-tab"
-          data-bs-toggle="tab"
-          data-bs-target="#users"
-          type="button"
-          role="tab"
-        >
-          Users
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button
-          class="nav-link"
-          id="appointments-tab"
-          data-bs-toggle="tab"
-          data-bs-target="#appointments"
-          type="button"
-          role="tab"
-        >
-          Appointments
-        </button>
-      </li>
-    </ul>
-    <div class="tab-content" id="adminTabContent">
-      <!-- Users Tab -->
-      <div
-        class="tab-pane fade show active"
-        id="users"
-        role="tabpanel"
-      >
-        <table class="table table-striped mt-3">
-          <thead>
-            <tr>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Age</th>
-              <th>Phone</th>
-              <th>Verified</th>
-            </tr>
-          </thead>
-          <tbody id="usersTableBody"></tbody>
-        </table>
-      </div>
-      <!-- Appointments Tab -->
-      <div
-        class="tab-pane fade"
-        id="appointments"
-        role="tabpanel"
-      >
-        <table class="table table-striped mt-3">
-          <thead>
-            <tr>
-              <th>Doctor</th>
-              <th>Specialization</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Patient</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody id="appointmentsTableBody"></tbody>
-        </table>
-      </div>
+    <!-- Main Dashboard Container - Visible by default -->
+    <div class="container" id="dashboard-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>ImmaCare</h2>
+                <p>Admin Panel</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-target="dashboard">
+                    <a href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+                <li class="nav-item" data-target="appointments">
+                    <a href="#"><i class="fas fa-calendar-check"></i> Appointments</a>
+                </li>
+                <li class="nav-item" data-target="payments">
+                    <a href="#"><i class="fas fa-credit-card"></i> Payments</a>
+                </li>
+                <li class="nav-item" data-target="inventory">
+                    <a href="#"><i class="fas fa-boxes"></i> Inventory</a>
+                </li>
+                <li class="nav-item" data-target="settings">
+                    <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                </li>
+                 <li class="nav-item" data-target="users"> <!-- Added Users nav item -->
+                    <a href="#"><i class="fas fa-users-cog"></i> Manage Users</a>
+                </li>
+            </ul>
+            <div class="user-info">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="details">
+                    <h4 id="admin-user-fullname">Admin User</h4> <!-- ID for dynamic name -->
+                    <a href="/logout" id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a> <!-- Direct link to server logout -->
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="toggle-menu">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div class="search-bar">
+                    <input type="text" placeholder="Search...">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+                <div class="quick-actions">
+                    <a href="#" class="notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </a>
+                    <a href="#" class="message">
+                        <i class="fas fa-envelope"></i>
+                        <span class="badge">5</span>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section class="content-section dashboard-section active" id="dashboard">
+                <h1>Dashboard Overview</h1>
+                <!-- ... (rest of your dashboard content is fine) ... -->
+                 <div class="stats-cards">
+                    <div class="card">
+                        <div class="card-icon appointments">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Appointments</h3>
+                            <p class="count" id="dashboard-appointments-count">0</p>
+                            <p class="description">Total appointments</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon payments">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Payments</h3>
+                            <p class="count" id="dashboard-payments-today">₱0</p>
+                            <p class="description">Today's revenue (Example)</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon inventory">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Inventory</h3>
+                            <p class="count" id="dashboard-inventory-items">0</p>
+                            <p class="description">Available items (Example)</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon patients">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3>Registered Users</h3>
+                            <p class="count" id="dashboard-total-users">0</p>
+                            <p class="description">Total registered</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ... (rest of dashboard section) ... -->
+            </section>
+
+            <!-- Appointments Section -->
+            <section class="content-section appointments-section" id="appointments">
+                <div class="section-header">
+                    <h1>Appointments Management</h1>
+                    <!-- Removed Add New Appointment button for now, can be added back with functionality -->
+                </div>
+                 <div class="filters">
+                    <input type="text" id="appointments-search" placeholder="Search by patient name or ID...">
+                    <button id="appointments-search-btn">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="appointments-table">
+                        <thead>
+                            <tr>
+                                <th>Patient Name</th>
+                                <th>Email</th>
+                                <th>Doctor</th>
+                                <th>Specialization</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <!-- <th>Actions</th> -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Appointment data will be loaded here by admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- ... (rest of appointments section is fine) ... -->
+            </section>
+
+            <!-- Payments Section (Placeholder) -->
+            <section class="content-section payments-section" id="payments">
+                <h1>Payment Tracking</h1>
+                <p>Payment management features will be here.</p>
+                <!-- ... (rest of payments section is fine) ... -->
+            </section>
+
+            <!-- Inventory Section (Placeholder) -->
+            <section class="content-section inventory-section" id="inventory">
+                <h1>Inventory Management</h1>
+                <p>Inventory management features will be here.</p>
+                <!-- ... (rest of inventory section is fine) ... -->
+            </section>
+
+            <!-- Settings Section (Placeholder) -->
+            <section class="content-section settings-section" id="settings">
+                <h1>System Settings</h1>
+                <p>System settings and configurations will be here.</p>
+                <!-- ... (rest of settings section is fine) ... -->
+            </section>
+
+             <!-- Users Management Section (NEW) -->
+            <section class="content-section" id="users">
+                <div class="section-header">
+                    <h1>User Management</h1>
+                </div>
+                <div class="filters">
+                    <input type="text" id="users-search" placeholder="Search by name or email...">
+                    <button id="users-search-btn">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Phone Number</th>
+                                <th>Age</th>
+                                <th>Sex</th>
+                                <th>Verified</th>
+                                <th>Admin</th>
+                                <!-- <th>Actions</th> -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- User data will be loaded here by admin.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+
+        </main>
     </div>
-  </div>
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
-  ></script>
-  <script>
-    async function loadUsers() {
-      const res = await fetch('/api/admin/users');
-      const users = await res.json();
-      const tbody = document.getElementById('usersTableBody');
-      tbody.innerHTML = '';
-      users.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${u.fullname}</td>
-          <td>${u.signupEmail}</td>
-          <td>${u.Age || ''}</td>
-          <td>${u.PhoneNumber || ''}</td>
-          <td>${u.isVerified}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+    <!-- Modal Forms (Keep these as they are used for CRUD operations later) -->
+    <!-- ... (your existing modal HTML is fine) ... -->
+    <div class="modal" id="appointment-modal">
+        <!-- ... appointment modal content ... -->
+    </div>
+    <div class="modal" id="payment-modal">
+        <!-- ... payment modal content ... -->
+    </div>
+    <div class="modal" id="inventory-modal">
+        <!-- ... inventory modal content ... -->
+    </div>
+    <div class="modal" id="delete-modal">
+        <!-- ... delete modal content ... -->
+    </div>
 
-    async function loadAppointments() {
-      const res = await fetch('/api/admin/appointments');
-      const appts = await res.json();
-      const tbody = document.getElementById('appointmentsTableBody');
-      tbody.innerHTML = '';
-      appts.forEach(a => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${a.doctorName}</td>
-          <td>${a.specialization}</td>
-          <td>${a.date}</td>
-          <td>${a.time}</td>
-          <td>${a.patientName}</td>
-          <td>${a.reason}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      loadUsers();
-      loadAppointments();
-    });
-  </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+            const adminUserFullnameEl = document.getElementById('admin-user-fullname');
+            const logoutButton = document.getElementById('logout-button'); // Updated ID
+
+            // Function to show current admin user info (can be expanded)
+            async function loadAdminUserInfo() {
+                try {
+                    const response = await fetch('/getUser'); // Assumes this returns current user info
+                    if (response.ok) {
+                        const userData = await response.json();
+                        if (userData.loggedIn && userData.isAdmin) {
+                            if(adminUserFullnameEl) adminUserFullnameEl.textContent = userData.fullname || 'Admin';
+                        } else {
+                            // If not logged in as admin, redirect to main login
+                            window.location.href = '/login.html?message=Admin access required.';
+                        }
+                    } else {
+                         window.location.href = '/login.html?message=Session expired. Please login again.';
+                    }
+                } catch (error) {
+                    console.error("Error fetching admin user info:", error);
+                    window.location.href = '/login.html?message=Error validating session.';
+                }
+            }
+
+            loadAdminUserInfo(); // Load admin info on page load
+
+
+            // Sidebar Navigation
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navItems.forEach(navItem => navItem.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    contentSections.forEach(section => section.classList.remove('active'));
+                    const targetId = this.getAttribute('data-target');
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        targetSection.classList.add('active');
+                    }
+                });
+            });
+            
+            // Logout functionality (already handled by href="/logout", but can add JS confirmation)
+            if (logoutButton) {
+                logoutButton.addEventListener('click', function(e) {
+                    // Optional: Add a confirmation dialog before logging out
+                    // if (confirm("Are you sure you want to logout?")) {
+                    //     window.location.href = '/logout';
+                    // } else {
+                    //     e.preventDefault(); // Prevent navigation if user cancels
+                    // }
+                    // For now, direct navigation via href is fine.
+                });
+            }
+            
+            // Toggle sidebar on mobile
+            const toggleMenu = document.querySelector('.toggle-menu');
+            const sidebar = document.querySelector('.sidebar');
+            if (toggleMenu && sidebar) {
+                toggleMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active'); // Assuming 'active' class controls visibility/position
+                });
+            }
+        });
+    </script>
+    <!-- External admin.js for fetching data and populating tables -->
+    <script src="admin.js" defer></script>
 </body>
 </html>
