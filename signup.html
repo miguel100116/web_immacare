@@ -5,38 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign Up - ImmaCare+</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="navigation.js"></script>
+    <!-- If navigation.js is used on this page and is in a subfolder, update path -->
+    <!-- e.g., <script src="navigation/navigation.js" defer></script> -->
+    <script src="navigation.js" defer></script>
   </head>
   <body>
+    <!-- <header class="header"> ... </header> -->
+
     <div class="container">
       <div class="signup-box">
-        <img src="logo.png" alt="ImmaCare+ Logo" class="logo" />
+        <img src="pics/logo.png" alt="ImmaCare+ Logo" class="logo" />
         <h2>Create an Account</h2>
-        <!-- <form id="signupForm" action="/post" method="POST">
-                <input type="text" id="fullName" name="fullname" placeholder="Full Name" required>
-                <input type="email" id="signupEmail" name="signupEmail" placeholder="Email" required>
-                <input type="text" id="Age" name="Age" placeholder="Age" required>
-                <input type="text" id="Sex" name="Sex" placeholder="Sex" required>
-                <input type="text" id="PhoneNumber" name="PhoneNumber" placeholder="Phone Number" required>
-                <input type="password" id="signupPassword" name="signupPassword" placeholder="Password" required>
-                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required>
-                <button type="submit">SIGN UP</button>
-            </form>
-             -->
-        <form id="signupForm" action="/post" method="POST" class="signup-form">
-          <!-- Full Name (letters only) -->
+
+        <!-- ADDED: Message area for errors or success -->
+        <div id="signup-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></div>
+
+        <form id="signupForm" class="signup-form">
           <input
             type="text"
             id="fullName"
             name="fullname"
             placeholder="Full Name"
-            pattern="[A-Za-z ]+"
+            pattern="[A-Za-z\s]+"  {/* Allow spaces in full name */}
             title="Only letters and spaces allowed"
             maxlength="50"
             required
           />
-
-          <!-- Email (max 50 chars) -->
           <input
             type="email"
             id="signupEmail"
@@ -45,8 +39,6 @@
             maxlength="50"
             required
           />
-
-          <!-- Age (number only) -->
           <input
             type="number"
             id="Age"
@@ -56,30 +48,24 @@
             max="120"
             required
           />
-
-          <!-- Gender Radio Buttons -->
           <div class="gender-selection">
             <label>
-              <input type="radio" name="Sex" value="male" required /> Male
+              <input type="radio" name="Sex" value="Male" required /> Male
             </label>
             <label>
-              <input type="radio" name="Sex" value="female" /> Female
+              <input type="radio" name="Sex" value="Female" /> Female
             </label>
           </div>
-
-          <!-- Phone Number (numbers only) -->
           <input
             type="tel"
             id="PhoneNumber"
             name="PhoneNumber"
-            placeholder="Phone Number"
-            pattern="[0-9]*"
+            placeholder="Phone Number (e.g. 09xxxxxxxxx)"
+            pattern="[0-9]{11}"
             maxlength="11"
-            title="Only numbers allowed"
+            title="Please enter an 11-digit phone number"
             required
           />
-
-          <!-- Password -->
           <input
             type="password"
             id="signupPassword"
@@ -88,8 +74,7 @@
             maxlength="50"
             required
           />
-
-          <!-- Confirm Password -->
+          <small style="display: block; margin-top: -10px; margin-bottom: 10px; font-size: 0.8em;">
           <input
             type="password"
             id="confirmPassword"
@@ -98,12 +83,12 @@
             maxlength="50"
             required
           />
-
-          <button type="submit" >SIGN UP</button>
+          <button type="submit">SIGN UP</button>
         </form>
         <p>Already have an Account? <a href="login.html">Login Here</a></p>
       </div>
     </div>
-    <script src="script.js"></script>
+
+    <script src="navigation/signup.js" defer></script>
   </body>
 </html>

@@ -47,6 +47,36 @@ button {
     min-height: 100vh;
 }
 
+.status-badge {
+    padding: 0.2em 0.6em;
+    border-radius: 0.25em;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: white;
+}
+.status-scheduled { background-color: #007bff; /* Blue */ }
+.status-completed { background-color: #28a745; /* Green */ }
+.status-cancelled { background-color: #dc3545; /* Red */ }
+.status-admin { background-color: #ffc107; color: #333; /* Yellow */}
+.status-user { background-color: #6c757d; /* Gray */}
+.status-pending { background-color: #ffc107; color: #333; }
+.status-out-of-stock { background-color: #dc3545; /* Red */ }
+.status-low-stock { background-color: #ffc107; color: #333; /* Yellow */ }
+.status-in-stock { background-color: #28a745; /* Green */ }
+.action-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    margin: 0 3px;
+    font-size: 1.1em;
+}
+.action-btn:hover {
+    color: #0056b3;
+}
+.action-btn .fa-trash { color: #dc3545; }
+.action-btn .fa-trash:hover { color: #bd2130; }
+
 /* Sidebar Styles */
 .sidebar {
     width: var(--sidebar-width);

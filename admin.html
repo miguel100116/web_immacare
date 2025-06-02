@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ImmaCare Admin Dashboard</title>
-    <link rel="stylesheet" href="static/styles.css"> <!-- Make sure this path is correct -->
+    <link rel="stylesheet" href="adminStyles/styles.css"> <!-- Make sure this path is correct -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Basic styles - you'll likely have more in styles.css */
@@ -50,9 +50,6 @@
                 </li>
                 <li class="nav-item" data-target="appointments">
                     <a href="#"><i class="fas fa-calendar-check"></i> Appointments</a>
-                </li>
-                <li class="nav-item" data-target="payments">
-                    <a href="#"><i class="fas fa-credit-card"></i> Payments</a>
                 </li>
                 <li class="nav-item" data-target="inventory">
                     <a href="#"><i class="fas fa-boxes"></i> Inventory</a>
@@ -113,23 +110,13 @@
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-icon payments">
-                            <i class="fas fa-credit-card"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3>Payments</h3>
-                            <p class="count" id="dashboard-payments-today">₱0</p>
-                            <p class="description">Today's revenue (Example)</p>
-                        </div>
-                    </div>
-                    <div class="card">
                         <div class="card-icon inventory">
                             <i class="fas fa-boxes"></i>
                         </div>
                         <div class="card-info">
                             <h3>Inventory</h3>
                             <p class="count" id="dashboard-inventory-items">0</p>
-                            <p class="description">Available items (Example)</p>
+                            <p class="description">Available items</p>
                         </div>
                     </div>
                     <div class="card">
@@ -149,12 +136,11 @@
             <!-- Appointments Section -->
             <section class="content-section appointments-section" id="appointments">
                 <div class="section-header">
-                    <h1>Appointments Management</h1>
-                    <!-- Removed Add New Appointment button for now, can be added back with functionality -->
+                    <h1>Appointments Management <span id="appointments-view-indicator" style="font-size: 0.7em; color: #555;">(Active)</span></h1>
                 </div>
                  <div class="filters">
-                    <input type="text" id="appointments-search" placeholder="Search by patient name or ID...">
-                    <button id="appointments-search-btn">Search</button>
+                    <input type="text" id="appointments-search" placeholder="Search by patient, email, or doctor...">
+                    <button id="appointments-search-btn" class="filter-button">Search</button>
                 </div>
                 <div class="data-table">
                     <table id="appointments-table">
@@ -163,10 +149,10 @@
                                 <th>Patient Name</th>
                                 <th>Email</th>
                                 <th>Doctor</th>
-                                <th>Specialization</th>
                                 <th>Date</th>
                                 <th>Time</th>
-                                <!-- <th>Actions</th> -->
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -174,21 +160,36 @@
                         </tbody>
                     </table>
                 </div>
-                <!-- ... (rest of appointments section is fine) ... -->
             </section>
 
-            <!-- Payments Section (Placeholder) -->
-            <section class="content-section payments-section" id="payments">
-                <h1>Payment Tracking</h1>
-                <p>Payment management features will be here.</p>
-                <!-- ... (rest of payments section is fine) ... -->
-            </section>
-
-            <!-- Inventory Section (Placeholder) -->
+            <!-- Inventory Section -->
             <section class="content-section inventory-section" id="inventory">
-                <h1>Inventory Management</h1>
-                <p>Inventory management features will be here.</p>
-                <!-- ... (rest of inventory section is fine) ... -->
+                <div class="section-header">
+                    <h1>Inventory Management</h1>
+                    <button class="add-new-btn" id="add-new-inventory-item-btn"><i class="fas fa-plus"></i> Add New Item</button>
+                </div>
+                <div class="filters">
+                    <input type="text" id="inventory-search" placeholder="Search by item name...">
+                    <button id="inventory-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                                <th>Reorder Level</th>
+                                <th>Description</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Inventory data will be loaded here by admin.js -->
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
             <!-- Settings Section (Placeholder) -->
@@ -235,13 +236,85 @@
     <!-- Modal Forms (Keep these as they are used for CRUD operations later) -->
     <!-- ... (your existing modal HTML is fine) ... -->
     <div class="modal" id="appointment-modal">
-        <!-- ... appointment modal content ... -->
+       <form id="appointment-form">
+            <input type="hidden" id="appointment-id"> <!-- Keep for editing -->
+            <div class="form-group">
+                <label for="patient-name">Patient Name:</label>
+                <input type="text" id="patient-name" required>
+            </div>
+            <div class="form-group"> <!-- ADDED Patient Email for editing -->
+                <label for="patient-email-modal">Patient Email:</label>
+                <input type="email" id="patient-email-modal">
+            </div>
+            <div class="form-group"> <!-- ADDED Doctor Name for editing -->
+                <label for="doctor-name-modal">Doctor Name:</label>
+                <input type="text" id="doctor-name-modal" required>
+            </div>
+            <div class="form-group"> <!-- ADDED Specialization for editing -->
+                <label for="specialization-modal">Specialization:</label>
+                <input type="text" id="specialization-modal">
+            </div>
+            <div class="form-group">
+                <label for="appointment-date">Date:</label>
+                <input type="date" id="appointment-date" required>
+            </div>
+            <div class="form-group">
+                <label for="appointment-time">Time:</label>
+                <input type="time" id="appointment-time" required>
+            </div>
+            <!-- Removed service-type select, using doctorName and specialization inputs instead -->
+            <!-- If service is a distinct concept, add a field for it -->
+            <div class="form-group">
+                <label for="appointment-reason-modal">Reason:</label> <!-- ADDED -->
+                <textarea id="appointment-reason-modal" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="appointment-status-modal">Status:</label> <!-- Changed ID for clarity -->
+                <select id="appointment-status-modal" required>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+            <!-- Removed appointment-notes, can be added back if needed or merged with reason -->
+            <div class="form-actions">
+                <button type="button" class="cancel-btn" id="cancel-appointment-modal">Cancel</button> <!-- Changed ID -->
+                <button type="submit" class="save-btn">Save Appointment</button>
+            </div>
+        </form>
     </div>
-    <div class="modal" id="payment-modal">
-        <!-- ... payment modal content ... -->
-    </div>
-    <div class="modal" id="inventory-modal">
-        <!-- ... inventory modal content ... -->
+    <div class="modal" id="inventory-item-modal"> <!-- Changed ID -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="inventory-item-modal-title">Add New Inventory Item</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="inventory-item-form"> <!-- Changed ID -->
+                    <input type="hidden" id="inventory-item-id">
+                    <div class="form-group">
+                        <label for="inventory-item-name">Item Name:</label>
+                        <input type="text" id="inventory-item-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inventory-item-quantity">Quantity:</label>
+                        <input type="number" id="inventory-item-quantity" min="0" value="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inventory-item-reorder-level">Reorder Level:</label>
+                        <input type="number" id="inventory-item-reorder-level" min="0" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="inventory-item-description">Description:</label>
+                        <textarea id="inventory-item-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button> <!-- General cancel btn class -->
+                        <button type="submit" class="save-btn">Save Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     <div class="modal" id="delete-modal">
         <!-- ... delete modal content ... -->

@@ -58,8 +58,34 @@ function ensureAdmin(req, res, next) {
 }
 // --- END: Auth Middleware Definitions ---
 
+const inventoryItemSchema = new mongoose.Schema({
+    itemName: { type: String, required: true, unique: true }, // Assuming item names are unique
+    quantity: { type: Number, required: true, default: 0, min: 0 },
+    // Status will be derived, but you can store it if you want to override auto-calculation
+    // status: { type: String, enum: ['In Stock', 'Low Stock', 'Out of Stock'], default: 'Out of Stock'},
+    // You might want other fields like: unit, costPrice, sellingPrice, supplier, category, lastReorderedDate
+    description: String,
+    reorderLevel: { type: Number, default: 10 } // Example default reorder level
+}, { timestamps: true });
+
+// Virtual for status (calculated based on quantity and reorderLevel)
+inventoryItemSchema.virtual('status').get(function() {
+    if (this.quantity <= 0) {
+        return 'Out of Stock';
+    } else if (this.quantity <= this.reorderLevel) {
+        return 'Low Stock';
+    } else {
+        return 'In Stock';
+    }
+});
+
+// Ensure virtuals are included when converting to JSON
+inventoryItemSchema.set('toJSON', { virtuals: true });
+inventoryItemSchema.set('toObject', { virtuals: true });
+
+const InventoryItem = mongoose.model("InventoryItem", inventoryItemSchema, "inventory");
+
 // User Schema & Model
-// ... (your existing userSchema is fine - it has isAdmin) ...
 const userSchema = new mongoose.Schema({
     fullname: { type: String, required: true, unique: false },
     signupEmail: { type: String, unique: true, required: true },
@@ -89,8 +115,10 @@ const appointmentSchema = new mongoose.Schema({
   age: Number,
   phone: String,
   reason: String,
-  userId: String
-});
+  userId: String,
+  status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
+  isArchived: { type: Boolean, default: false }
+}, { timestamps: true });
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 
 
@@ -168,7 +196,35 @@ app.post('/check-fullname', async (req, res) => {
     }
 });
 
+app.post('/api/admin/inventory', ensureAdmin, async (req, res) => {
+    try {
+        const { itemName, quantity, description, reorderLevel /*, other fields */ } = req.body;
 
+        if (!itemName || quantity === undefined) { // quantity can be 0
+            return res.status(400).json({ error: 'Item name and quantity are required.' });
+        }
+        if (await InventoryItem.findOne({ itemName })) {
+             return res.status(400).json({ error: `Inventory item "${itemName}" already exists.` });
+        }
+
+        const newItem = new InventoryItem({
+            itemName,
+            quantity,
+            description,
+            reorderLevel: reorderLevel !== undefined ? reorderLevel : 10 // Use provided or default
+            // ... other fields
+        });
+        await newItem.save();
+        console.log('✅ New inventory item created by admin:', newItem._id);
+        res.status(201).json(newItem);
+    } catch (err) {
+        console.error('Error creating new inventory item by admin:', err);
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ error: err.message });
+        }
+        res.status(500).json({ error: 'Server error creating inventory item.' });
+    }
+});
 // Registration Route
 // ... (your /post registration route is fine) ...
 app.post('/post', async (req, res) => {
@@ -701,12 +757,105 @@ app.get('/api/admin/users', ensureAdmin, async (req, res) => {
 });
 app.get('/api/admin/appointments', ensureAdmin, async (req, res) => {
   try {
-    const allAppointments = await Appointment.find({});
+    // Fetch non-archived appointments, sort by status (custom order), then by date
+    const allAppointments = await Appointment.find({ isArchived: false })
+      .sort({
+        status: 1, // This will sort alphabetically: Cancelled, Completed, Scheduled
+        date: 1,   // Then by date
+        time: 1    // Then by time
+      });
     res.json(allAppointments);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error fetching appointments for admin:", err);
+    res.status(500).json({ error: 'Server error fetching appointments' });
   }
+});
+// Admin API: list all inventory items
+app.get('/api/admin/inventory', ensureAdmin, async (req, res) => {
+  try {
+    console.log('SERVER: GET /api/admin/inventory - Request received.');
+    const allItems = await InventoryItem.find({}); // Fetch all items for now
+
+    // Sort in JavaScript to achieve the custom status order
+    // because virtual fields can't be directly sorted in MongoDB find queries easily.
+    const customSortOrder = { 'Out of Stock': 1, 'Low Stock': 2, 'In Stock': 3 };
+    allItems.sort((a, b) => {
+        const statusOrderA = customSortOrder[a.status] || 4; // a.status is the virtual
+        const statusOrderB = customSortOrder[b.status] || 4; // b.status is the virtual
+        if (statusOrderA !== statusOrderB) {
+            return statusOrderA - statusOrderB;
+        }
+        return a.itemName.localeCompare(b.itemName); // Secondary sort by name
+    });
+
+    console.log(`SERVER: Found ${allItems.length} inventory items.`);
+    res.json(allItems);
+  } catch (err) {
+    console.error("SERVER ERROR in GET /api/admin/inventory:", err);
+    res.status(500).json({ error: 'Server error fetching inventory items' });
+  }
+});
+app.delete('/api/admin/inventory/:id', ensureAdmin, async (req, res) => {
+    try {
+        const itemId = req.params.id;
+        const deletedItem = await InventoryItem.findByIdAndDelete(itemId);
+
+        if (!deletedItem) {
+            return res.status(404).json({ error: 'Inventory item not found.' });
+        }
+        console.log(`✅ Inventory item ${itemId} deleted successfully.`);
+        res.json({ message: 'Inventory item deleted successfully.', deletedItem });
+    } catch (err) {
+        console.error(`Error deleting inventory item ${req.params.id}:`, err);
+        res.status(500).json({ error: 'Server error deleting inventory item.' });
+    }
+});
+
+
+app.put('/api/admin/appointments/:id/status', ensureAdmin, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const appointmentId = req.params.id;
+
+        if (!status || !['Scheduled', 'Completed', 'Cancelled'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status value provided.' });
+        }
+
+        const appointment = await Appointment.findByIdAndUpdate(
+            appointmentId,
+            { status: status },
+            { new: true, runValidators: true } // Return the updated document, run schema validators
+        );
+
+        if (!appointment) {
+            return res.status(404).json({ error: 'Appointment not found.' });
+        }
+        console.log(`✅ Appointment ${appointmentId} status updated to ${status}`);
+        res.json(appointment);
+    } catch (err) {
+        console.error(`Error updating appointment ${req.params.id} status:`, err);
+        res.status(500).json({ error: 'Server error updating appointment status.' });
+    }
+});
+
+app.put('/api/admin/appointments/:id/archive', ensureAdmin, async (req, res) => {
+    try {
+        const appointmentId = req.params.id;
+        const appointment = await Appointment.findById(appointmentId);
+
+        if (!appointment) {
+            return res.status(404).json({ error: 'Appointment not found.' });
+        }
+
+        appointment.isArchived = !appointment.isArchived; // Toggle the archive status
+        await appointment.save();
+
+        console.log(`✅ Appointment ${appointmentId} archived status set to ${appointment.isArchived}`);
+        res.json({ message: `Appointment ${appointment.isArchived ? 'archived' : 'unarchived'} successfully.`, appointment });
+    } catch (err) {
+        console.error(`Error archiving/unarchiving appointment ${req.params.id}:`, err);
+        res.status(500).json({ error: 'Server error toggling appointment archive status.' });
+    }
 });
 
 // Start server

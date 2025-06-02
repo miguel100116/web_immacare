@@ -1,120 +1,68 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // This function will check the server session and load initial data
-    initializeApp();
-
-    // Basic UI initializations (sidebar navigation, modal toggles)
-    initializeBaseUIEventListeners();
+    // Initial app setup (session check already in admin.html inline script)
+    // Now, directly load data since session check is done.
+    loadAllAdminData();
+    initializeAdditionalUIEventListeners(); // For modals, search, etc. that are not in inline script
 });
 
-async function initializeApp() {
-    // 1. Verify admin session and get user info (like fullname)
-    try {
-        const response = await fetch('/getUser'); // Your existing endpoint
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error fetching user session:', response.status, errorText);
-            // If server denied or errored, redirect to main login
-            window.location.href = `/login.html?message=Session_error_admin_(${response.status})`;
-            return;
-        }
-        const userData = await response.json();
 
-        if (userData.loggedIn && userData.isAdmin) {
-            const adminUserFullnameEl = document.getElementById('admin-user-fullname');
-            if (adminUserFullnameEl && userData.fullname) {
-                adminUserFullnameEl.textContent = userData.fullname;
-            }
-            // User is an authenticated admin, proceed to load dashboard data
-            await loadAllAdminData(); // Make sure this completes before further UI updates if needed
-        } else {
-            // Not logged in or not an admin, redirect to main application login
-            console.log('User not admin or not logged in, redirecting from admin panel.');
-            window.location.href = '/login.html?message=Admin_access_required';
-        }
-    } catch (error) {
-        console.error('Failed to verify admin session or load initial data:', error);
-        window.location.href = '/login.html?message=Failed_to_verify_session_or_load_data';
-    }
-}
-
-function initializeBaseUIEventListeners() {
-    // Navigation functionality for switching content sections
-    const navItems = document.querySelectorAll('.nav-item');
-    const contentSections = document.querySelectorAll('.content-section');
-
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            navItems.forEach(navItem => navItem.classList.remove('active'));
-            this.classList.add('active');
-
-            contentSections.forEach(section => section.classList.remove('active'));
-            const targetId = this.getAttribute('data-target');
-            const targetSection = document.getElementById(targetId);
-            if (targetSection) {
-                targetSection.classList.add('active');
-            }
-        });
-    });
-
-    // Toggle sidebar on mobile
-    const toggleMenu = document.querySelector('.toggle-menu');
-    const sidebar = document.querySelector('.sidebar');
-    if (toggleMenu && sidebar) {
-        toggleMenu.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
-        });
-    }
-
-    // Logout is handled by href="/logout" in admin.html for server-side session destruction.
-    // The #logout-button in admin.html has href="/logout"
-
-    // Basic Modal handling (opening, closing)
+function initializeAdditionalUIEventListeners() {
+    // Modal handling and search listeners
     initializeModalEventListeners();
-    setupSearchListeners();
+    setupSearchListeners(); // Call the consolidated search setup
+
+    // REMOVED: Event listener for 'add-new-appointment-btn'
+
+    // Specific "Add New Inventory Item" Button Listener (if the button exists in admin.html)
+    const addNewInventoryItemBtn = document.getElementById('add-new-inventory-item-btn');
+    if (addNewInventoryItemBtn) {
+        addNewInventoryItemBtn.addEventListener('click', () => openAddInventoryItemModal());
+    }
+     // Event listener for the toggle archived appointments button
+    const toggleArchivedBtn = document.getElementById('toggle-archived-view-btn');
+    if (toggleArchivedBtn) {
+        toggleArchivedBtn.addEventListener('click', () => {
+            showingArchivedAppointments = !showingArchivedAppointments; // Toggle the state
+            fetchAndStoreAppointments().then(appointments => { // Re-fetch and display
+                if (appointments) displayAppointmentsTable(appointments);
+                updateArchivedButtonText();
+                updateAppointmentsViewIndicator();
+            });
+        });
+    }
 }
 
 async function loadAllAdminData() {
-    // Fetch all necessary data concurrently
     try {
-        const [users, appointments] = await Promise.all([
+        const [users, appointments, inventoryItems] = await Promise.all([
             fetchAndStoreUsers(),
-            fetchAndStoreAppointments()
-            // Future: fetchAndStorePayments(), fetchAndStoreInventory()
+            fetchAndStoreAppointments(),
+            fetchAndStoreInventoryItems()
         ]);
 
-        // Now display them
         if (users) displayUsersTable(users);
         if (appointments) displayAppointmentsTable(appointments);
+        if (inventoryItems) displayInventoryTable(inventoryItems);
 
         updateDashboardStats({
             users: users ? users.length : 0,
-            appointments: appointments ? appointments.length : 0
-            // payments: 0, // Placeholder
-            // inventory: 0  // Placeholder
+            appointments: appointments ? appointments.length : 0,
+            inventory: inventoryItems ? inventoryItems.length : 0
         });
+        updateArchivedButtonText(); // Initialize button text for archived view
+        updateAppointmentsViewIndicator(); // Initialize view indicator for appointments
 
     } catch (error) {
         console.error("Error loading admin data:", error);
-        // Display a general error message on the dashboard or relevant sections
-        const dashboardSection = document.getElementById('dashboard');
-        if(dashboardSection) {
-            const errorDiv = document.createElement('div');
-            errorDiv.textContent = "Error loading dashboard data. Please try again later.";
-            errorDiv.style.color = "red";
-            errorDiv.style.padding = "20px";
-            dashboardSection.prepend(errorDiv);
-        }
     }
 }
 
-
 // --- USERS ---
-let allUsersDataCache = []; // Cache for client-side searching
+let allUsersDataCache = [];
 
 async function fetchAndStoreUsers() {
     try {
-        const response = await fetch('/api/admin/users'); // API endpoint from server.js
+        const response = await fetch('/api/admin/users');
         if (!response.ok) {
             throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`);
         }
@@ -124,7 +72,7 @@ async function fetchAndStoreUsers() {
         console.error('Error fetching users:', error);
         const tableBody = document.querySelector('#users-table tbody');
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading users.</td></tr>';
-        return null; // Indicate failure
+        return null;
     }
 }
 
@@ -134,7 +82,7 @@ function displayUsersTable(users) {
         console.error("User table body not found!");
         return;
     }
-    tableBody.innerHTML = ''; // Clear existing rows
+    tableBody.innerHTML = '';
 
     if (!users || users.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No users found.</td></tr>';
@@ -148,20 +96,19 @@ function displayUsersTable(users) {
         row.insertCell().textContent = user.PhoneNumber || 'N/A';
         row.insertCell().textContent = user.Age || 'N/A';
         row.insertCell().textContent = user.Sex || 'N/A';
-        row.insertCell().innerHTML = user.isVerified ? '<span class="status-badge status-completed">Yes</span>' : '<span class="status-badge status-pending">No</span>';
+        row.insertCell().innerHTML = user.isVerified ? '<span class="status-badge status-yes">Yes</span>' : '<span class="status-badge status-no">No</span>';
         row.insertCell().innerHTML = user.isAdmin ? '<span class="status-badge status-admin">Yes</span>' : '<span class="status-badge status-user">No</span>';
-        // Actions cell (for future edit/delete)
-        // const actionsCell = row.insertCell();
-        // actionsCell.innerHTML = `<button class="edit-btn" data-id="${user._id}" data-type="user"><i class="fas fa-edit"></i></button>`;
     });
 }
 
 // --- APPOINTMENTS ---
-let allAppointmentsDataCache = []; // Cache for client-side searching
+let allAppointmentsDataCache = [];
+let showingArchivedAppointments = false;
 
 async function fetchAndStoreAppointments() {
     try {
-        const response = await fetch('/api/admin/appointments'); // API endpoint from server.js
+        const apiUrl = showingArchivedAppointments ? '/api/admin/appointments?archived=true' : '/api/admin/appointments';
+        const response = await fetch(apiUrl);
         if (!response.ok) {
             throw new Error(`Failed to fetch appointments: ${response.status} ${response.statusText}`);
         }
@@ -170,8 +117,8 @@ async function fetchAndStoreAppointments() {
     } catch (error) {
         console.error('Error fetching appointments:', error);
         const tableBody = document.querySelector('#appointments-table tbody');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Error loading appointments.</td></tr>';
-        return null; // Indicate failure
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading appointments.</td></tr>';
+        return null;
     }
 }
 
@@ -183,139 +130,315 @@ function displayAppointmentsTable(appointments) {
     }
     tableBody.innerHTML = '';
 
+    const noDataMessage = showingArchivedAppointments ? 'No archived appointments found.' : 'No active appointments found.';
     if (!appointments || appointments.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No appointments found.</td></tr>';
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">${noDataMessage}</td></tr>`;
         return;
     }
 
     appointments.forEach(appt => {
         const row = tableBody.insertRow();
         row.insertCell().textContent = appt.patientName || 'N/A';
-        row.insertCell().textContent = appt.patientEmail || 'N/A'; // Ensure this field exists in your Appointment model
+        row.insertCell().textContent = appt.patientEmail || 'N/A';
         row.insertCell().textContent = appt.doctorName || 'N/A';
-        row.insertCell().textContent = appt.specialization || 'N/A';
         row.insertCell().textContent = appt.date ? new Date(appt.date).toLocaleDateString() : 'N/A';
         row.insertCell().textContent = appt.time || 'N/A';
-        // Actions cell (for future edit/delete)
-        // const actionsCell = row.insertCell();
-        // actionsCell.innerHTML = `<button class="edit-btn" data-id="${appt._id}" data-type="appointment"><i class="fas fa-edit"></i></button>`;
+
+        const statusCell = row.insertCell();
+        const statusBadge = document.createElement('span');
+        const statusText = appt.status || 'Scheduled';
+        statusBadge.classList.add('status-badge', `status-${statusText.toLowerCase()}`);
+        statusBadge.textContent = statusText;
+        statusCell.appendChild(statusBadge);
+
+        const actionsCell = row.insertCell();
+        const archiveButtonText = appt.isArchived ? 'Unarchive' : 'Archive';
+        const archiveButtonIcon = appt.isArchived ? 'fa-box-open' : 'fa-archive';
+        actionsCell.innerHTML = `
+            <button class="action-btn toggle-status-btn" data-id="${appt._id}" data-current-status="${statusText}" title="Toggle Status"><i class="fas fa-exchange-alt"></i></button>
+            <button class="action-btn archive-appointment-btn" data-id="${appt._id}" title="${archiveButtonText} Appointment"><i class="fas ${archiveButtonIcon}"></i></button>
+        `;
+
+        actionsCell.querySelector('.toggle-status-btn').addEventListener('click', (e) => toggleAppointmentStatus(e.currentTarget.dataset.id, e.currentTarget.dataset.currentStatus));
+        actionsCell.querySelector('.archive-appointment-btn').addEventListener('click', (e) => archiveAppointment(e.currentTarget.dataset.id, appt.isArchived));
     });
 }
+
+async function toggleAppointmentStatus(appointmentId, currentStatus) {
+    let nextStatus;
+    if (currentStatus === 'Scheduled') nextStatus = 'Completed';
+    else if (currentStatus === 'Completed') nextStatus = 'Cancelled';
+    else if (currentStatus === 'Cancelled') nextStatus = 'Scheduled';
+    else nextStatus = 'Scheduled';
+
+    if (!confirm(`Change status for appointment ID ${appointmentId.slice(-6)} from ${currentStatus} to ${nextStatus}?`)) return;
+
+    try {
+        const response = await fetch(`/api/admin/appointments/${appointmentId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: nextStatus })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to update status: ${response.statusText}`);
+        }
+        await loadAllAdminData();
+        alert(`Appointment status updated to ${nextStatus}.`);
+    } catch (error) {
+        console.error('Error toggling appointment status:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+async function archiveAppointment(appointmentId, isCurrentlyArchived) {
+    const action = isCurrentlyArchived ? "unarchive" : "archive";
+    if (!confirm(`Are you sure you want to ${action} appointment ID ${appointmentId.slice(-6)}?`)) return;
+
+    try {
+        const response = await fetch(`/api/admin/appointments/${appointmentId}/archive`, {
+            method: 'PUT'
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to ${action} appointment: ${response.statusText}`);
+        }
+        await loadAllAdminData();
+        alert(`Appointment has been ${action}d.`);
+    } catch (error) {
+        console.error(`Error ${action}ing appointment:`, error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+
+
+// --- INVENTORY ---
+let allInventoryDataCache = [];
+
+async function fetchAndStoreInventoryItems() {
+    try {
+        const response = await fetch('/api/admin/inventory');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch inventory: ${response.status} ${response.statusText}`);
+        }
+        allInventoryDataCache = await response.json();
+        return allInventoryDataCache;
+    } catch (error) {
+        console.error('Error fetching inventory:', error);
+        const tableBody = document.querySelector('#inventory-table tbody');
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading inventory.</td></tr>';
+        return null;
+    }
+}
+
+function displayInventoryTable(items) {
+    const tableBody = document.querySelector('#inventory-table tbody');
+    if (!tableBody) {
+        console.error("Inventory table body not found!");
+        return;
+    }
+    tableBody.innerHTML = '';
+
+    if (!items || items.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No inventory items found.</td></tr>';
+        return;
+    }
+
+    items.forEach(item => {
+        const row = tableBody.insertRow();
+        row.insertCell().textContent = item.itemName || 'N/A';
+        row.insertCell().textContent = item.quantity !== undefined ? item.quantity : 'N/A';
+        const statusCell = row.insertCell();
+        const statusBadge = document.createElement('span');
+        const statusText = item.status || 'N/A';
+        statusBadge.classList.add('status-badge', `status-${statusText.toLowerCase().replace(/\s+/g, '-')}`);
+        statusBadge.textContent = statusText;
+        statusCell.appendChild(statusBadge);
+        row.insertCell().textContent = item.reorderLevel !== undefined ? item.reorderLevel : 'N/A';
+        row.insertCell().textContent = item.description || 'N/A';
+        row.insertCell().textContent = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A');
+        const actionsCell = row.insertCell();
+        actionsCell.innerHTML = `
+            <button class="action-btn delete-inventory-item-btn" data-id="${item._id}" title="Delete Item"><i class="fas fa-trash"></i></button>
+        `;
+        actionsCell.querySelector('.delete-inventory-item-btn').addEventListener('click', (e) => deleteInventoryItem(e.currentTarget.dataset.id, item.itemName));
+    });
+}
+
+async function deleteInventoryItem(itemId, itemName) {
+    if (!confirm(`Are you sure you want to delete inventory item "${itemName || 'this item'}" (ID: ${itemId.slice(-6)})?`)) return;
+    try {
+        const response = await fetch(`/api/admin/inventory/${itemId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error || `Failed to delete: ${response.statusText}`);
+        }
+        await loadAllAdminData();
+        alert(`Inventory item "${itemName || 'ID: ' + itemId.slice(-6)}" deleted.`);
+    } catch (error) {
+        console.error('Error deleting inventory item:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+function openAddInventoryItemModal() {
+    const modal = document.getElementById('inventory-item-modal');
+    const form = document.getElementById('inventory-item-form');
+    if (!modal || !form) {
+        console.error("Inventory modal or form for ADD not found.");
+        return;
+    }
+    form.reset();
+    form.querySelector('#inventory-item-id').value = '';
+    const modalTitle = document.getElementById('inventory-item-modal-title');
+    if (modalTitle) modalTitle.textContent = 'Add New Inventory Item';
+    modal.style.display = 'flex';
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const newData = {
+            itemName: form.querySelector('#inventory-item-name').value,
+            quantity: form.querySelector('#inventory-item-quantity').value ? parseInt(form.querySelector('#inventory-item-quantity').value) : 0,
+            reorderLevel: form.querySelector('#inventory-item-reorder-level').value ? parseInt(form.querySelector('#inventory-item-reorder-level').value) : 10,
+            description: form.querySelector('#inventory-item-description').value,
+        };
+        if (!newData.itemName || newData.quantity === undefined || newData.quantity < 0) {
+            alert("Item Name and a valid Quantity (0 or more) are required.");
+            return;
+        }
+        try {
+            const response = await fetch('/api/admin/inventory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newData)
+            });
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `Failed to add item: ${response.statusText}`);
+            }
+            modal.style.display = 'none';
+            await loadAllAdminData();
+            alert('Inventory item added!');
+        } catch (error) {
+            console.error('Error adding inventory item:', error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+}
+
 
 // --- DASHBOARD STATS ---
 function updateDashboardStats(data = {}) {
-    // console.log("Updating dashboard stats with:", data); // For debugging
     if (data.users !== undefined) {
-        const usersCountEl = document.getElementById('dashboard-total-users');
-        if (usersCountEl) usersCountEl.textContent = data.users;
+        document.getElementById('dashboard-total-users').textContent = data.users;
     }
     if (data.appointments !== undefined) {
-        const apptsCountEl = document.getElementById('dashboard-appointments-count');
-        if (apptsCountEl) apptsCountEl.textContent = data.appointments;
+        document.getElementById('dashboard-appointments-count').textContent = data.appointments;
     }
-    // TODO: Update payment and inventory stats when those sections are implemented
-    const paymentsTodayEl = document.getElementById('dashboard-payments-today');
-    if (paymentsTodayEl && data.payments !== undefined) paymentsTodayEl.textContent = `₱${data.payments.toFixed(2)}`;
-    else if (paymentsTodayEl) paymentsTodayEl.textContent = '₱0.00';
-
-
-    const inventoryItemsEl = document.getElementById('dashboard-inventory-items');
-    if (inventoryItemsEl && data.inventory !== undefined) inventoryItemsEl.textContent = data.inventory;
-    else if (inventoryItemsEl) inventoryItemsEl.textContent = '0';
+    if (data.inventory !== undefined) {
+        document.getElementById('dashboard-inventory-items').textContent = data.inventory;
+    }
+    document.getElementById('dashboard-payments-today').textContent = '₱0.00'; // Placeholder
 }
 
-// --- SEARCH FUNCTIONALITY (Client-side for now) ---
+// --- UI HELPERS FOR ARCHIVED VIEW ---
+function updateArchivedButtonText() {
+    const toggleArchivedBtn = document.getElementById('toggle-archived-view-btn');
+    if (toggleArchivedBtn) {
+        if (showingArchivedAppointments) {
+            toggleArchivedBtn.innerHTML = '<i class="fas fa-calendar-check"></i> View Active';
+            toggleArchivedBtn.title = "Show active (non-archived) appointments";
+        } else {
+            toggleArchivedBtn.innerHTML = '<i class="fas fa-archive"></i> View Archived';
+            toggleArchivedBtn.title = "Show archived appointments";
+        }
+    }
+}
+
+function updateAppointmentsViewIndicator() {
+    const indicator = document.getElementById('appointments-view-indicator');
+    if (indicator) {
+        indicator.textContent = showingArchivedAppointments ? '(Archived)' : '(Active)';
+    }
+}
+
+// --- SEARCH FUNCTIONALITY (Consolidated) ---
 function setupSearchListeners() {
-    const usersSearchBtn = document.getElementById('users-search-btn');
-    const usersSearchInput = document.getElementById('users-search');
-    const appointmentsSearchBtn = document.getElementById('appointments-search-btn');
-    const appointmentsSearchInput = document.getElementById('appointments-search');
+    const searchConfigurations = [
+        {
+            btnId: 'users-search-btn',
+            inputId: 'users-search',
+            dataCache: () => allUsersDataCache,
+            displayFn: displayUsersTable,
+            filterLogic: (item, term) => (item.fullname && item.fullname.toLowerCase().includes(term)) ||
+                                         (item.signupEmail && item.signupEmail.toLowerCase().includes(term))
+        },
+        {
+            btnId: 'appointments-search-btn',
+            inputId: 'appointments-search',
+            dataCache: () => allAppointmentsDataCache,
+            displayFn: displayAppointmentsTable,
+            filterLogic: (item, term) => (item.patientName && item.patientName.toLowerCase().includes(term)) ||
+                                         (item.patientEmail && item.patientEmail.toLowerCase().includes(term)) ||
+                                         (item.doctorName && item.doctorName.toLowerCase().includes(term))
+        },
+        {
+            btnId: 'inventory-search-btn',
+            inputId: 'inventory-search',
+            dataCache: () => allInventoryDataCache,
+            displayFn: displayInventoryTable,
+            filterLogic: (item, term) => (item.itemName && item.itemName.toLowerCase().includes(term)) ||
+                                         (item.description && item.description.toLowerCase().includes(term))
+        }
+    ];
 
-    if (usersSearchBtn && usersSearchInput) {
-        const performUserSearch = () => {
-            const searchTerm = usersSearchInput.value.toLowerCase().trim();
-            if (!searchTerm) {
-                displayUsersTable(allUsersDataCache); // Show all if search is empty
-                return;
-            }
-            const filteredUsers = allUsersDataCache.filter(user =>
-                (user.fullname && user.fullname.toLowerCase().includes(searchTerm)) ||
-                (user.signupEmail && user.signupEmail.toLowerCase().includes(searchTerm))
-            );
-            displayUsersTable(filteredUsers);
-        };
-        usersSearchBtn.addEventListener('click', performUserSearch);
-        usersSearchInput.addEventListener('keyup', (event) => {
-            if (event.key === 'Enter') performUserSearch();
-        });
-    }
+    searchConfigurations.forEach(config => {
+        const searchBtn = document.getElementById(config.btnId);
+        const searchInput = document.getElementById(config.inputId);
 
-    if (appointmentsSearchBtn && appointmentsSearchInput) {
-        const performAppointmentSearch = () => {
-            const searchTerm = appointmentsSearchInput.value.toLowerCase().trim();
-             if (!searchTerm) {
-                displayAppointmentsTable(allAppointmentsDataCache); // Show all if search is empty
-                return;
-            }
-            const filteredAppointments = allAppointmentsDataCache.filter(appt =>
-                (appt.patientName && appt.patientName.toLowerCase().includes(searchTerm)) ||
-                (appt.patientEmail && appt.patientEmail.toLowerCase().includes(searchTerm)) ||
-                (appt.doctorName && appt.doctorName.toLowerCase().includes(searchTerm)) ||
-                (appt._id && appt._id.toLowerCase().includes(searchTerm)) // If appointments have _id
-            );
-            displayAppointmentsTable(filteredAppointments);
-        };
-        appointmentsSearchBtn.addEventListener('click', performAppointmentSearch);
-        appointmentsSearchInput.addEventListener('keyup', (event) => {
-            if (event.key === 'Enter') performAppointmentSearch();
-        });
-    }
+        if (searchBtn && searchInput) {
+            const performSearch = () => {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const currentDataCache = config.dataCache();
+                if (!searchTerm) {
+                    config.displayFn(currentDataCache);
+                    return;
+                }
+                const filteredData = currentDataCache.filter(item => config.filterLogic(item, searchTerm));
+                config.displayFn(filteredData);
+            };
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        } else {
+            console.warn(`Search elements not found for input: #${config.inputId} or button: #${config.btnId}`);
+        }
+    });
 }
 
 
-// --- MODAL EVENT LISTENERS (Basic open/close) ---
+// --- MODAL EVENT LISTENERS (General closing) ---
 function initializeModalEventListeners() {
     const modals = document.querySelectorAll('.modal');
     const closeModalButtons = document.querySelectorAll('.close-modal');
-    const modalTriggers = { // Define your actual modal trigger button IDs and corresponding modal IDs
-        // 'add-new-user-btn': 'user-form-modal',
-        // 'add-new-appointment-btn': 'appointment-form-modal',
-    };
-
-    Object.keys(modalTriggers).forEach(triggerId => {
-        const triggerButton = document.getElementById(triggerId);
-        if (triggerButton) {
-            triggerButton.addEventListener('click', () => {
-                const modalId = modalTriggers[triggerId];
-                const modalElement = document.getElementById(modalId);
-                if (modalElement) {
-                    modalElement.style.display = 'flex';
-                    // Optionally reset form inside modal here
-                }
-            });
-        }
-    });
 
     closeModalButtons.forEach(button => {
         button.addEventListener('click', () => {
-            const modal = button.closest('.modal');
-            if (modal) modal.style.display = 'none';
+            button.closest('.modal').style.display = 'none';
         });
     });
-
     modals.forEach(modal => {
         modal.addEventListener('click', (event) => {
-            if (event.target === modal) { // Clicked on modal background
-                modal.style.display = 'none';
-            }
+            if (event.target === modal) modal.style.display = 'none';
         });
     });
-
-    // Example: Cancel buttons inside modals (if they have a common class or specific IDs)
     document.querySelectorAll('.modal .cancel-btn').forEach(cancelBtn => {
         cancelBtn.addEventListener('click', () => {
-            const modal = cancelBtn.closest('.modal');
-            if (modal) modal.style.display = 'none';
+            cancelBtn.closest('.modal').style.display = 'none';
         });
     });
 }
