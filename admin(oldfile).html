@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <div class="container mt-5">
+    <h1>Admin Dashboard</h1>
+    <ul class="nav nav-tabs" id="adminTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link active"
+          id="users-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#users"
+          type="button"
+          role="tab"
+        >
+          Users
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          id="appointments-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#appointments"
+          type="button"
+          role="tab"
+        >
+          Appointments
+        </button>
+      </li>
+    </ul>
+    <div class="tab-content" id="adminTabContent">
+      <!-- Users Tab -->
+      <div
+        class="tab-pane fade show active"
+        id="users"
+        role="tabpanel"
+      >
+        <table class="table table-striped mt-3">
+          <thead>
+            <tr>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Age</th>
+              <th>Phone</th>
+              <th>Verified</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+      <!-- Appointments Tab -->
+      <div
+        class="tab-pane fade"
+        id="appointments"
+        role="tabpanel"
+      >
+        <table class="table table-striped mt-3">
+          <thead>
+            <tr>
+              <th>Doctor</th>
+              <th>Specialization</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Patient</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="appointmentsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+  ></script>
+  <script>
+    async function loadUsers() {
+      const res = await fetch('/api/admin/users');
+      const users = await res.json();
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '';
+      users.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.fullname}</td>
+          <td>${u.signupEmail}</td>
+          <td>${u.Age || ''}</td>
+          <td>${u.PhoneNumber || ''}</td>
+          <td>${u.isVerified}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadAppointments() {
+      const res = await fetch('/api/admin/appointments');
+      const appts = await res.json();
+      const tbody = document.getElementById('appointmentsTableBody');
+      tbody.innerHTML = '';
+      appts.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${a.doctorName}</td>
+          <td>${a.specialization}</td>
+          <td>${a.date}</td>
+          <td>${a.time}</td>
+          <td>${a.patientName}</td>
+          <td>${a.reason}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUsers();
+      loadAppointments();
+    });
+  </script>
+</body>
+</html>

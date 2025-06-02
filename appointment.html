@@ -11,11 +11,13 @@
     <header class="header">
         <img class="header_logo" src="pics/immaculate.png" alt="">
         <nav class="navbar">
-            <a href="#home" data-nav="main.html" id="home-link" >HOME</a>
-            <a href="#doctors" data-nav="doctors.html">DOCTORS</a>
-            <a href="#appointment" data-nav="appointment.html" class="active">APPOINTMENT</a>
-            <a href="myappointments.html">MY APPOINTMENTS</a>
-            <a href="#login" data-nav="login.html">LOGIN</a>
+            <a href="#home" data-nav="main.html" id="home-link">HOME</a>
+            <a href="#doctors" data-nav="doctors.html" id="doctors-link">DOCTORS</a>
+            <a href="#appointment" data-nav="appointment.html" id="appointment-link">APPOINTMENT</a>
+            <a href="myappointments.html" id="myappointments-link">MY APPOINTMENTS</a>
+
+            <a href="#login" data-nav="login.html" id="nav-login-link" class="nav-item-logged-out">LOGIN</a>
+            <a href="/logout" id="nav-logout-link" class="nav-item-logged-in">LOGOUT</a>
         </nav>
         <a href="#download" class="download-btn">Download the App</a>
     </header>
@@ -190,6 +192,8 @@
       <button id="confirmBtn" class="btn">Confirm</button>
     </div>
     <script src="auth.js"></script>
+    <script src="navigation/navigation.js" defer></script>
+    <script src="navigation/login.js" defer></script>
 </body>
 
 </html>
