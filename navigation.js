@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const doctor = localStorage.getItem('selectedDoctor');
   const specialization = localStorage.getItem('selectedSpecialization');
   
-  // Set form values if available
+// Set form values if available
   if (doctor && specialization) {
       document.getElementById('doctorName').value = doctor;
       document.getElementById('specialization').value = specialization;
@@ -367,35 +367,38 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-document.getElementById("login-form").addEventListener("submit", async function (e) {
-  e.preventDefault();
+// document.getElementById("login-form").addEventListener("submit", async function (e) {
+//   e.preventDefault();
 
-  const signupEmail = e.target.signupEmail.value;
-  const signupPassword = e.target.signupPassword.value;
+//   const signupEmail = e.target.signupEmail.value;
+//   const signupPassword = e.target.signupPassword.value;
 
-  try {
-    const response = await fetch("/login", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ signupEmail, signupPassword })
-    });
+//   try {
+//     const response = await fetch("/login", {
+//       method: "POST",
+//       credentials: "include", // Include cookies for session managemen
+//       headers: {
+//         "Content-Type": "application/json"
+//       },
+//       body: JSON.stringify({ signupEmail, signupPassword })
+//     });
 
-    const result = await response.json();
+//     const result = await response.text();
 
-    if (result.redirect) {
-      localStorage.setItem("isLoggedIn", "true");
-      window.location.href = result.redirect; // ✅ Proper redirect
-    } else if (result.error) {
-      alert("❌ " + result.error);
-    }
-  } catch (err) {
-    console.error("Login failed", err);
-    alert("❌ Login failed due to a server error.");
-  }
-});
+//     if (result.includes("✅ Login successful") || response.redirected) {
+//       // ✅ Set flag in localStorage
+//       localStorage.setItem("isLoggedIn", "true");
+
+//       // ✅ Redirect to main.html
+//       window.location.href = "/main.html";
+//     } else {
+//       alert(result); // ❌ Show error message (wrong password/email)
+//     }
+//   } catch (err) {
+//     console.error("Login failed", err);
+//     alert("❌ Login failed due to a server error.");
+//   }
+// });
 
 
 
