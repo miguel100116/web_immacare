@@ -602,6 +602,34 @@ app.post('/save-data', ensureAuthenticated, async (req, res) => { // PROTECTED
   }
 });
 
+app.get('/api/admin/appointments', ensureAdmin, async (req, res) => {
+  try {
+    const showArchived = req.query.archived === 'true'; // Check for query parameter
+
+    let query = {};
+    if (showArchived) {
+      query.isArchived = true;
+      console.log('SERVER: GET /api/admin/appointments - Fetching ARCHIVED appointments.');
+    } else {
+      // Fetch where isArchived is false OR isArchived does not exist (for older data)
+      query.$or = [{ isArchived: false }, { isArchived: { $exists: false } }];
+      console.log('SERVER: GET /api/admin/appointments - Fetching NON-ARCHIVED (active) appointments.');
+    }
+
+    const allAppointments = await Appointment.find(query)
+      .sort({
+        status: 1, // Sort by status first
+        date: 1,   // Then by date
+        time: 1    // Then by time
+      });
+    console.log(`SERVER: Found ${allAppointments.length} appointments matching query.`);
+    res.json(allAppointments);
+  } catch (err) {
+    console.error("SERVER ERROR in GET /api/admin/appointments:", err);
+    res.status(500).json({ error: 'Server error fetching appointments' });
+  }
+});
+
 app.get('/get-appointments', ensureAuthenticated, async (req, res) => { // PROTECTED
   try {
     // No need to check req.session.user again, ensureAuthenticated does it.
