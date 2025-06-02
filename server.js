@@ -41,7 +41,7 @@
       PhoneNumber: String,
       signupPassword: String,
        isVerified: { type: Boolean, default: false },
-          verificationToken: String,
+        verificationToken: String,
         resetPasswordToken: String,
       resetPasswordExpires: Date
 
