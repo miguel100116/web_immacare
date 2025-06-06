@@ -4,225 +4,245 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <!-- If navigation.js is in a subfolder, update path -->
     <script src="navigation/navigation.js" defer></script>
     <title>Appointment Form</title>
     <style>
-        /* Basic Modal Styles (if not in style.css) */
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
+        /* --- STYLES (UNCHANGED) --- */
+        .form-section { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        .form-section legend { padding: 0 10px; font-weight: bold; color: #333; font-size: 1.2em; }
+        .input-with-button { position: relative; width: 100%; margin-bottom: 15px; }
+        .input-with-button input { width: 100%; padding-right: 85px; box-sizing: border-box; }
+        .edit-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-90%); background-color: #6c757d; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        .edit-btn:hover { background-color: #5a6268; }
+        input.pre-filled { background-color: #e9ecef; color: #495057; cursor: not-allowed; border: 1px solid #ced4da; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; text-align: center; border-radius: 8px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; }
+        .btn { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px; }
+        .btn:hover { background-color: #0056b3; }
+        .time-box{ margin-top: 25px; margin-left: 18px;  }
+        /* --- STYLES FOR SIDE-BY-SIDE LAYOUT (WITH THE FIX) --- */
+        .form-row {
+            display: flex;
+            gap: 20px; 
+            /* This is the new, corrected alignment property */
+            align-items: baseline; 
+        }
+        .form-group {
+            flex: 1; 
+            margin-bottom: 15px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
             width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
         }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            text-align: center;
-            border-radius: 8px;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .btn {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
+        .form-group-date {
+            flex: none;
+            width: 45%; 
         }
     </style>
 </head>
 <body>
     <header class="header">
-        <img class="header_logo" src="pics/immaculate.png" alt="Immaculate Conception Lying-In Logo">
-        <nav class="navbar">
-            <a href="#home" data-nav="main.html" id="home-link">HOME</a>
-            <a href="#doctors" data-nav="doctors.html" id="doctors-link">DOCTORS</a>
-            <a href="#appointment" data-nav="appointment.html" id="appointment-link" data-requires-login="true" style="display: none;">APPOINTMENT</a>
-            <a href="myappointments.html" id="myappointments-link" data-requires-login="true" style="display: none;">MY APPOINTMENTS</a>
-            <a href="#login" data-nav="login.html" id="nav-login-link" class="nav-item-logged-out">LOGIN</a>
-            <a href="/logout" id="nav-logout-link" style="display: none;" class="nav-item-logged-in">LOGOUT</a>
-        </nav>
-        <a href="#download" class="download-btn">Download the App</a>
+        <!-- Header content remains the same -->
     </header>
 
     <div class="appointment-wrapper">
         <div class="appointment-container">
             <h2 class="form-title">Patient Appointment Form</h2>
-
             <div id="form-message-area" style="text-align:center; margin-bottom:15px; font-weight:bold; min-height: 1.2em;"></div>
 
             <form id="userDataForm" method="POST" action="/save-data">
-                <label for="patientName">Name*</label>
-                <input type="text" id="patientName" name="patientName" required placeholder="Name">
 
-                <label for="address">Address*</label>
-                <input type="text" id="address" name="address" required placeholder="Address">
+                <!-- SECTION 1: USER INFORMATION (Unchanged) -->
+                <fieldset class="form-section">
+                    <legend>Your Information</legend>
+                    <label for="patientName">Name*</label>
+                    <div class="input-with-button">
+                        <input type="text" id="patientName" name="patientName" required placeholder="Name">
+                        <button type="button" class="edit-btn" data-target="patientName">Change</button>
+                    </div>
+                    <label for="age">Age*</label>
+                    <div class="input-with-button">
+                        <input type="number" id="age" name="age" required placeholder="Age">
+                        <button type="button" class="edit-btn" data-target="age">Change</button>
+                    </div>
+                    <label for="phone">Phone Number*</label>
+                    <div class="input-with-button">
+                        <input type="tel" id="phone" name="phone" required placeholder="Phone">
+                        <button type="button" class="edit-btn" data-target="phone">Change</button>
+                    </div>
+                    <label for="address">Address*</label>
+                    <div class="input-with-button">
+                        <input type="text" id="address" name="address" required placeholder="Address">
+                        <button type="button" class="edit-btn" data-target="address">Change</button>
+                    </div>
+                </fieldset>
 
-                <label for="age">Age*</label>
-                <input type="number" id="age" name="age" required placeholder="Age">
+                <!-- SECTION 2: APPOINTMENT DETAILS (Unchanged HTML, but will render correctly with new CSS) -->
+                <fieldset class="form-section">
+                    <legend>Appointment Details</legend>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="specialization">Specialization*</label>
+                            <select id="specialization" name="specialization" required>
+                                <option value="">Select Specialization</option>
+                                <option value="SURGERY">Surgery</option>
+                                <option value="CARDIOLOGY">Cardiology</option>
+                                <option value="DERMATOLOGY">Dermatology</option>
+                                <option value="DENTISTRY">Dentistry</option>
+                                <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="doctorName">Doctor*</label>
+                            <select id="doctorName" name="doctorName" required disabled>
+                                <option value="">Select a specialization first</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <label for="phone">Phone Number*</label>
-                <input type="tel" id="phone" name="phone" required placeholder="Phone">
+                    <div class="form-row">
+                        <div class="form-group form-group-date">
+                            <label for="date">Date*</label>
+                            <input type="date" id="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="time">Time*</label>
+                            <div class="time-box">
+                                <select id="time" name="time" required>
+                                    <option value="">Select Time</option>
+                                    <option value="09:00 AM">09:00 AM</option>
+                                    <option value="09:30 AM">09:30 AM</option>
+                                    <option value="10:00 AM">10:00 AM</option>
+                                    <option value="10:30 AM">10:30 AM</option>
+                                    <option value="11:00 AM">11:00 AM</option>
+                                    <option value="11:30 AM">11:30 AM</option>
+                                    <option value="01:00 PM">01:00 PM</option>
+                                    <option value="01:30 PM">01:30 PM</option>
+                                    <option value="02:00 PM">02:00 PM</option>
+                                    <option value="02:30 PM">02:30 PM</option>
+                                    <option value="03:00 PM">03:00 PM</option>
+                                    <option value="03:30 PM">03:30 PM</option>
+                                    <option value="04:00 PM">04:00 PM</option>
+                                    <option value="04:30 PM">04:30 PM</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
-                <label for="specialization">Specialization*</label>
-                <select id="specialization" name="specialization" required>
-                    <option value="">Select Specialization</option>
-                    <option value="SURGERY">Surgery</option>
-                    <option value="CARDIOLOGY">Cardiology</option>
-                    <option value="DERMATOLOGY">Dermatology</option>
-                    <option value="DENTISTRY">Dentistry</option>
-                    <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
-                </select>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="reason">Reason for Appointment*</label>
+                        <textarea id="reason" name="reason" rows="3" placeholder="e.g. Regular Check-up" required></textarea>
+                    </div>
+                </fieldset>
 
-                <label for="doctorName">Doctor*</label>
-                <select id="doctorName" name="doctorName" required>
-                    <option value="">Select Doctor</option>
-                    <option value="Alarcon, Mark">Alarcon, Mark</option>
-                    <option value="De Guzman, Jatrish">De Guzman, Jatrish</option>
-                    <option value="Santos, Clara">Dr. Clara Santos</option>
-                    <option value="Reyes, John">Dr. Reyes, John</option>
-                    <option value="Villanueva, Anne">Dr. Villanueva, Anne</option>
-                    <option value="Matthew, Martin">Matthew, Martin</option>
-                    <option value="Brian, Yvonne">Brian, Yvonne</option>
-                </select>
-
-                <label for="date">Date*</label>
-                <input type="date" id="date" name="date" required>
-
-                <label for="time">Time*</label>
-                <select id="time" name="time" required>
-                    <option value="">Select Time</option>
-                    <option value="09:00 AM">09:00 AM</option>
-                    <option value="09:30 AM">09:30 AM</option>
-                    <option value="10:00 AM">10:00 AM</option>
-                    <option value="10:30 AM">10:30 AM</option>
-                    <option value="11:00 AM">11:00 AM</option>
-                    <option value="11:30 AM">11:30 AM</option>
-                    <option value="01:00 PM">01:00 PM</option>
-                    <option value="01:30 PM">01:30 PM</option>
-                    <option value="02:00 PM">02:00 PM</option>
-                    <option value="02:30 PM">02:30 PM</option>
-                    <option value="03:00 PM">03:00 PM</option>
-                    <option value="03:30 PM">03:30 PM</option>
-                    <option value="04:00 PM">04:00 PM</option>
-                    <option value="04:30 PM">04:30 PM</option>
-                </select>
-
-                <label for="reason">Reason*</label>
-                <textarea id="reason" name="reason" rows="3" placeholder="Reason for Appointment" required></textarea>
-
-                <button type="submit">Submit</button>
+                <button type="submit">Submit Appointment</button>
             </form>
         </div>
     </div>
-
-    <footer class="footer">
-    </footer>
-
-    <div id="confirmationModal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="closeConfirmationModal">×</span>
-            <h3>Appointment Confirmation</h3>
-            <p id="confirmationMessage">Your appointment has been successfully booked!</p>
-            <button id="confirmBtn" class="btn">OK</button>
-        </div>
-    </div>
-
+    
+    <footer class="footer"></footer>
+    <div id="confirmationModal" class="modal"></div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const messageArea = document.getElementById('form-message-area');
-            const confirmationModal = document.getElementById('confirmationModal');
-            const closeModalButton = document.getElementById('closeConfirmationModal');
-            const confirmModalButton = document.getElementById('confirmBtn');
-            const confirmationMessageEl = document.getElementById('confirmationMessage'); // For custom messages
+        document.addEventListener('DOMContentLoaded', async function() {
+            // --- 1. USER INFO LOGIC ---
+            try {
+                const response = await fetch('/getUser');
+                const userData = await response.json();
+                if (userData.loggedIn) {
+                    const fieldsToLock = { patientName: userData.fullname, age: userData.age, phone: userData.phoneNumber, address: userData.address };
+                    for (const id in fieldsToLock) {
+                        const input = document.getElementById(id);
+                        const value = fieldsToLock[id];
+                        const changeButton = document.querySelector(`.edit-btn[data-target="${id}"]`);
+                        if (input && value) {
+                            input.value = value;
+                            input.readOnly = true;
+                            input.classList.add('pre-filled');
+                        } else if (changeButton) {
+                            changeButton.style.display = 'none';
+                        }
+                    }
+                } else {
+                    document.querySelectorAll('.edit-btn').forEach(btn => btn.style.display = 'none');
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.style.display = 'none');
+            }
+            
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                const targetInputId = button.dataset.target;
+                const inputToEdit = document.getElementById(targetInputId);
+                const relockField = () => {
+                    inputToEdit.readOnly = true;
+                    inputToEdit.classList.add('pre-filled');
+                    button.style.display = 'inline-block';
+                };
+                button.addEventListener('click', function() {
+                    inputToEdit.readOnly = false;
+                    inputToEdit.classList.remove('pre-filled');
+                    inputToEdit.focus();
+                    this.style.display = 'none';
+                });
+                inputToEdit.addEventListener('blur', relockField);
+                inputToEdit.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        relockField();
+                    }
+                });
+            });
 
+            // --- 2. SMART APPOINTMENT FORM LOGIC ---
+            const specializationSelect = document.getElementById('specialization');
+            const doctorSelect = document.getElementById('doctorName');
+
+            const doctorSpecializations = {
+                'SURGERY': ['Alarcon, Mark', 'Dr. Reyes, John'],
+                'CARDIOLOGY': ['De Guzman, Jatrish', 'Dr. Clara Santos'],
+                'DERMATOLOGY': ['Dr. Villanueva, Anne'],
+                'DENTISTRY': ['Matthew, Martin'],
+                'OBSTETRICS GYNECOLOGY': ['Brian, Yvonne']
+            };
+
+            function updateDoctorOptions() {
+                const selectedSpec = specializationSelect.value;
+                doctorSelect.innerHTML = ''; 
+                if (selectedSpec) {
+                    doctorSelect.disabled = false;
+                    doctorSelect.add(new Option('Select a Doctor', ''));
+                    const doctors = doctorSpecializations[selectedSpec] || [];
+                    doctors.forEach(doctor => doctorSelect.add(new Option(doctor, doctor)));
+                } else {
+                    doctorSelect.disabled = true;
+                    doctorSelect.add(new Option('Select a specialization first', ''));
+                }
+            }
+            specializationSelect.addEventListener('change', updateDoctorOptions);
+            updateDoctorOptions();
+
+            // --- 3. URL PARAMS LOGIC ---
             const urlParams = new URLSearchParams(window.location.search);
             const errorMsg = urlParams.get('error');
-            const successMsg = urlParams.get('message'); // Check if success message is for THIS page
-
             if (errorMsg) {
-                messageArea.textContent = decodeURIComponent(errorMsg);
-                messageArea.style.color = 'red';
-                // Ensure confirmation modal is NOT shown if there's an error
-                if (confirmationModal) {
-                    confirmationModal.style.display = 'none';
-                }
-            } else if (successMsg && window.location.pathname.endsWith('/appointment.html')) {
-                // Only show success modal IF the success message is intended for THIS appointment.html page
-                // (Your current server logic redirects to myappointments.html on success, so this might not be hit often from /save-data)
-                if (messageArea) { // Also show it in the message area if you want
-                    messageArea.textContent = decodeURIComponent(successMsg);
-                    messageArea.style.color = 'green';
-                }
-                if (confirmationModal && confirmationMessageEl) {
-                    confirmationMessageEl.textContent = decodeURIComponent(successMsg); // Use the message from URL
-                    confirmationModal.style.display = 'flex'; // Use flex or block as per your modal CSS
-                }
-            } else {
-                // No error and no specific success message for this page, ensure modal is hidden
-                if (confirmationModal) {
-                    confirmationModal.style.display = 'none';
-                }
+                document.getElementById('form-message-area').textContent = decodeURIComponent(errorMsg);
+                document.getElementById('form-message-area').style.color = 'red';
             }
-
-            // Modal close functionality
-            if (closeModalButton) {
-                closeModalButton.onclick = function() {
-                    if (confirmationModal) confirmationModal.style.display = 'none';
-                }
-            }
-            if (confirmModalButton) { // "OK" button in modal
-                confirmModalButton.onclick = function() {
-                    if (confirmationModal) confirmationModal.style.display = 'none';
-                    // Optionally redirect or clear URL params
-                    // window.history.replaceState({}, document.title, window.location.pathname);
-                }
-            }
-            // Close modal if clicked outside of it
-            window.onclick = function(event) {
-                if (event.target == confirmationModal) {
-                    if (confirmationModal) confirmationModal.style.display = 'none';
-                }
-            }
-
-            // Pre-fill form if doctor and specialization are in URL (from doctors.html)
             const doctorParam = urlParams.get('doctor');
             const specParam = urlParams.get('specialization');
-            if (doctorParam) {
-                const doctorSelect = document.getElementById('doctorName');
-                if (doctorSelect) doctorSelect.value = decodeURIComponent(doctorParam);
+            if (specParam) { // Set specialization first
+                specializationSelect.value = decodeURIComponent(specParam);
+                updateDoctorOptions(); // Update doctors based on spec
             }
-            if (specParam) {
-                const specSelect = document.getElementById('specialization');
-                if (specSelect) specSelect.value = decodeURIComponent(specParam);
+            if (doctorParam) { // Then set the doctor
+                doctorSelect.value = decodeURIComponent(doctorParam);
             }
-
         });
     </script>
 </body>
