@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - ImmaCare+</title>
+    <!-- Use the correct absolute path for your stylesheet -->
+    <link rel="stylesheet" href="/src/styles/style.css">
+  </head>
+  <body>
+    <!-- 1. The hardcoded header is GONE. Replaced with the placeholder. -->
+    <div id="navbar-placeholder"></div>
+
+    <div class="container">
+      <div class="signup-box">
+        <!-- 2. Use the correct absolute path for your logo -->
+        <img src="/assets/images/logo.png" alt="ImmaCare+ Logo" class="logo" />
+        <h2>Create an Account</h2>
+
+        <div id="signup-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></div>
+
+        <form id="signupForm" class="signup-form">
+          <!-- All form inputs are fine -->
+          <input type="text" id="fullName" name="fullname" placeholder="Full Name" required />
+          <input type="email" id="signupEmail" name="signupEmail" placeholder="Email" required />
+          <input type="number" id="Age" name="Age" placeholder="Age" required />
+          <input type="text" id="Address" name="Address" placeholder="Address" required />
+          <div class="gender-selection">
+            <label><input type="radio" name="Sex" value="Male" required /> Male</label>
+            <label><input type="radio" name="Sex" value="Female" /> Female</label>
+          </div>
+          <input type="tel" id="PhoneNumber" name="PhoneNumber" placeholder="Phone Number (e.g. 09xxxxxxxxx)" required />
+          <input type="password" id="signupPassword" name="signupPassword" placeholder="Password" required />
+          <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required />
+          <button type="submit">SIGN UP</button>
+        </form>
+        <p>Already have an Account? <a href="/login.html">Login Here</a></p>
+      </div>
+    </div>
+
+    <!-- 3. All old script tags are GONE. Replaced with the single app.js module. -->
+    <script src="/src/app.js" type="module" defer></script>
+  </body>
+</html>

@@ -14,6 +14,44 @@ body {
 /* header_logo */
 
 
+@keyframes pulse {
+  0% { background-color: #e0e0e0; }
+  50% { background-color: #f0f0f0; }
+  100% { background-color: #e0e0e0; }
+}
+
+.header-skeleton {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px; /* Match your real header padding */
+  background-color: #fff; /* Match your real header background */
+  height: 60px; /* Match your real header height */
+  box-sizing: border-box;
+}
+
+.header-logo-skeleton {
+  width: 40px; /* Match your logo size */
+  height: 40px;
+  background-color: #e0e0e0;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.header-skeleton .navbar {
+  display: flex;
+  flex-grow: 1;
+  margin-left: 20px;
+}
+
+.nav-link-skeleton {
+  width: 80px;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  margin-right: 15px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
 /* Header */
 .header {
   background-color: #001c5c;

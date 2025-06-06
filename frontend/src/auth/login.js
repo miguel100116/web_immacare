@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+export function initializeLoginForm() {
     const loginForm = document.getElementById('login-form');
     const messageArea = document.getElementById('message-area');
 
@@ -70,4 +70,4 @@ document.addEventListener('DOMContentLoaded', function () {
         // This console log helps if you ever reuse login.js on a page without the form
         console.log("Login form not found on this page. Login submission script not attached.");
     }
-});
+}

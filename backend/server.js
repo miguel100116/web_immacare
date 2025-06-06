@@ -22,7 +22,7 @@ app.use(cors({
   origin: 'http://localhost:5300',
   credentials: true
 }));
-app.use(express.static(path.join(__dirname, '..'))); // For CSS, JS, images in root
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
@@ -47,15 +47,26 @@ ensureFirstAdmin();
 
 
 // --- 5. STATIC PAGE SERVING ---
-// Public pages
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'signup.html')));
-app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'login.html')));
-app.get('/confirmation.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'confirmation.html')));
+// --- Public Pages (no login required) ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html')));
 
-// Protected pages (using middleware directly)
-app.get('/main.html', ensureAuthenticated, (req, res) => res.sendFile(path.join(__dirname, '..', 'main.html')));
-app.get('/admin.html', ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, '..', 'admin.html')));
+// Auth screens
+app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'signup.html')));
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'login.html')));
 
+// Other public screens
+app.get('/confirmation.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'confirmation.html')));
+
+// ADDING main.html and doctors.html as PUBLIC routes
+app.get('/main.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html'))); // 'main.html' will also serve the main index page.
+app.get('/doctors.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'doctors.html')));
+
+
+// --- Protected Pages (login required) ---
+// REMOVED the incorrect '/index.html' route from here.
+app.get('/admin.html', ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'adminScreen', 'admin.html')));
+app.get('/appointment.html', ensureAuthenticated, (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'appointment.html')));
+app.get('/myappointments.html', ensureAuthenticated, (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'myappointments.html')));
 
 // --- 6. API ROUTE WIRING ---
 // Use the routers from the /routes directory
