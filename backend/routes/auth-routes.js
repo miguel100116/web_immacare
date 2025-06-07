@@ -153,37 +153,53 @@ router.get('/verify', async (req, res) => {
 // --- LOGIN / LOGOUT & SESSION ---
 
 router.post('/login', async (req, res) => {
-    const { signupEmail, signupPassword } = req.body;
     try {
+        const { signupEmail, signupPassword } = req.body;
         const user = await Users.findOne({ signupEmail });
 
-        if (!user) return res.status(400).json({ error: "Account not found." });
-        if (!user.isVerified) return res.status(400).json({ error: "Please verify your email before logging in." });
-        
-        const isMatch = await bcrypt.compare(signupPassword, user.signupPassword);
-        if (!isMatch) return res.status(400).json({ error: "Incorrect password." });
+        if (!user || !user.isVerified) {
+            return res.status(401).json({ error: "Invalid credentials or account not verified." });
+        }
 
+        const isMatch = await bcrypt.compare(signupPassword, user.signupPassword);
+        if (!isMatch) {
+            return res.status(401).json({ error: "Invalid credentials." });
+        }
+
+        // Set the session data
         req.session.user = {
             id: user._id,
             fullname: user.fullname,
             signupEmail: user.signupEmail,
-            isAdmin: user.isAdmin
+            isAdmin: user.isAdmin,
+            isDoctor: user.isDoctor
         };
-
-        req.session.save(err => {
+        
+        // --- THE FIX: NO MORE REDIRECT ---
+        // Save the session and in the callback, send the JSON response.
+        req.session.save((err) => {
             if (err) {
-                console.error("❌ Session save error during login:", err);
-                return res.status(500).json({ error: "Internal Server Error (session save)" });
+                console.error("❌ Session save error:", err);
+                return res.status(500).json({ error: "Could not save session." });
             }
-            console.log("✅ Login successful:", user.fullname, "Is Admin:", user.isAdmin);
-            res.status(200).json({ redirect: user.isAdmin ? "/admin.html" : "/main.html" });
+
+            // Determine the redirect URL on the server
+            let redirectUrl = "/main.html";
+            if (user.isAdmin) redirectUrl = "/admin.html";
+            else if (user.isDoctor) redirectUrl = "/doctor/dashboard";
+
+            console.log(`✅ Login success for ${user.fullname}. Sending redirect URL: ${redirectUrl}`);
+            
+            // Send a success response with the URL for the client to handle
+            res.status(200).json({ success: true, redirect: redirectUrl });
         });
 
     } catch (error) {
         console.error("❌ Login error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({ error: "Internal server error." });
     }
 });
+
 
 router.get('/logout', (req, res) => {
     const userName = req.session.user ? req.session.user.fullname : 'User';
@@ -309,7 +325,7 @@ router.get('/getUser', async (req, res) => { // Make it async
                     fullname: user.fullname,
                     signupEmail: user.signupEmail,
                     isAdmin: user.isAdmin,
-                    // Add the fields we need for the form
+                    isDoctor: user.isDoctor, 
                     address: user.Address,
                     age: user.Age,
                     phoneNumber: user.PhoneNumber 

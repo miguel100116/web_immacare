@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="src/styles/style.css">
     <title>Appointment Form</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         /* --- STYLES (UNCHANGED) --- */
         .form-section { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
@@ -41,6 +43,12 @@
             flex: none;
             width: 45%; 
         }
+
+    /* This is a general style for all selects on this page now */
+    select:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
     </style>
 </head>
 <body>
@@ -105,22 +113,8 @@
                         <div class="form-group">
                             <label for="time">Time*</label>
                             <div class="time-box">
-                                <select id="time" name="time" required>
-                                    <option value="">Select Time</option>
-                                    <option value="09:00 AM">09:00 AM</option>
-                                    <option value="09:30 AM">09:30 AM</option>
-                                    <option value="10:00 AM">10:00 AM</option>
-                                    <option value="10:30 AM">10:30 AM</option>
-                                    <option value="11:00 AM">11:00 AM</option>
-                                    <option value="11:30 AM">11:30 AM</option>
-                                    <option value="01:00 PM">01:00 PM</option>
-                                    <option value="01:30 PM">01:30 PM</option>
-                                    <option value="02:00 PM">02:00 PM</option>
-                                    <option value="02:30 PM">02:30 PM</option>
-                                    <option value="03:00 PM">03:00 PM</option>
-                                    <option value="03:30 PM">03:30 PM</option>
-                                    <option value="04:00 PM">04:00 PM</option>
-                                    <option value="04:30 PM">04:30 PM</option>
+                                <select id="time" name="time" required disabled>
+                                    <option value="">Select a date first</option>
                                 </select>
                             </div>
                         </div>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - ImmaCare+</title>
+    
+    <!-- Link to Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Link to the NEW doctor dashboard stylesheet -->
+    <link rel="stylesheet" href="/src/styles/doctorDashboardStyles.css">
+</head>
+<body>
+    <div class="container" id="doctor-dashboard-container">
+        <!-- Sidebar Navigation for the Doctor -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>ImmaCare</h2>
+                <p>Doctor Panel</p>
+            </div>
+            <ul class="nav-menu">
+                <!-- Navigation items for the doctor -->
+                <li class="nav-item active" data-target="appointments"><a href="#"><i class="fas fa-calendar-check"></i> My Appointments</a></li>
+                <li class="nav-item" data-target="profile"><a href="#"><i class="fas fa-user-edit"></i> My Profile</a></li>
+                <li class="nav-item" data-target="schedule"><a href="#"><i class="fas fa-clock"></i> My Schedule</a></li>
+            </ul>
+            <div class="user-info">
+                <div class="avatar"><i class="fas fa-user-md"></i></div>
+                <div class="details">
+                    <h4 id="doctor-user-fullname">Dr. Loading...</h4>
+                    <a href="/logout" id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Section for displaying doctor's appointments -->
+            <section class="content-section active" id="appointments">
+                <div class="section-header">
+                    <h1>My Appointments</h1>
+                </div>
+                <div class="filters">
+                    <input type="text" id="appointments-search" placeholder="Search by patient name...">
+                    <button id="appointments-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="appointments-table">
+                        <thead>
+                            <tr>
+                                <th>Patient Name</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Appointments will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="appointments-pagination"></div>
+            </section>
+
+            <!-- Section for managing the doctor's profile -->
+            <section class="content-section" id="profile">
+                <div class="section-header">
+                    <h1>Manage My Profile</h1>
+                </div>
+                <!-- START OF NEW FORM -->
+                <div class="profile-form-container">
+                    <form id="profile-form">
+                        <div class="form-group">
+                            <label for="doctor-specialization">My Specialization</label>
+                            <select id="doctor-specialization" name="specialization" required>
+                                <option value="">Loading specializations...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="doctor-description">Profile Description / Bio</label>
+                            <textarea id="doctor-description" name="description" rows="6" placeholder="Write a brief bio that will be visible to patients. (Max 500 characters)"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" id="save-profile-btn" class="submit-button">Save Changes</button>
+                        </div>
+                    </form>
+                    <div id="profile-message-area" class="message-area"></div>
+                </div>
+                <!-- END OF NEW FORM -->
+            </section>
+            
+            <!-- Section for managing the doctor's schedule -->
+            <section class="content-section" id="schedule">
+                <div class="section-header">
+                    <h1>Manage My Schedule</h1>
+                </div>
+                <div class="schedule-form-container">
+                    <form id="schedule-form">
+                        <p class="form-description">Select the days and time slots you are available for appointments. This will determine when patients can book you.</p>
+                        
+                        <div id="schedule-builder">
+                            <!-- Schedule rows will be generated here by JavaScript -->
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" id="save-schedule-btn" class="submit-button">Save Schedule</button>
+                        </div>
+                    </form>
+                    <div id="schedule-message-area" class="message-area"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- This script will power the doctor dashboard -->
+    <script src="/src/pages/doctorDashboard.js" defer></script>
+</body>
+</html>

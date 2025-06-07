@@ -16,7 +16,8 @@ const authRoutes = require('./routes/auth-routes');
 const appointmentRoutes = require('./routes/appointment-routes');
 const adminRoutes = require('./routes/admin-routes');
 const doctorRoutes = require('./routes/doctor-routes');
-const { ensureAuthenticated, ensureAdmin } = require('./middleware/auth-middleware');
+const { ensureAuthenticated, ensureAdmin, ensureDoctor } = require('./middleware/auth-middleware');
+const doctorApiRoutes = require('./routes/doctor-api-routes');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
@@ -91,7 +92,6 @@ ensureSpecializations();
 
 
 // --- 5. STATIC PAGE SERVING ---
-// (This part is correct and unchanged)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'signup.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'login.html')));
@@ -105,13 +105,21 @@ app.get('/learnmore/:serviceName', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'learnmore.html'));
 });
 
+app.get('/doctor/dashboard', ensureDoctor, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'doctorScreen', 'doctorDashboard.html'));
+});
+
 // --- 6. API ROUTE WIRING ---
 // (This part is now correct)
-app.use('/', authRoutes);
-app.use('/', ensureAuthenticated, appointmentRoutes);
-app.use('/api/admin', ensureAdmin, adminRoutes);
 app.use('/api', doctorRoutes);
 
+// Group 2: Authentication Routes (Handles login, logout, etc.)
+app.use('/', authRoutes);
+
+// Group 3: Protected Routes (Require a user to be logged in)
+app.use('/', ensureAuthenticated, appointmentRoutes);
+app.use('/api/admin', ensureAdmin, adminRoutes);
+app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
 
 // --- 7. START SERVER ---
 app.listen(port, () => {

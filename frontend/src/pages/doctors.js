@@ -11,55 +11,68 @@ document.addEventListener('DOMContentLoaded', () => {
      * Renders the doctor cards. Now extremely safe.
      */
     const renderDoctors = (doctorsToRender) => {
-        doctorListContainer.innerHTML = ''; 
-        
-        // Filter out any doctors with broken links BEFORE trying to render.
-        const validDoctors = doctorsToRender.filter(doctor => {
-            if (!doctor.userAccount || !doctor.specialization) {
-                console.warn('FILTERING OUT doctor with broken DB reference. ID:', doctor._id);
-                return false; // Exclude this doctor
-            }
-            return true; // Include this doctor
-        });
-
-        if (validDoctors.length === 0) {
-            doctorListContainer.innerHTML = '<p class="no-doctors-message">No doctors available.</p>';
-            return;
+    doctorListContainer.innerHTML = ''; 
+    
+    const validDoctors = doctorsToRender.filter(doctor => {
+        if (!doctor.userAccount || !doctor.specialization) {
+            console.warn('FILTERING OUT doctor with broken DB reference. ID:', doctor._id);
+            return false;
         }
+        return true;
+    });
 
-        validDoctors.forEach(doctor => {
-            const card = document.createElement('div');
-            card.className = 'doctor-card';
+    if (validDoctors.length === 0) {
+        doctorListContainer.innerHTML = '<p class="no-doctors-message">No doctors available.</p>';
+        return;
+    }
+
+    validDoctors.forEach(doctor => {
+        const card = document.createElement('div');
+        card.className = 'doctor-card';
+        
+        // --- START OF THE FIX ---
+        let schedulesHtml;
+        if (doctor.schedules && doctor.schedules.length > 0) {
+            // 1. Get a list of just the day names from each schedule string.
+            const daysWithDuplicates = doctor.schedules.map(s => s.split(' - ')[0]);
             
-            const schedulesHtml = doctor.schedules?.length > 0 
-                ? doctor.schedules.map(s => `<span>🗓 ${s}</span>`).join('<br/>') 
-                : '<span>🗓 Schedule not available.</span>';
+            // 2. Use a Set to get only the unique day names.
+            const uniqueDays = [...new Set(daysWithDuplicates)];
+
+            // 3. Optional: Define a specific order for the days of the week.
+            const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            uniqueDays.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
             
-            const hmosHtml = doctor.acceptedHMOs?.length > 0 
-                ? `<span>💳 ${doctor.acceptedHMOs.join(', ')}</span>` 
-                : '';
+            // 4. Create the clean HTML string.
+            schedulesHtml = `<span>🗓 Available: ${uniqueDays.join(', ')}</span>`;
+        } else {
+            schedulesHtml = '<span>🗓 Schedule not available.</span>';
+        }
+        // --- END OF THE FIX ---
+        
+        const hmosHtml = doctor.acceptedHMOs?.length > 0 
+            ? `<span>💳 ${doctor.acceptedHMOs.join(', ')}</span>` 
+            : '';
 
-            // This part is now guaranteed to be safe because of the filter above
-            card.innerHTML = `
-                <div class="avatar" style="background-image: url('${doctor.imageUrl || '/pics/default-avatar.png'}'); background-size: cover;"></div>
-                <div class="info">
-                    <h3>${doctor.userAccount.fullname}</h3>
-                    <p class="specialization">${doctor.specialization.name}</p>
-                    <p class="schedule">
-                        ${schedulesHtml}<br/>
-                        ${hmosHtml}
-                    </p>
-                    <button class="appointment-btn" 
-                        data-doctor="${doctor._id}"
-                        data-specialization="${doctor.specialization._id}">
-                        Schedule an Appointment
-                    </button>
-                </div>
-            `;
-            doctorListContainer.appendChild(card);
-        });
-    };
-
+        card.innerHTML = `
+            <div class="avatar" style="background-image: url('${doctor.imageUrl || '/pics/default-avatar.png'}'); background-size: cover;"></div>
+            <div class="info">
+                <h3>${doctor.userAccount.fullname}</h3>
+                <p class="specialization">${doctor.specialization.name}</p>
+                <p class="schedule">
+                    ${schedulesHtml}<br/>
+                    ${hmosHtml}
+                </p>
+                <button class="appointment-btn" 
+                    data-doctor="${doctor._id}"
+                    data-specialization="${doctor.specialization._id}">
+                    Schedule an Appointment
+                </button>
+            </div>
+        `;
+        doctorListContainer.appendChild(card);
+    });
+};
     /**
      * Populates filters. Now extremely safe.
      */

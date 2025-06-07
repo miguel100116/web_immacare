@@ -19,7 +19,22 @@ function ensureAdmin(req, res, next) {
     return res.status(403).json({ error: 'Forbidden. Admin access required.' });
 }
 
+function ensureDoctor(req, res, next) {
+  // First, check if they are logged in at all.
+  if (!req.session.user) {
+    return res.redirect('/login.html?message=Please_login_to_continue');
+  }
+  // Then, check if they are a doctor (or an admin, since admins should have access to everything).
+  if (req.session.user.isDoctor || req.session.user.isAdmin) {
+    return next(); // They are authorized, continue to the route.
+  }
+  
+  // If they are logged in but not a doctor, send them to the main page.
+  res.status(403).redirect('/main.html?message=Doctor_access_required');
+}
+
 module.exports = {
     ensureAuthenticated,
-    ensureAdmin
+    ensureAdmin,
+    ensureDoctor
 };

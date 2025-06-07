@@ -1,19 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - ImmaCare+</title>
-    <!-- Use the correct absolute path for your stylesheet -->
     <link rel="stylesheet" href="/src/styles/style.css">
-  </head>
-  <body>
-    <!-- 1. The hardcoded header is GONE. Replaced with the placeholder. -->
+</head>
+<body>
     <div id="navbar-placeholder"></div>
-
     <div class="container">
       <div class="login-box">
-        <!-- 2. Use the correct absolute path for your logo -->
         <img src="/assets/images/logo.png" alt="ImmaCare+ Logo" class="logo" />
         <h2>Login to your Account</h2>
         <div id="message-area" style="color: red; margin-bottom: 10px; min-height: 1.2em;"></div>
@@ -23,12 +19,9 @@
           <button type="submit">Login</button>
         </form>
         <p>Do not have an Account? <a href="/signup.html">Sign Up Here</a></p>
-        <!-- The data-nav attribute on the link above is better for consistency -->
-        <!-- <p>Do not have an Account? <a href="#" data-nav="signup.html">Sign Up Here</a></p> -->
       </div>
     </div>
-
-    <!-- 3. All old script tags are GONE. Replaced with the single app.js module. -->
+    <!-- This is the only script tag needed -->
     <script src="/src/app.js" type="module" defer></script>
-  </body>
+</body>
 </html>

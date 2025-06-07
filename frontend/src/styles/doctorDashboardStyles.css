@@ -1,0 +1,459 @@
+/* frontend/src/styles/doctorDashboardStyles.css */
+
+/* ===================================================================== */
+/* --- Theme & Global --- */
+/* ===================================================================== */
+:root {
+    /* A slightly different primary color to distinguish from the admin panel */
+    --primary-color: #17a2b8; /* A professional teal/cyan */
+    --primary-hover: #138496;
+    --dark-bg: #343a40;
+    --light-text: #c2c7d0;
+    --border-color: #4f5962;
+    --body-bg: #f4f6f9;
+    --card-bg: #ffffff;
+    --text-color: #495057;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background-color: var(--body-bg);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+
+/* ===================================================================== */
+/* --- Sidebar --- */
+/* ===================================================================== */
+.sidebar {
+    width: 260px;
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease, left 0.3s ease;
+}
+
+.sidebar .logo {
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.sidebar .logo h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.8em;
+}
+
+.sidebar .logo p {
+    margin: 5px 0 0;
+    font-size: 0.9em;
+    color: #adb5bd;
+}
+
+.nav-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.nav-item a {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: var(--light-text);
+    border-radius: 4px;
+    margin-bottom: 5px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.nav-item a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Active/hover state uses the new primary color */
+.nav-item a:hover,
+.nav-item.active a {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+.user-info {
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+}
+
+.user-info .avatar {
+    font-size: 1.8em;
+    margin-right: 10px;
+    color: var(--primary-color); /* Use theme color */
+}
+
+.user-info .details h4 {
+    margin: 0;
+    font-size: 1em;
+    color: #fff;
+}
+
+.user-info .details a {
+    font-size: 0.85em;
+    color: #adb5bd;
+    text-decoration: none;
+}
+
+.user-info .details a:hover {
+    color: #fff;
+}
+
+
+/* ===================================================================== */
+/* --- Main Content Area --- */
+/* ===================================================================== */
+.main-content {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+/* Sections for Appointments, Profile, etc. */
+.content-section {
+    display: none; /* Hidden by default, JS will show the active one */
+    background-color: var(--card-bg);
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.content-section.active {
+    display: block;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.section-header h1 {
+    margin: 0;
+    font-size: 1.8em;
+}
+
+/* Forms within the profile/schedule sections */
+.profile-form-container, .schedule-form-container {
+    max-width: 700px;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: .5rem;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: .6rem .8rem;
+    font-size: 1rem;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+}
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 .2rem rgba(23, 162, 184, .25); /* Teal shadow */
+    outline: 0;
+}
+
+
+/* ===================================================================== */
+/* --- Data Tables --- */
+/* ===================================================================== */
+.data-table {
+    overflow-x: auto;
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 0.95em;
+    min-width: 800px; /* Adjust as needed for doctor view */
+}
+
+th, td { 
+    padding: 12px 15px; 
+    text-align: left; 
+    border-bottom: 1px solid #dee2e6; 
+    white-space: nowrap; 
+}
+
+th { 
+    background-color: #e9ecef; 
+    font-weight: 600; 
+}
+
+tbody tr:hover { 
+    background-color: #f8f9fa; 
+}
+
+
+/* ===================================================================== */
+/* --- Filters & Pagination --- */
+/* ===================================================================== */
+.filters {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filters input[type="text"] {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9em;
+    flex-grow: 1;
+    max-width: 400px;
+}
+
+.filters .filter-button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    background-color: var(--primary-color);
+    color: white;
+}
+.filters .filter-button:hover {
+    background-color: var(--primary-hover);
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-top: 1px solid #eee;
+}
+
+.pagination-controls .page-info {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.pagination-controls .nav-buttons button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+.pagination-controls .nav-buttons button:hover {
+    background-color: var(--primary-hover);
+}
+.pagination-controls .nav-buttons button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+
+/* ===================================================================== */
+/* --- Badges & Buttons --- */
+/* ===================================================================== */
+.status-badge {
+    padding: 0.3em 0.7em;
+    border-radius: 0.25em;
+    font-size: 0.8em;
+    font-weight: 600;
+    color: white;
+    display: inline-block;
+    text-transform: capitalize;
+}
+.status-scheduled { background-color: #007bff; }
+.status-completed { background-color: #28a745; }
+.status-cancelled { background-color: #dc3545; }
+
+.action-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    margin: 0 5px;
+    font-size: 1.1em;
+    padding: 5px;
+}
+.action-btn:hover {
+    color: var(--primary-hover);
+}
+
+/* Container for form action buttons (e.g., Save, Cancel) */
+.form-actions {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end; /* Aligns button to the right */
+}
+
+/* Primary action button for forms */
+.submit-button {
+    padding: 10px 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.submit-button:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px); /* Subtle lift effect */
+}
+
+/* Style for when the button is disabled during submission */
+.submit-button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: translateY(0);
+}
+
+/* --- Message Area for Form Feedback --- */
+.message-area {
+    padding: 12px 15px;
+    margin-top: 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    display: none; /* Hidden by default */
+}
+
+/* Success message style (green) */
+.message-area.success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    display: block; /* Becomes visible when class is added */
+}
+
+/* Error message style (red) */
+.message-area.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    display: block; /* Becomes visible when class is added */
+}
+
+.form-description {
+    margin-bottom: 20px;
+    color: #6c757d;
+    font-size: 0.95em;
+}
+
+#schedule-builder {
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.day-schedule-row {
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+.day-schedule-row:last-child {
+    border-bottom: none;
+}
+.day-schedule-row:nth-child(odd) {
+    background-color: #f8f9fa;
+}
+
+.day-label {
+    flex-basis: 150px;
+    flex-shrink: 0;
+    font-weight: 600;
+    padding-top: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.day-label input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2); /* Make the main checkbox slightly bigger */
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    flex-grow: 1;
+}
+
+.time-slot {
+    display: flex;
+    align-items: center;
+    background-color: #fff;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.time-slot:hover {
+    background-color: #e9ecef;
+}
+
+.time-slot input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Style for when a day is disabled */
+.day-schedule-row.disabled .day-label {
+    opacity: 0.5; /* Keep the label faded, but ensure it's ALWAYS clickable */
+}
+.day-schedule-row.disabled .schedule-grid {
+    opacity: 0.5;
+    pointer-events: none; /* Make ONLY the grid of time slots unclickable */
+}
