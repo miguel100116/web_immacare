@@ -3,11 +3,15 @@
 // =====================================================================
 // --- GLOBAL STATE & CONSTANTS ---
 // =====================================================================
-let allUsersDataCache = [];
-let allAppointmentsDataCache = [];
-let allInventoryDataCache = [];
+const dataCaches = {
+    users: [],
+    appointments: [],
+    inventory: [],
+    doctors: []
+};
+
 let showingArchivedAppointments = false;
-const ITEMS_PER_PAGE = 10; // You can change this value (e.g., 5, 15)
+const ITEMS_PER_PAGE = 10;
 
 // =====================================================================
 // --- INITIALIZATION ---
@@ -33,15 +37,17 @@ function initializeAdditionalUIEventListeners() {
 
 async function loadAllAdminData() {
     try {
-        const [users, appointments, inventoryItems] = await Promise.all([
+        const [users, appointments, inventoryItems, doctors] = await Promise.all([
             fetchAndStoreUsers(),
             fetchAndStoreAppointments(),
-            fetchAndStoreInventoryItems()
+            fetchAndStoreInventoryItems(),
+            fetchAndStoreDoctors(),
         ]);
 
         if (users) displayPaginatedTable('users', users, 1);
         if (appointments) displayPaginatedTable('appointments', appointments, 1);
         if (inventoryItems) displayPaginatedTable('inventory', inventoryItems, 1);
+        if (doctors) displayPaginatedTable('doctors', doctors, 1);
 
         updateDashboardStats({
             users: users?.length || 0,
@@ -116,6 +122,22 @@ function renderUsersRow(tableBody, user) {
     row.insertCell().textContent = user.Sex || 'N/A';
     row.insertCell().innerHTML = `<span class="status-badge status-${user.isVerified ? 'yes' : 'no'}">${user.isVerified ? 'Yes' : 'No'}</span>`;
     row.insertCell().innerHTML = `<span class="status-badge status-${user.isAdmin ? 'admin' : 'user'}">${user.isAdmin ? 'Yes' : 'No'}</span>`;
+    const actionsCell = row.insertCell();
+    if (user.isDoctor) {
+        // If user is already a doctor, show a status badge
+        actionsCell.innerHTML = `<span class="status-badge status-doctor">Doctor</span>`;
+    } else {
+        // Otherwise, show the promote button
+        actionsCell.innerHTML = `
+            <button class="action-btn promote-btn" data-user-id="${user._id}" data-user-name="${user.fullname}" title="Add to Doctor">
+                <i class="fas fa-user-md"></i>
+            </button>`;
+        // Add the event listener to call our new function
+        actionsCell.querySelector('.promote-btn').addEventListener('click', (e) => {
+            const button = e.currentTarget;
+            promoteUserToDoctor(button.dataset.userId, button.dataset.userName);
+        });
+    }
 }
 
 function renderAppointmentsRow(tableBody, appt) {
@@ -142,6 +164,35 @@ function renderAppointmentsRow(tableBody, appt) {
     actionsCell.querySelector('.archive-btn')?.addEventListener('click', (e) => archiveAppointment(e.currentTarget.dataset.id, appt.isArchived));
 }
 
+function renderDoctorsRow(tableBody, doctor) {
+    const row = tableBody.insertRow();
+    row.insertCell().textContent = doctor.userAccount?.fullname || 'N/A';
+    row.insertCell().textContent = doctor.userAccount?.signupEmail || 'N/A';
+    row.insertCell().textContent = doctor.specialization?.name || 'Not Specified';
+    
+    const profileStatus = (doctor.specialization?.name !== 'Not Specified' && doctor.schedules?.length > 0) 
+        ? '<span class="status-badge status-completed">Complete</span>'
+        : '<span class="status-badge status-pending">Pending</span>';
+    row.insertCell().innerHTML = profileStatus;
+
+    // --- UPDATE THIS ACTIONS CELL ---
+    const actionsCell = row.insertCell();
+    actionsCell.innerHTML = `
+        <button class="action-btn demote-doctor-btn" data-doctor-id="${doctor._id}" data-user-name="${doctor.userAccount?.fullname}" title="Remove Doctor Status">
+            <i class="fas fa-user-slash"></i>
+        </button>
+    `;
+
+    // Add event listener for the new demote button
+    actionsCell.querySelector('.demote-doctor-btn').addEventListener('click', (e) => {
+        const button = e.currentTarget;
+        demoteDoctor(button.dataset.doctorId, button.dataset.userName);
+    });
+
+    // We can leave the edit listener commented out for now
+    // actionsCell.querySelector('.edit-doctor-btn').addEventListener('click', () => openDoctorModalForEditing(doctor));
+}
+
 function renderInventoryRow(tableBody, item) {
     const row = tableBody.insertRow();
     row.insertCell().textContent = item.itemName || 'N/A';
@@ -161,10 +212,47 @@ function renderInventoryRow(tableBody, item) {
 // =====================================================================
 
 // --- Data Fetchers ---
-async function fetchAndStoreUsers() { try { const res = await fetch('/api/admin/users'); if (!res.ok) throw new Error(res.statusText); allUsersDataCache = await res.json(); return allUsersDataCache; } catch (e) { console.error('Fetch Users Error:', e); return null; } }
-async function fetchAndStoreAppointments() { try { const url = `/api/admin/appointments?archived=${showingArchivedAppointments}`; const res = await fetch(url); if (!res.ok) throw new Error(res.statusText); allAppointmentsDataCache = await res.json(); return allAppointmentsDataCache; } catch (e) { console.error('Fetch Appointments Error:', e); return null; } }
-async function fetchAndStoreInventoryItems() { try { const res = await fetch('/api/admin/inventory'); if (!res.ok) throw new Error(res.statusText); allInventoryDataCache = await res.json(); return allInventoryDataCache; } catch (e) { console.error('Fetch Inventory Error:', e); return null; } }
-
+async function fetchAndStoreUsers() { 
+    try { 
+        const res = await fetch('/api/admin/users'); 
+        if (!res.ok) throw new Error(res.statusText); 
+        dataCaches.users = await res.json(); 
+        return dataCaches.users; 
+    } catch (e) { 
+        console.error('Fetch Users Error:', e); 
+        return null; 
+    } 
+}
+async function fetchAndStoreAppointments() { 
+    try { 
+        const url = `/api/admin/appointments?archived=${showingArchivedAppointments}`; 
+        const res = await fetch(url); if (!res.ok) throw new Error(res.statusText); 
+        dataCaches.appointments = await res.json(); return dataCaches.appointments; 
+    } catch (e) { 
+        console.error('Fetch Appointments Error:', e); 
+        return null; 
+    } 
+}
+async function fetchAndStoreInventoryItems() { 
+    try { 
+        const res = await fetch('/api/admin/inventory'); 
+        if (!res.ok) throw new Error(res.statusText); 
+        dataCaches.inventory = await res.json(); 
+        return dataCaches.inventory; 
+    } catch (e) { 
+        console.error('Fetch Inventory Error:', e); 
+        return null; 
+    } 
+}
+async function fetchAndStoreDoctors() { 
+    try { const res = await fetch('/api/admin/doctors'); 
+        if (!res.ok) throw new Error(res.statusText); 
+        dataCaches.doctors = await res.json(); 
+        return dataCaches.doctors; 
+    } catch (e) { 
+        console.error('Fetch Doctors Error:', e); return null; 
+    } 
+}
 // --- Action Handlers (Updated to use pagination) ---
 async function toggleAppointmentStatus(id, currentStatus) {
     const statusCycle = { 'Scheduled': 'Completed', 'Completed': 'Cancelled', 'Cancelled': 'Scheduled' };
@@ -190,17 +278,83 @@ async function archiveAppointment(id, isArchived) {
     } catch (error) { console.error(`Error ${action}ing:`, error); alert(`Error: ${error.message}`); }
 }
 
+async function promoteUserToDoctor(userId, userName) {
+    // Ask the admin for confirmation
+    if (!confirm(`Are you sure you want to promote "${userName}" to a Doctor? This will create a doctor profile for them.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/promote`, {
+            method: 'POST',
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to promote user.');
+        }
+
+        alert(result.message);
+
+        // Refresh both the users and doctors tables to show the change
+        loadAllAdminData();
+
+    } catch (error) {
+        console.error('Error promoting user:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
 async function deleteInventoryItem(id, name) {
     if (!confirm(`Delete "${name}"? This action cannot be undone.`)) return;
     try {
         await fetch(`/api/admin/inventory/${id}`, { method: 'DELETE' });
-        const data = await fetchAndStoreInventoryItems();
+        
+        // This refetches and updates the cache, which is correct.
+        const data = await fetchAndStoreInventoryItems(); 
+        
+        // This redisplays the table, which is also correct.
         displayPaginatedTable('inventory', data, 1);
-        updateDashboardStats({ inventory: allInventoryDataCache.length });
+        
+        // --- THIS IS THE FIX ---
+        // Update the dashboard stats using the correct cache object.
+        updateDashboardStats({ inventory: dataCaches.inventory.length });
+        
         alert(`"${name}" deleted.`);
-    } catch (error) { console.error('Error deleting item:', error); alert(`Error: ${error.message}`); }
+    } catch (error) { 
+        console.error('Error deleting item:', error); 
+        alert(`Error: ${error.message}`); 
+    }
 }
 
+async function demoteDoctor(doctorId, doctorName) {
+    // A crucial confirmation step for a destructive action
+    if (!confirm(`Are you sure you want to remove doctor status for "${doctorName}"? This will delete their doctor profile.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/doctors/${doctorId}/demote`, {
+            method: 'DELETE',
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to demote doctor.');
+        }
+
+        alert(result.message);
+
+        // Refresh all data to reflect the change in both the users and doctors tables
+        await loadAllAdminData();
+
+    } catch (error) {
+        console.error('Error demoting doctor:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
 
 // --- MODALS (Corrected to use pagination on success) ---
 function openAddAppointmentModal() {
@@ -246,6 +400,57 @@ function openAddAppointmentModal() {
     };
 }
 
+function openDoctorModalForPromotion(userId, userName) {
+    const modal = document.getElementById('doctor-modal');
+    const form = document.getElementById('doctor-form');
+    if (!modal || !form) return;
+
+    form.reset();
+    document.getElementById('doctor-modal-title').textContent = 'Promote User to Doctor';
+    document.getElementById('doctor-user-id').value = userId; // Store the user ID
+    document.getElementById('doctor-profile-id').value = ''; // No doctor profile ID yet
+    document.getElementById('doctor-name-modal').value = userName;
+    
+    modal.style.display = 'flex';
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const doctorData = {
+            specialization: document.getElementById('doctor-specialization-modal').value,
+            schedules: document.getElementById('doctor-schedules-modal').value.split(',').map(s => s.trim()),
+            acceptedHMOs: document.getElementById('doctor-hmos-modal').value.split(',').map(s => s.trim()),
+            description: document.getElementById('doctor-description-modal').value,
+        };
+
+        try {
+            // This is the new API route we defined
+            const response = await fetch(`/api/admin/users/${userId}/create-doctor-profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(doctorData)
+            });
+            if (!response.ok) { const d = await response.json(); throw new Error(d.error || 'Failed to create profile'); }
+            
+            modal.style.display = 'none';
+            alert('User successfully promoted to Doctor!');
+            
+            // Refresh both users and doctors tables
+            loadAllAdminData();
+
+        } catch (error) {
+            console.error('Error promoting user:', error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+}
+
+function openDoctorModalForEditing(doctor) {
+    // This function would be very similar, but it would pre-fill all fields
+    // from the `doctor` object and perform a PUT request to `/api/admin/doctors/:id`
+    // (This part can be implemented next, but the promotion logic is the key part)
+    alert(`Editing for ${doctor.userAccount.fullname} can be implemented here.`);
+}
+
 function openAddInventoryItemModal() {
     const modal = document.getElementById('inventory-item-modal');
     const form = document.getElementById('inventory-item-form');
@@ -263,8 +468,6 @@ function openAddInventoryItemModal() {
             reorderLevel: form.querySelector('#inventory-item-reorder-level').value ? parseInt(form.querySelector('#inventory-item-reorder-level').value) : 10,
             description: form.querySelector('#inventory-item-description').value,
         };
-        // ... (your validation logic is fine) ...
-
         try {
             const response = await fetch('/api/admin/inventory', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newData)
@@ -276,7 +479,7 @@ function openAddInventoryItemModal() {
             const inventory = await fetchAndStoreInventoryItems();
             displayPaginatedTable('inventory', inventory, 1); // Use the new function
 
-            updateDashboardStats({ inventory: allInventoryDataCache.length });
+            updateDashboardStats({ inventory: dataCaches.inventory.length });
             alert('Item added!');
         } catch (error) { console.error('Error adding item:', error); alert(`Error: ${error.message}`); }
     };
@@ -286,24 +489,59 @@ function openAddInventoryItemModal() {
 
 
 // --- SEARCH FUNCTIONALITY (Updated to use pagination) ---
+
 function setupSearchListeners() {
     const configs = [
-        { type: 'users', filter: (i, t) => i.fullname?.toLowerCase().includes(t) || i.signupEmail?.toLowerCase().includes(t) },
-        { type: 'appointments', filter: (i, t) => i.patientName?.toLowerCase().includes(t) || i.doctorName?.toLowerCase().includes(t) },
-        { type: 'inventory', filter: (i, t) => i.itemName?.toLowerCase().includes(t) }
+        { 
+            type: 'users', 
+            filter: (item, term) => 
+                (item.fullname || '').toLowerCase().includes(term) || 
+                (item.signupEmail || '').toLowerCase().includes(term)
+        },
+        { 
+            type: 'appointments', 
+            filter: (item, term) => 
+                (item.patientName || '').toLowerCase().includes(term) || 
+                (item.doctorName || '').toLowerCase().includes(term)
+        },
+        { 
+            type: 'inventory', 
+            filter: (item, term) => 
+                (item.itemName || '').toLowerCase().includes(term)
+        },
+        { 
+            type: 'doctors', 
+            filter: (item, term) => 
+                (item.userAccount?.fullname || '').toLowerCase().includes(term) || 
+                (item.specialization?.name || '').toLowerCase().includes(term)
+        }
     ];
-    configs.forEach(c => {
-        const inputEl = document.getElementById(`${c.type}-search`);
-        const btnEl = document.getElementById(`${c.type}-search-btn`);
+
+    configs.forEach(config => {
+        const inputEl = document.getElementById(`${config.type}-search`);
+        const btnEl = document.getElementById(`${config.type}-search-btn`);
+        
         if (inputEl && btnEl) {
             const search = () => {
-                const term = inputEl.value.toLowerCase().trim();
-                const cache = window[`all${capitalize(c.type)}DataCache`];
-                const filtered = term ? cache.filter(i => c.filter(i, term)) : cache;
-                displayPaginatedTable(c.type, filtered, 1);
+                const searchTerm = inputEl.value.toLowerCase().trim();
+                // This is the crucial change. We access our object directly.
+                const dataCache = dataCaches[config.type]; 
+                
+                if (!dataCache) {
+                    console.error(`Search data cache not found for type: ${config.type}`);
+                    return;
+                }
+
+                const filteredData = searchTerm 
+                    ? dataCache.filter(item => config.filter(item, searchTerm))
+                    : dataCache;
+                
+                displayPaginatedTable(config.type, filteredData, 1);
             };
+
             btnEl.addEventListener('click', search);
-            inputEl.addEventListener('keyup', e => e.key === 'Enter' && search());
+            // We'll keep the live-search functionality
+            inputEl.addEventListener('input', search);
         }
     });
 }

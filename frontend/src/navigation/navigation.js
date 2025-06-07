@@ -15,15 +15,15 @@ export async function initializeNavigation() {
  */
 function setupNavClickListeners() {
   document.body.addEventListener('click', (event) => {
-    // Find the closest parent link with a data-nav attribute
     const navLink = event.target.closest('a[data-nav]');
     
-    if (navLink) {
-      event.preventDefault(); // Stop the browser's default link behavior
-      const page = navLink.dataset.nav; // Get the target page (e.g., "main.html")
-      
-      // The server's 'ensureAuthenticated' middleware is the main security.
-      // The nav UI is already updated, so we can just navigate.
+    // --- THE FIX: Add a check to ignore form submit buttons ---
+    // This isn't the main problem but is good practice.
+    const isSubmitButton = event.target.closest('button[type="submit"]');
+
+    if (navLink && !isSubmitButton) { // Only run if it's a nav link AND NOT a submit button
+      event.preventDefault();
+      const page = navLink.dataset.nav;
       window.location.href = `/${page}`;
     }
   });

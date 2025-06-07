@@ -62,24 +62,72 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .card-info .description { font-size: 0.9em; color: #777; margin: 0;}
 
 /* Data Tables */
-.data-table { overflow-x: auto; background-color: #fff; padding:15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
-th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
-th { background-color: #e9ecef; font-weight: 600; color: #495057;}
-tbody tr:hover { background-color: #f8f9fa; }
+.data-table {
+    overflow-x: auto;
+}
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 0.95em;
+    /* This tells the table to not shrink smaller than its content needs */
+    min-width: 900px;
+}
+th, td { 
+    padding: 12px 15px; 
+    text-align: left; 
+    border-bottom: 1px solid #dee2e6; 
 
+    /* This prevents text in cells from wrapping, forcing the table to be wide */
+    white-space: nowrap; 
+}
+th { 
+    background-color: #e9ecef; 
+    font-weight: 600; 
+    color: #495057;
+}
+tbody tr:hover { 
+    background-color: #f8f9fa; 
+}
+
+.table-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px; /* Keep the space between sections */
+    /* overflow: hidden; is important to contain the rounded corners */
+    overflow: hidden; 
+}
+
+
+.data-table::-webkit-scrollbar {
+  height: 12px; /* Set the height of the horizontal scrollbar */
+  width: 12px;  /* Set the width of the vertical scrollbar (if any) */
+}
+
+/* This targets the track (the bar the scroll thumb moves along) */
+.data-table::-webkit-scrollbar-track {
+  background: #e9ecef; /* A light grey background for the track */
+  border-radius: 10px;
+}
+
+/* This targets the scroll thumb (the part you click and drag) */
+.data-table::-webkit-scrollbar-thumb {
+  background-color: #8d9aa7; /* A darker, visible grey for the thumb */
+  border-radius: 10px;
+  border: 3px solid #e9ecef; /* Creates a nice padding effect */
+}
+
+/* Optional: Style the thumb on hover for better user feedback */
+.data-table::-webkit-scrollbar-thumb:hover {
+  background-color: #6c757d;
+}
 /* --- PAGINATION CONTROLS STYLES --- */
 .pagination-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    margin-top: -20px; /* Pull it up closer to the table */
-    margin-bottom: 20px;
-    background-color: #fff;
-    border-radius: 0 0 8px 8px; /* Round bottom corners */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    border-top: 1px solid #eee;
+    border-top: 1px solid #eee; /* The line between table and controls */
 }
 
 .pagination-controls .page-info {
@@ -116,6 +164,7 @@ tbody tr:hover { background-color: #f8f9fa; }
 .status-admin { background-color: #fd7e14; }
 .status-user { background-color: #6c757d; }
 .status-pending, .status-low-stock { background-color: #ffc107; color: #212529;}
+.status-doctor { background-color: #6f42c1; }
 
 /* Action Buttons in Tables */
 .action-btn { background: none; border: none; color: #007bff; cursor: pointer; margin: 0 3px; font-size: 1em; padding: 5px; opacity: 1;}

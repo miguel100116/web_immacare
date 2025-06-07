@@ -1,7 +1,10 @@
-// routes/appointment.routes.js
+// backend/routes/appointment-routes.js
 const express = require('express');
 const Appointment = require('../models/appointment-model');
+// We don't need to import Specialization here for this fix, but it's good practice
 const router = express.Router();
+const mongoose = require('mongoose');
+const Doctor = require('../models/doctor-model');
 
 // NOTE: ensureAuthenticated will be applied in server.js before this router is used.
 
@@ -9,97 +12,121 @@ const router = express.Router();
 router.post('/save-data', async (req, res) => {
     try {
         console.log("📨 Received appointment data:", req.body);
-        const { doctorName, date, time, patientName, specialization, reason, address, age, phone } = req.body; // Destructure for clarity
-    
-        // === START: Double Booking Check ===
-        const existingAppointment = await Appointment.findOne({
-          doctorName: doctorName,
-          date: date,
-          time: time,
-          status: { $ne: 'Cancelled' } // Only consider Scheduled or Completed appointments as booked
-        });
-    
-        if (existingAppointment) {
-          // For regular users, we might not want to send a JSON error if the form submission isn't AJAX.
-          // Sending a redirect with an error message is common.
-          // Or, if your appointment.html form uses AJAX, send JSON.
-          // For now, let's assume a redirect for this route.
-          console.warn(`WARN: Double booking attempt by ${req.session.user.signupEmail} for Dr. ${doctorName} at ${date} ${time}`);
-          return res.redirect(`/appointment.html?error=${encodeURIComponent(`Dr. ${doctorName} is already booked at ${time} on ${date}. Please choose a different time or date.`)}`);
-          // If using AJAX on client-side for this form:
-          // return res.status(409).json({ error: `Dr. ${doctorName} is already booked at ${time} on ${date}. Please choose a different time or date.` });
+       const { date, time, patientName, specialization, doctor: doctorId, reason, address, age, phone } = req.body;
+
+        // --- VALIDATION STEP ---
+        if (!doctorId || !mongoose.Types.ObjectId.isValid(doctorId)) {
+          console.error(`❌ VALIDATION FAILED: Doctor ID is invalid. Received: ${doctorId}`);
+             return res.status(400).redirect(`/appointment.html?error=${encodeURIComponent("A valid doctor must be selected.")}`);
         }
-        // === END: Double Booking Check ===
+        if (!specialization || !mongoose.Types.ObjectId.isValid(specialization)) {
+            console.error("❌ Invalid or missing Specialization ID received:", specialization);
+            return res.status(400).redirect(`/appointment.html?error=${encodeURIComponent("Invalid specialization selected. Please try again.")}`);
+        }
+
+        const doctor = await Doctor.findById(doctorId).populate('userAccount', 'fullname');
+        if (!doctor) {
+            return res.status(404).redirect(`/appointment.html?error=${encodeURIComponent("Selected doctor not found.")}`);
+        }
+        const doctorName = doctor.userAccount.fullname;
+        
+        // Double Booking Check (This logic is fine as is)
+       const existingAppointment = await Appointment.findOne({ doctorName, date, time, status: { $ne: 'Cancelled' } });
+        if (existingAppointment) {
+            return res.redirect(`/appointment.html?error=${encodeURIComponent(`Dr. ${doctorName} is already booked.`)}`);
+        }
     
-        let patientEmailForDb = '';
-        let userIdForDb = '';
-    
-        if (req.session.user && req.session.user.signupEmail) {
-          patientEmailForDb = req.session.user.signupEmail;
-          userIdForDb = req.session.user.id;
-        } else {
-          // This case should ideally not happen if ensureAuthenticated works
+        // User Info Check (This logic is fine as is)
+        if (!req.session.user || !req.session.user.id) {
           return res.status(401).send("User not authenticated to save appointment.");
         }
     
+        // Construct the data for the new appointment
         const appointmentData = {
+            doctor: doctorId,
             doctorName,
-            specialization,
+            specialization: specialization, // This is the ObjectId from the form
             date,
             time,
-            patientName: patientName || req.session.user.fullname, // Use provided or session fullname
-            patientEmail: patientEmailForDb,
+            patientName: patientName || req.session.user.fullname,
+            patientEmail: req.session.user.signupEmail,
             address,
             age,
             phone,
             reason,
-            userId: userIdForDb,
-            status: 'Scheduled' // Default status
+            userId: req.session.user.id,
+            status: 'Scheduled'
         };
     
+        console.log("✅ Preparing to save appointment with this data:", appointmentData);
+
         const appointment = new Appointment(appointmentData);
-        await appointment.save();
+        await appointment.save(); // This should now work
     
-        console.log("✅ Appointment saved:", appointment);
-        res.redirect('/myappointments.html?message=Appointment%20Saved%20Successfully!'); // Redirect to myappointments
+        console.log("✅ Appointment saved successfully:", appointment._id);
+        res.redirect('/myappointments.html?message=Appointment%20Saved%20Successfully!');
+
       } catch (err) {
-        console.error("❌ Error saving appointment:", err);
-        // Send a generic error message or redirect to an error page
-        res.status(500).redirect(`/appointment.html?error=${encodeURIComponent("Failed to save appointment. Please try again.")}`);
-        // If using AJAX: res.status(500).json({ error: "Failed to save appointment. Please try again." });
+        // This is the block that's likely being triggered.
+        console.error("❌ Mongoose validation or save error:", err);
+        // The error message will tell us exactly which field is wrong.
+        res.status(500).redirect(`/appointment.html?error=${encodeURIComponent("An error occurred. Could not save appointment.")}`);
       }
 });
 
 // GET /get-appointments (User views their own appointments)
 router.get('/get-appointments', async (req, res) => {
     try {
-        // No need to check req.session.user again, ensureAuthenticated does it.
-        const email = req.session.user.signupEmail;
-        // Or better, use userId if you store it with appointments:
-        // const userId = req.session.user.id;
-        // const appointments = await Appointment.find({ userId: userId });
-        const appointments = await Appointment.find({ patientEmail: email });
-        res.json(appointments);
+        const appointments = await Appointment.find({ userId: req.session.user.id })
+          .populate('specialization', 'name') // Only populate specialization
+          .sort({ date: -1, time: -1 });
+
+        if (!appointments) {
+            return res.json([]);
+        }
+
+        // --- EXPLICIT DATA TRANSFORMATION ---
+        // Create a new, clean array of objects to send.
+        const responseData = appointments.map(app => ({
+            _id: app._id,
+            date: app.date,
+            time: app.time,
+            doctorName: app.doctorName, // This is saved as a string, so it's safe
+            patientName: app.patientName, // This is also a string
+            // Safely access the populated name
+            specializationName: app.specialization ? app.specialization.name : 'Unknown Specialty',
+            reason: app.reason,
+            status: app.status
+        }));
+        
+        console.log("✅ Sending this transformed data to frontend:", responseData);
+        res.json(responseData);
+
       } catch (err) {
         console.error("❌ Error fetching appointments:", err);
-        res.status(500).send("Error fetching appointments");
+        res.status(500).json({ error: "Error fetching appointments" });
       }
 });
 
 // DELETE /cancel-appointment/:id (User cancels an appointment)
 router.delete("/cancel-appointment/:id", async (req, res) => {
     try {
-        // Add check to ensure user can only cancel their own appointments (unless admin)
         const appointment = await Appointment.findById(req.params.id);
-        if (!appointment) return res.status(404).send("Appointment not found.");
-        if (appointment.userId !== req.session.user.id && !req.session.user.isAdmin) {
-            return res.status(403).send("You are not authorized to cancel this appointment.");
+        if (!appointment) {
+          return res.status(404).json({ error: "Appointment not found." });
         }
+        // Use .toString() to safely compare ObjectIds
+        if (appointment.userId.toString() !== req.session.user.id) {
+            return res.status(403).json({ error: "You are not authorized to cancel this appointment." });
+        }
+        
         await Appointment.findByIdAndDelete(req.params.id);
-        res.status(200).send("Appointment cancelled.");
+        res.status(200).json({ message: "Appointment cancelled." });
       } catch (err) {
-        res.status(500).send("Error cancelling appointment.");
+        console.error("Error cancelling appointment:", err)
+        res.status(500).json({ error: "Error cancelling appointment." });
       }
 });
+
 
 module.exports = router;

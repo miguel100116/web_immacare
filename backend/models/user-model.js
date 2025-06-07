@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     verificationToken: String,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
-    isAdmin: { type: Boolean, default: false }
+    isAdmin: { type: Boolean, default: false },
+    isDoctor: { type: Boolean, default: false },
 });
 
 // Note: You can add pre-save hooks for hashing password right here if you want

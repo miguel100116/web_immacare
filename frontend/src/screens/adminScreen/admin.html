@@ -22,6 +22,7 @@
             <ul class="nav-menu">
                 <li class="nav-item active" data-target="dashboard"><a href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li class="nav-item" data-target="users"><a href="#"><i class="fas fa-users-cog"></i> Manage Users</a></li>
+                <li class="nav-item" data-target="doctors"><a href="#"><i class="fas fa-user-md"></i> Manage Doctors</a></li>
                 <li class="nav-item" data-target="appointments"><a href="#"><i class="fas fa-calendar-check"></i> Appointments</a></li>
                 <li class="nav-item" data-target="inventory"><a href="#"><i class="fas fa-boxes"></i> Inventory</a></li>
                 <li class="nav-item" data-target="settings"><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
@@ -74,18 +75,57 @@
                 </div>
                 <div class="data-table">
                     <table id="users-table">
-                        <thead><tr><th>Full Name</th><th>Email</th><th>Phone</th><th>Age</th><th>Sex</th><th>Verified</th><th>Admin</th></tr></thead>
+                         <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Age</th>
+                                <th>Sex</th>
+                                <th>Verified</th>
+                                <th>Admin</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
                         <tbody></tbody>
                     </table>
                 </div>
                 <div class="pagination-controls" id="users-pagination"></div>
             </section>
 
+            <section class="content-section" id="doctors">
+
+            <div class="section-header">
+                <h1>Doctor Management</h1>
+                        <!-- The "Add Doctor" button will work by promoting a user from the Manage Users table -->
+                        <p style="font-size: 0.9em; color: #6c757d;">Promote users to doctors from the 'Manage Users' section.</p>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="doctors-search" placeholder="Search by name, email, or specialization...">
+                        <button id="doctors-search-btn" class="filter-button">Search</button>
+                    </div>
+                    <div class="data-table">
+                        <table id="doctors-table">
+                            <thead>
+                                <tr>
+                                    <th>Doctor Name</th> <!-- <<< TYPO FIXED -->
+                                    <th>Email</th>
+                                    <th>Specialization</th>
+                                    <th>Profile Status</th>
+                                    <th>Actions</th> <!-- <<< ADD THIS LINE -->
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-controls" id="doctors-pagination"></div>
+                </section>
+
             <section class="content-section appointments-section" id="appointments">
                 <div class="section-header">
                     <h1>Appointments Management <span id="appointments-view-indicator" style="font-size: 0.7em; color: #555;">(Active)</span></h1>
                     <div>
-                        <button class="add-new-btn" id="add-new-appointment-btn"><i class="fas fa-plus"></i> Add Appointment</button>
+                        <!-- <button class="add-new-btn" id="add-new-appointment-btn"><i class="fas fa-plus"></i> Add Appointment</button> -->
                         <button class="secondary-btn" id="toggle-archived-view-btn"><i class="fas fa-archive"></i> View Archived</button>
                     </div>
                 </div>
@@ -149,6 +189,47 @@
                         </select>
                     </div>
                     <div class="form-actions"><button type="button" class="cancel-btn">Cancel</button><button type="submit" class="save-btn">Save Appointment</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="doctor-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="doctor-modal-title">Edit Doctor Profile</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="doctor-form">
+                    <!-- These hidden fields store the critical IDs -->
+                    <input type="hidden" id="doctor-profile-id"> <!-- For editing an existing Doctor profile -->
+                    <input type="hidden" id="doctor-user-id"> <!-- For linking to a User account -->
+                    
+                    <div class="form-group">
+                        <label for="doctor-name-modal">Doctor Name (from User Profile):</label>
+                        <input type="text" id="doctor-name-modal" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-specialization-modal">Specialization:</label>
+                        <input type="text" id="doctor-specialization-modal" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-schedules-modal">Schedules (comma-separated):</label>
+                        <input type="text" id="doctor-schedules-modal" placeholder="e.g., Mon 9am-12pm, Wed 1pm-4pm">
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-hmos-modal">Accepted HMOs (comma-separated):</label>
+                        <input type="text" id="doctor-hmos-modal" placeholder="e.g., Maxicare, Intellicare">
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-description-modal">Description / Bio:</label>
+                        <textarea id="doctor-description-modal" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Save Profile</button>
+                    </div>
                 </form>
             </div>
         </div>

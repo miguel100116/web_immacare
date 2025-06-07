@@ -73,7 +73,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="src/styles/style.css">
-  <script src="navigation.js"></script>
+  <script src="navigation/navigation.js"></script>
   <title>My Appointments</title>
   <style>
     .resched-btn, .cancel-btn {
@@ -143,66 +143,7 @@
     </table>
   </div>
 
-  <script>
-    fetch("/get-appointments")
-      .then((res) => res.json())
-      .then((data) => {
-        const tableBody = document.querySelector("#appointmentsTable tbody");
-        data.forEach((app) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${app.date}</td>
-            <td>${app.time}</td>
-            <td>${app.doctorName}</td>
-            <td>${app.patientName}</td>
-            <td>${app.specialization}</td>
-            <td>${app.reason}</td>
-            <td>
-              <button class="resched-btn" data-id="${app._id}">Reschedule</button>
-              <button class="cancel-btn" data-id="${app._id}">Cancel</button>
-            </td>
-          `;
-          tableBody.appendChild(row);
-        });
-
-        // Reschedule button logic
-        document.querySelectorAll(".resched-btn").forEach(button => {
-          button.addEventListener("click", (e) => {
-            const id = e.target.dataset.id;
-            const newDate = prompt("Enter new date (YYYY-MM-DD):");
-            const newTime = prompt("Enter new time (HH:MM):");
-
-            if (newDate && newTime) {
-              fetch(`/reschedule-appointment/${id}`, {
-                method: "PUT",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ date: newDate, time: newTime }),
-              })
-              .then(res => res.json())
-              .then(() => location.reload())
-              .catch(err => console.error("❌ Failed to reschedule:", err));
-            }
-          });
-        });
-
-        // Cancel button logic
-        document.querySelectorAll(".cancel-btn").forEach(button => {
-          button.addEventListener("click", (e) => {
-            const id = e.target.dataset.id;
-            if (confirm("Are you sure you want to cancel this appointment?")) {
-              fetch(`/cancel-appointment/${id}`, {
-                method: "DELETE",
-              })
-              .then(() => location.reload())
-              .catch(err => console.error("❌ Failed to cancel:", err));
-            }
-          });
-        });
-      })
-      .catch((err) => console.error("❌ Failed to load appointments:", err));
-  </script>
+  <script src="src/pages/myappointments.js" defer></script>
   <script src="src/app.js" type="module" defer></script>
 </body>
 </html>

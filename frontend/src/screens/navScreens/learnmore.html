@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learn More | Medical Services</title>
+  <!-- Path to your main stylesheet -->
+  <link rel="stylesheet" href="../../../src/styles/learnMoreStyle.css">
+</head>
+<body>
+  <!-- Navbar will be loaded here -->
+
+  <!-- Main container for the single service detail -->
+  <div class="learnmore-wrapper-single">
+      <!-- JavaScript will populate this container -->
+      <div id="service-content-placeholder">
+          <p>Loading service details...</p>
+      </div>
+  </div>
+
+  <script>
+    // This script now reads the URL and injects only the relevant HTML.
+    document.addEventListener('DOMContentLoaded', () => {
+      // Data object containing the content for each service.
+      const servicesData = {
+        'obgyn': {
+          title: 'Obstetrics and Gynecology',
+          content: 'The Obstetrics and Gynecology (OB-GYN) department supports women’s health through all life stages. We offer prenatal care, family planning, fertility counseling, menstrual disorder treatment, and menopause management. Our obstetricians ensure safe and supportive care throughout pregnancy and childbirth.'
+        },
+        'pediatrics': {
+          title: 'Pediatrics',
+          content: 'Our Pediatrics services are designed to meet the unique medical needs of infants, children, and adolescents. From routine checkups and vaccinations to managing acute and chronic illnesses, we ensure every child receives compassionate and age-appropriate care.'
+        },
+        'internal-medicine': {
+          title: 'Internal Medicine',
+          content: 'The Internal Medicine department provides primary and specialty care for adult patients, managing chronic illnesses such as diabetes, hypertension, heart disease, and respiratory conditions. Our internists take a holistic approach to diagnosis, prevention, and long-term care.'
+        },
+        'surgery': {
+            title: 'Surgery',
+            content: 'Our Surgery team performs a wide range of procedures, from minor outpatient surgeries to more complex operations. With a focus on patient safety and recovery, we utilize modern techniques and equipment to ensure optimal outcomes for general, laparoscopic, and emergency surgeries.'
+        },
+        'dermatology': {
+            title: 'Dermatology',
+            content: 'The Dermatology department specializes in the health of your skin, hair, and nails. We treat acne, eczema, psoriasis, fungal infections, skin allergies, and perform screenings for skin cancer. Our approach combines medical and cosmetic dermatology for complete skin wellness.'
+        },
+        'ophthalmology': {
+            title: 'Ophthalmology',
+            content: 'Our Ophthalmology team provides comprehensive eye care, from routine vision exams to the management of complex eye diseases such as cataracts, glaucoma, diabetic retinopathy, and macular degeneration. We use advanced diagnostic tools and treatments to protect and restore your vision.'
+        },
+        'urology': {
+            title: 'Urology',
+            content: 'The Urology department focuses on the urinary tract system and male reproductive organs. Our services include diagnosis and treatment of urinary tract infections, kidney stones, incontinence, and prostate issues. We offer both medical management and surgical solutions tailored to your needs.'
+        },
+        'ent': {
+            title: 'ENT (Ear, Nose, and Throat)',
+            content: 'Our ENT specialists provide expert care for disorders related to the ear, nose, throat, and related structures of the head and neck. We treat common issues like sinus infections, hearing loss, sore throats, and balance disorders, as well as more complex conditions that may require surgical intervention.'
+        }
+      };
+
+      const placeholder = document.getElementById('service-content-placeholder');
+      
+      // Get the service name from the URL path (e.g., 'urology' from '/learnmore/urology')
+      const pathSegments = window.location.pathname.split('/');
+      const serviceName = pathSegments.pop() || pathSegments.pop(); // Handles trailing slash
+
+      // Find the corresponding service data
+      const service = servicesData[serviceName];
+
+      if (service) {
+        // If data is found, build the HTML and inject it
+        placeholder.innerHTML = `
+          <div class="service-detail-card">
+              <h1>${service.title}</h1>
+              <p>${service.content}</p>
+              <a class="back-btn" href="/main.html">Back to Home</a>
+          </div>
+        `;
+      } else {
+        // If no matching service is found, show an error
+        placeholder.innerHTML = `
+          <div class="service-detail-card">
+              <h1>Service Not Found</h1>
+              <p>The service you are looking for does not exist. Please return to the homepage.</p>
+              <a class="back-btn" href="/main.html">Back to Home</a>
+          </div>
+        `;
+      }
+    });
+  </script>
+  
+  <!-- Link to your main app script -->
+  <script src="../../../src/app.js" type="module" defer></script>
+</body>
+</html>

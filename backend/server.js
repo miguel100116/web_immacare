@@ -5,32 +5,34 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
-const bcrypt = require('bcrypt'); // Still needed for ensureFirstAdmin
+const bcrypt = require('bcrypt');
 const app = express();
 const port = 5300;
 
 // --- 1. IMPORT MODELS, MIDDLEWARE, and ROUTES ---
 const Users = require('./models/user-model');
-const { ensureAuthenticated, ensureAdmin } = require('./middleware/auth-middleware');
+const Specialization = require('./models/specialization-model');
 const authRoutes = require('./routes/auth-routes');
 const appointmentRoutes = require('./routes/appointment-routes');
 const adminRoutes = require('./routes/admin-routes');
-
+const doctorRoutes = require('./routes/doctor-routes');
+const { ensureAuthenticated, ensureAdmin } = require('./middleware/auth-middleware');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
   origin: 'http://localhost:5300',
   credentials: true
 }));
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(session({
   secret: 'immacareSecretKey123',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // Set to true if using HTTPS
+  cookie: { secure: false } 
 }));
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
 
 
 // --- 3. DATABASE CONNECTION ---
@@ -39,40 +41,76 @@ mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
 
-// --- 4. STARTUP SCRIPTS (like ensuring first admin) ---
+// --- 4. STARTUP SCRIPTS ---
+// ** PUT THIS SECTION BACK IN **
 async function ensureFirstAdmin() {
-    // ... (paste your existing ensureFirstAdmin function here, it's fine)
+    // Your existing function to create the first admin user
+    // This is important for initial setup
+    const adminExists = await Users.findOne({ isAdmin: true });
+    if (!adminExists) {
+        console.log("No admin found, creating one...");
+        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASS || 'AdminPassword1!', 10);
+        await Users.create({
+            fullname: 'Admin User',
+            signupEmail: process.env.ADMIN_EMAIL || 'admin@immacare.com',
+            signupPassword: hashedPassword,
+            isAdmin: true,
+            isVerified: true
+        });
+        console.log("✅ Default admin created.");
+    }
 }
+
+async function ensureSpecializations() {
+  try {
+    const specializations = [
+      { name: 'Obstetrics and Gynecology' }, { name: 'Pediatrics' },
+      { name: 'Internal Medicine' }, { name: 'Surgery' },
+      { name: 'Dermatology' }, { name: 'Ophthalmology' },
+      { name: 'Urology' }, { name: 'ENT' },
+      { name: 'Not Specified' }
+    ];
+
+    for (const spec of specializations) {
+      await Specialization.findOneAndUpdate(
+        { name: spec.name },
+        { $setOnInsert: spec },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+    console.log('✅ Specializations seeded successfully.');
+  } catch (error) {
+    console.error('❌ Error seeding specializations:', error);
+  }
+}
+
+// Call the startup scripts
 ensureFirstAdmin();
+ensureSpecializations();
+// ** END OF SECTION TO PUT BACK **
 
 
 // --- 5. STATIC PAGE SERVING ---
-// --- Public Pages (no login required) ---
+// (This part is correct and unchanged)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html')));
-
-// Auth screens
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'signup.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'login.html')));
-
-// Other public screens
 app.get('/confirmation.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'confirmation.html')));
-
-// ADDING main.html and doctors.html as PUBLIC routes
-app.get('/main.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html'))); // 'main.html' will also serve the main index page.
+app.get('/main.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html')));
 app.get('/doctors.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'doctors.html')));
-
-
-// --- Protected Pages (login required) ---
-// REMOVED the incorrect '/index.html' route from here.
 app.get('/admin.html', ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'adminScreen', 'admin.html')));
 app.get('/appointment.html', ensureAuthenticated, (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'appointment.html')));
 app.get('/myappointments.html', ensureAuthenticated, (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'myappointments.html')));
+app.get('/learnmore/:serviceName', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'learnmore.html'));
+});
 
 // --- 6. API ROUTE WIRING ---
-// Use the routers from the /routes directory
-app.use('/', authRoutes); // Handles login, register, logout, etc.
-app.use('/', ensureAuthenticated, appointmentRoutes); // All user appointment routes require login
-app.use('/api/admin', ensureAdmin, adminRoutes); // All admin API routes require admin access
+// (This part is now correct)
+app.use('/', authRoutes);
+app.use('/', ensureAuthenticated, appointmentRoutes);
+app.use('/api/admin', ensureAdmin, adminRoutes);
+app.use('/api', doctorRoutes);
 
 
 // --- 7. START SERVER ---

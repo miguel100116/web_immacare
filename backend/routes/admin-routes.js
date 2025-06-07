@@ -3,8 +3,9 @@ const express = require('express');
 const Users = require('../models/user-model');
 const Appointment = require('../models/appointment-model');
 const InventoryItem = require('../models/inventoryItem-model');
+const Doctor = require('../models/doctor-model');
 const router = express.Router();
-
+const Specialization = require('../models/specialization-model');
 // NOTE: The `ensureAdmin` middleware will be applied in server.js for this whole router.
 
 // GET /api/admin/users
@@ -212,6 +213,103 @@ router.delete('/inventory/:id', async (req, res) => {
     } catch (err) {
         console.error(`Error deleting inventory item ${req.params.id}:`, err);
         res.status(500).json({ error: 'Server error deleting inventory item.' });
+    }
+});
+
+router.get('/doctors', async (req, res) => {
+   try {
+    const doctors = await Doctor.find({})
+      .populate({
+        path: 'userAccount',
+        select: 'fullname signupEmail'
+      })
+      // --- CHANGE 1: Populate the specialization's name ---
+      .populate({
+        path: 'specialization',
+        select: 'name' 
+      })
+      .sort({ createdAt: -1 });
+
+    res.json(doctors);
+  } catch (error) {
+    console.error('Error fetching doctors for admin panel:', error);
+    res.status(500).json({ error: 'Server error fetching doctors.' });
+  }
+});
+
+router.post('/users/:userId/promote', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 1. Check if the user exists
+    const user = await Users.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User account not found.' });
+    }
+
+    // 2. Check if a doctor profile already exists for this user
+    if (user.isDoctor) {
+      const existingDoctor = await Doctor.findOne({ userAccount: userId });
+      if (existingDoctor) {
+        return res.status(409).json({ error: 'This user already has a doctor profile.' });
+      }
+    }
+    
+    let defaultSpec = await Specialization.findOne({ name: 'Not Specified' });
+    if (!defaultSpec) {
+      console.warn("WARN: Could not find default specialization by name. Trying fallback lookup by ID.");
+      defaultSpec = await Specialization.findById('6843ea4f218f1f7d99b0814e');
+    }
+
+    if (!defaultSpec) {
+      const criticalError = 'Default specialization could not be found by name OR by hardcoded ID. Please check the "specializations" collection in the database.';
+      console.error(`CRITICAL ERROR: ${criticalError}`);
+      return res.status(500).json({ error: `Server Configuration Error: ${criticalError}` });
+    }
+
+    const newDoctor = new Doctor({
+      userAccount: userId,
+      specialization: defaultSpec._id, // Use the ID of the specialization
+    });
+    await newDoctor.save(); 
+
+    user.isDoctor = true;
+    await user.save();
+
+    console.log(`✅ User promoted to Doctor: ${user.fullname}`);
+    res.status(200).json({ message: 'User successfully promoted to a doctor.' });
+  } catch (error) {
+    console.error('Error promoting user to doctor:', error);
+    res.status(500).json({ error: 'Server error while promoting user.' });
+  }
+});
+
+router.delete('/doctors/:doctorId/demote', async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+
+        // 1. Find the Doctor profile to get the linked user's ID
+        const doctorProfile = await Doctor.findById(doctorId);
+        if (!doctorProfile) {
+            return res.status(404).json({ error: 'Doctor profile not found.' });
+        }
+        
+        const userId = doctorProfile.userAccount;
+
+        // 2. Delete the Doctor profile document
+        // This removes their specialization, schedules, etc.
+        await Doctor.findByIdAndDelete(doctorId);
+
+        // 3. Find the associated User and update their status
+        //    THIS IS THE CRUCIAL STEP YOU ASKED ABOUT.
+        await Users.findByIdAndUpdate(userId, { isDoctor: false });
+
+        console.log(`✅ Doctor profile removed and user demoted for user ID: ${userId}`);
+        res.status(200).json({ message: 'Doctor status successfully removed.' });
+
+    } catch (error) {
+        console.error('Error demoting doctor:', error);
+        res.status(500).json({ error: 'Server error while demoting doctor.' });
     }
 });
 

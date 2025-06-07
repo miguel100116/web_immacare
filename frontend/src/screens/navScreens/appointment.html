@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="src/styles/style.css">
-    <script src="navigation/navigation.js" defer></script>
     <title>Appointment Form</title>
     <style>
         /* --- STYLES (UNCHANGED) --- */
@@ -52,7 +51,7 @@
             <h2 class="form-title">Patient Appointment Form</h2>
             <div id="form-message-area" style="text-align:center; margin-bottom:15px; font-weight:bold; min-height: 1.2em;"></div>
 
-            <form id="userDataForm" method="POST" action="/save-data">
+            <form id="userDataForm">
 
                 <!-- SECTION 1: USER INFORMATION (Unchanged) -->
                 <fieldset class="form-section">
@@ -87,17 +86,12 @@
                         <div class="form-group">
                             <label for="specialization">Specialization*</label>
                             <select id="specialization" name="specialization" required>
-                                <option value="">Select Specialization</option>
-                                <option value="SURGERY">Surgery</option>
-                                <option value="CARDIOLOGY">Cardiology</option>
-                                <option value="DERMATOLOGY">Dermatology</option>
-                                <option value="DENTISTRY">Dentistry</option>
-                                <option value="OBSTETRICS GYNECOLOGY">Obstetrics & Gynecology</option>
+                                <option value="">Loading specializations...</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="doctorName">Doctor*</label>
-                            <select id="doctorName" name="doctorName" required disabled>
+                            <select id="doctorName" name="doctor" required disabled>
                                 <option value="">Select a specialization first</option>
                             </select>
                         </div>
@@ -145,104 +139,7 @@
     
     <footer class="footer"></footer>
     <div id="confirmationModal" class="modal"></div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            // --- 1. USER INFO LOGIC ---
-            try {
-                const response = await fetch('/getUser');
-                const userData = await response.json();
-                if (userData.loggedIn) {
-                    const fieldsToLock = { patientName: userData.fullname, age: userData.age, phone: userData.phoneNumber, address: userData.address };
-                    for (const id in fieldsToLock) {
-                        const input = document.getElementById(id);
-                        const value = fieldsToLock[id];
-                        const changeButton = document.querySelector(`.edit-btn[data-target="${id}"]`);
-                        if (input && value) {
-                            input.value = value;
-                            input.readOnly = true;
-                            input.classList.add('pre-filled');
-                        } else if (changeButton) {
-                            changeButton.style.display = 'none';
-                        }
-                    }
-                } else {
-                    document.querySelectorAll('.edit-btn').forEach(btn => btn.style.display = 'none');
-                }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
-                document.querySelectorAll('.edit-btn').forEach(btn => btn.style.display = 'none');
-            }
-            
-            document.querySelectorAll('.edit-btn').forEach(button => {
-                const targetInputId = button.dataset.target;
-                const inputToEdit = document.getElementById(targetInputId);
-                const relockField = () => {
-                    inputToEdit.readOnly = true;
-                    inputToEdit.classList.add('pre-filled');
-                    button.style.display = 'inline-block';
-                };
-                button.addEventListener('click', function() {
-                    inputToEdit.readOnly = false;
-                    inputToEdit.classList.remove('pre-filled');
-                    inputToEdit.focus();
-                    this.style.display = 'none';
-                });
-                inputToEdit.addEventListener('blur', relockField);
-                inputToEdit.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        relockField();
-                    }
-                });
-            });
-
-            // --- 2. SMART APPOINTMENT FORM LOGIC ---
-            const specializationSelect = document.getElementById('specialization');
-            const doctorSelect = document.getElementById('doctorName');
-
-            const doctorSpecializations = {
-                'SURGERY': ['Alarcon, Mark', 'Dr. Reyes, John'],
-                'CARDIOLOGY': ['De Guzman, Jatrish', 'Dr. Clara Santos'],
-                'DERMATOLOGY': ['Dr. Villanueva, Anne'],
-                'DENTISTRY': ['Matthew, Martin'],
-                'OBSTETRICS GYNECOLOGY': ['Brian, Yvonne']
-            };
-
-            function updateDoctorOptions() {
-                const selectedSpec = specializationSelect.value;
-                doctorSelect.innerHTML = ''; 
-                if (selectedSpec) {
-                    doctorSelect.disabled = false;
-                    doctorSelect.add(new Option('Select a Doctor', ''));
-                    const doctors = doctorSpecializations[selectedSpec] || [];
-                    doctors.forEach(doctor => doctorSelect.add(new Option(doctor, doctor)));
-                } else {
-                    doctorSelect.disabled = true;
-                    doctorSelect.add(new Option('Select a specialization first', ''));
-                }
-            }
-            specializationSelect.addEventListener('change', updateDoctorOptions);
-            updateDoctorOptions();
-
-            // --- 3. URL PARAMS LOGIC ---
-            const urlParams = new URLSearchParams(window.location.search);
-            const errorMsg = urlParams.get('error');
-            if (errorMsg) {
-                document.getElementById('form-message-area').textContent = decodeURIComponent(errorMsg);
-                document.getElementById('form-message-area').style.color = 'red';
-            }
-            const doctorParam = urlParams.get('doctor');
-            const specParam = urlParams.get('specialization');
-            if (specParam) { // Set specialization first
-                specializationSelect.value = decodeURIComponent(specParam);
-                updateDoctorOptions(); // Update doctors based on spec
-            }
-            if (doctorParam) { // Then set the doctor
-                doctorSelect.value = decodeURIComponent(doctorParam);
-            }
-        });
-    </script>
+    <script src="src/pages/appointment.js" defer></script>
     <script src="src/app.js" type="module" defer></script>
 </body>
 </html>
