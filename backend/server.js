@@ -117,11 +117,11 @@ app.get('/staff/dashboard', ensureStaff, (req, res) => {
 });
 
 // --- 6. API ROUTE WIRING ---
-// (This part is now correct)
+app.use('/api/auth', authMobileRoutes); 
+
 app.use('/api', doctorRoutes);
 
 // Group 2: Authentication Routes (Handles login, logout, etc.)
-app.use('/api/auth', authMobileRoutes); 
 app.use('/', authRoutes);
 
 // Group 3: Protected Routes (Require a user to be logged in)
