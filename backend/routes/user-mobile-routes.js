@@ -109,4 +109,57 @@ router.post('/appointments', ensureApiAuthenticated, async (req, res) => {
     }
 });
 
+router.get('/appointments', ensureApiAuthenticated, async (req, res) => {
+    try {
+        // Find appointments using the userId from the JWT token
+        const appointments = await Appointment.find({ userId: req.user.userId })
+            .populate({
+                path: 'doctor',
+                select: 'userAccount',
+                populate: {
+                    path: 'userAccount',
+                    select: 'firstName lastName suffix'
+                }
+            })
+            .populate('specialization', 'name')
+            .sort({ date: -1, time: -1 });
+
+        if (!appointments) {
+            return res.json([]);
+        }
+        
+        // The mobile app is already using optional chaining, so we can send the data as is.
+        // This is more efficient than transforming it on the server.
+        res.json(appointments);
+
+    } catch (error) {
+        console.error("Error fetching appointments for mobile user:", error);
+        res.status(500).json({ message: 'Could not fetch appointments.' });
+    }
+});
+
+// Also, add a route for deleting/cancelling appointments for mobile
+router.delete('/appointments/:appointmentId', ensureApiAuthenticated, async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+
+        const appointment = await Appointment.findById(appointmentId);
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found." });
+        }
+        
+        // Security check: Ensure the user from the token owns this appointment
+        if (appointment.userId.toString() !== req.user.userId) {
+            return res.status(403).json({ message: "You are not authorized to cancel this appointment." });
+        }
+        
+        await Appointment.findByIdAndDelete(appointmentId);
+        res.status(200).json({ message: "Appointment cancelled successfully." });
+
+    } catch (error) {
+        console.error("Error cancelling mobile appointment:", error)
+        res.status(500).json({ message: "Error cancelling appointment." });
+    }
+});
+
 module.exports = router;
