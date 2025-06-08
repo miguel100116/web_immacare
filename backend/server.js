@@ -117,24 +117,32 @@ app.get('/staff/dashboard', ensureStaff, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'staffScreen', 'staff.html'));
 });
 
-app.use('/api', doctorRoutes); // e.g., /api/specializations
-// --- 6. API ROUTE WIRING ---
-app.use('/', authRoutes); // Handles web login/logout
-app.use('/', ensureAuthenticated, appointmentRoutes); // Handles web appointments
+// Public API routes (no login required)
+app.use('/api', doctorRoutes); // Provides /api/specializations, /api/doctors, etc.
 
+// Mobile App API routes
+app.use('/api/auth', authMobileRoutes); // Provides /api/auth/mobile-login
+// TODO: Protect userMobileRoutes with a JWT middleware
+app.use('/api/user', userMobileRoutes); // Provides /api/user/profile etc.
 
-
-// =================== ADD THIS NEW SECTION ===================
-// Group 3: Mobile App API Routes
-app.use('/api/auth', authMobileRoutes); // Mounts /api/auth/mobile-login, etc.
-// TODO: Protect these routes with a JWT middleware later
-// app.use('/api/user', ensureApiAuthenticated, userMobileRoutes); // Mounts /api/user/profile, etc.
-// ===========================================================
-
-// Group 4: Role-Protected API Routes (Admins, Doctors, Staff)
+// Role-protected API routes (requires web session login)
 app.use('/api/admin', ensureAdmin, adminRoutes);
 app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
 app.use('/api/staff', ensureStaff, staffRoutes);
+
+
+// --- GROUP 2: WEB APPLICATION ROUTES ---
+// These routes are for the browser-based frontend. They handle form submissions
+// that redirect, or serve data for specific web pages.
+
+// Protected web routes (for creating appointments from the website)
+// FIX: We make this more specific so it doesn't catch /api requests.
+app.use('/appointments', ensureAuthenticated, appointmentRoutes);
+
+// General web authentication routes (login, logout, registration)
+// This is very general, so it comes last.
+app.use('/', authRoutes);
+
 
 // --- 7. START SERVER ---
 app.listen(port, () => {
