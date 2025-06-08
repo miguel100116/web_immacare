@@ -457,3 +457,54 @@ tbody tr:hover {
     opacity: 0.5;
     pointer-events: none; /* Make ONLY the grid of time slots unclickable */
 }
+
+.input-with-button {
+    position: relative;
+    width: 100%;
+}
+
+/* The input field itself.
+   We add padding on the right to make space for the button. */
+.input-with-button input {
+    width: 100%;
+    /* Adjust padding to your form's style, but ensure right padding is large enough. */
+    padding-right: 85px; 
+    box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+/* The "Change" button.
+   It's positioned absolutely inside the .input-with-button container. */
+.edit-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%); /* Vertically centers the button */
+    background-color: #6c757d; /* A neutral, secondary color */
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.edit-btn:hover {
+    background-color: #5a6268; /* Darken on hover */
+}
+
+/* The "greyed-out" style for read-only fields.
+   This class is added/removed by JavaScript. */
+input.pre-filled {
+    background-color: #e9ecef; /* Light grey background */
+    color: #495057;           /* Darker grey text */
+    cursor: not-allowed;       /* Shows a "disabled" cursor on hover */
+    border: 1px solid #ced4da; /* A subtle border */
+}
+
+/* A horizontal rule to separate name fields from profile fields */
+.form-divider {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 25px 0;
+}

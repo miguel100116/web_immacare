@@ -40,7 +40,9 @@ router.get('/appointments', async (req, res) => {
 router.get('/profile', async (req, res) => {
     try {
         const doctorProfile = await Doctor.findOne({ userAccount: req.session.user.id })
-            .populate('specialization', 'name'); // Populate to get specialization name
+            .populate('specialization', 'name')
+            // Populate the userAccount to get name details ---
+            .populate('userAccount', 'firstName lastName suffix');
 
         if (!doctorProfile) {
             return res.status(404).json({ error: "Doctor profile not found." });
@@ -60,29 +62,48 @@ router.get('/profile', async (req, res) => {
  */
 router.put('/profile', async (req, res) => {
     try {
-        const { specialization, description } = req.body;
+        // Destructure all fields from the form ---
+        const { specialization, description, firstName, lastName, suffix } = req.body;
 
-        // Basic validation
+        // --- Basic validation ---
         if (!specialization || !mongoose.Types.ObjectId.isValid(specialization)) {
             return res.status(400).json({ error: 'A valid specialization must be selected.' });
         }
-        if (description.length > 500) { // Example length limit
-             return res.status(400).json({ error: 'Description cannot exceed 500 characters.' });
+        if (!firstName || !lastName) {
+            return res.status(400).json({ error: 'First and Last name are required.' });
+        }
+        if (description.length > 500) {
+            return res.status(400).json({ error: 'Description cannot exceed 500 characters.' });
         }
 
+        // --- Update TWO documents: Doctor profile and User profile ---
+        
+        // 1. Find the Doctor profile
         const doctorProfile = await Doctor.findOne({ userAccount: req.session.user.id });
         if (!doctorProfile) {
             return res.status(404).json({ error: "Doctor profile not found." });
         }
 
-        // Update the fields
+        // 2. Update and save the Doctor-specific fields
         doctorProfile.specialization = specialization;
         doctorProfile.description = description;
-        // Note: Schedule management would be handled separately
-
         await doctorProfile.save();
 
-        res.json({ message: 'Profile updated successfully!', profile: doctorProfile });
+        // 3. Update and save the User-specific name fields
+        const userProfile = await Users.findById(req.session.user.id);
+        if (!userProfile) {
+             return res.status(404).json({ error: "Associated user account not found." });
+        }
+        userProfile.firstName = firstName;
+        userProfile.lastName = lastName;
+        userProfile.suffix = suffix;
+        await userProfile.save();
+
+        // 4. Update the name in the session
+        req.session.user.fullname = userProfile.fullname;
+        await req.session.save();
+
+        res.json({ message: 'Profile updated successfully!' });
 
     } catch (error) {
         console.error("Error updating doctor profile:", error);
@@ -108,11 +129,8 @@ router.put('/schedule', async (req, res) => {
             return res.status(404).json({ error: "Doctor profile not found." });
         }
 
-        // --- THE FIX IS HERE ---
-        // Assign the entire `flatScheduleForDB` array directly to `doctorProfile.schedules`.
-        // Do NOT assign it to `doctorProfile.schedules[0]`.
         doctorProfile.schedules = flatScheduleForDB;
-        // --- END OF FIX ---
+
 
         await doctorProfile.save();
 

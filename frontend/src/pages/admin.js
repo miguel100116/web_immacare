@@ -58,7 +58,6 @@ async function loadAllAdminData() {
         updateAppointmentsViewIndicator();
     } catch (error) {
         console.error("Error loading admin data:", error);
-        // Your error display logic is good
     }
 }
 
@@ -95,6 +94,7 @@ function displayPaginatedTable(type, data, page = 1) {
     renderPaginationControls(paginationControls, page, totalPages, type, data);
 }
 
+
 function renderPaginationControls(container, currentPage, totalPages, type, originalData) {
     container.innerHTML = `
         <div class="page-info">
@@ -115,7 +115,8 @@ function renderPaginationControls(container, currentPage, totalPages, type, orig
 // --- ROW RENDERERS ---
 function renderUsersRow(tableBody, user) {
     const row = tableBody.insertRow();
-    row.insertCell().textContent = user.fullname || 'N/A';
+    row.insertCell().textContent = user.firstName || 'N/A';
+    row.insertCell().textContent = user.lastName || 'N/A';
     row.insertCell().textContent = user.signupEmail || 'N/A';
     row.insertCell().textContent = user.PhoneNumber || 'N/A';
     row.insertCell().textContent = user.Age || 'N/A';
@@ -129,7 +130,7 @@ function renderUsersRow(tableBody, user) {
     } else {
         // Otherwise, show the promote button
         actionsCell.innerHTML = `
-            <button class="action-btn promote-btn" data-user-id="${user._id}" data-user-name="${user.fullname}" title="Add to Doctor">
+            <button class="action-btn promote-btn" data-user-id="${user._id}" data-user-name="${user.firstName}" title="Add to Doctor">
                 <i class="fas fa-user-md"></i>
             </button>`;
         // Add the event listener to call our new function
@@ -166,7 +167,8 @@ function renderAppointmentsRow(tableBody, appt) {
 
 function renderDoctorsRow(tableBody, doctor) {
     const row = tableBody.insertRow();
-    row.insertCell().textContent = doctor.userAccount?.fullname || 'N/A';
+    row.insertCell().textContent = doctor.userAccount?.firstName || 'N/A';
+    row.insertCell().textContent = doctor.userAccount?.lastName || 'N/A';
     row.insertCell().textContent = doctor.userAccount?.signupEmail || 'N/A';
     row.insertCell().textContent = doctor.specialization?.name || 'Not Specified';
     
@@ -178,7 +180,7 @@ function renderDoctorsRow(tableBody, doctor) {
     // --- UPDATE THIS ACTIONS CELL ---
     const actionsCell = row.insertCell();
     actionsCell.innerHTML = `
-        <button class="action-btn demote-doctor-btn" data-doctor-id="${doctor._id}" data-user-name="${doctor.userAccount?.fullname}" title="Remove Doctor Status">
+        <button class="action-btn demote-doctor-btn" data-doctor-id="${doctor._id}" data-user-name="${doctor.userAccount?.firstName}" title="Remove Doctor Status">
             <i class="fas fa-user-slash"></i>
         </button>
     `;
@@ -494,9 +496,18 @@ function setupSearchListeners() {
     const configs = [
         { 
             type: 'users', 
-            filter: (item, term) => 
-                (item.fullname || '').toLowerCase().includes(term) || 
-                (item.signupEmail || '').toLowerCase().includes(term)
+            filter: (item, term) => {
+                const firstName = (item.firstName || '').toLowerCase();
+                const lastName = (item.lastName || '').toLowerCase();
+                const email = (item.signupEmail || '').toLowerCase();
+                
+                const fullName = `${firstName} ${lastName}`;
+
+                return fullName.includes(term) || 
+                       firstName.includes(term) ||
+                       lastName.includes(term) || 
+                       email.includes(term);
+            }
         },
         { 
             type: 'appointments', 
@@ -511,9 +522,15 @@ function setupSearchListeners() {
         },
         { 
             type: 'doctors', 
-            filter: (item, term) => 
-                (item.userAccount?.fullname || '').toLowerCase().includes(term) || 
-                (item.specialization?.name || '').toLowerCase().includes(term)
+             filter: (item, term) => {
+                // Let's apply the same logic for doctors for consistency
+                const docFirstName = (item.userAccount?.firstName || '').toLowerCase();
+                const docLastName = (item.userAccount?.lastName || '').toLowerCase();
+                const docFullName = `${docFirstName} ${docLastName}`;
+                const specialization = (item.specialization?.name || '').toLowerCase();
+
+                return docFullName.includes(term) || specialization.includes(term);
+            }
         }
     ];
 

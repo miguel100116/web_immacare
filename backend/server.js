@@ -44,50 +44,50 @@ mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.
 
 // --- 4. STARTUP SCRIPTS ---
 // ** PUT THIS SECTION BACK IN **
-async function ensureFirstAdmin() {
-    // Your existing function to create the first admin user
-    // This is important for initial setup
-    const adminExists = await Users.findOne({ isAdmin: true });
-    if (!adminExists) {
-        console.log("No admin found, creating one...");
-        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASS || 'AdminPassword1!', 10);
-        await Users.create({
-            fullname: 'Admin User',
-            signupEmail: process.env.ADMIN_EMAIL || 'admin@immacare.com',
-            signupPassword: hashedPassword,
-            isAdmin: true,
-            isVerified: true
-        });
-        console.log("✅ Default admin created.");
-    }
-}
+// async function ensureFirstAdmin() {
+//     // Your existing function to create the first admin user
+//     // This is important for initial setup
+//     const adminExists = await Users.findOne({ isAdmin: true });
+//     if (!adminExists) {
+//         console.log("No admin found, creating one...");
+//         const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASS || 'AdminPassword1!', 10);
+//         await Users.create({
+//             fullname: 'Admin User',
+//             signupEmail: process.env.ADMIN_EMAIL || 'admin@immacare.com',
+//             signupPassword: hashedPassword,
+//             isAdmin: true,
+//             isVerified: true
+//         });
+//         console.log("✅ Default admin created.");
+//     }
+// }
 
-async function ensureSpecializations() {
-  try {
-    const specializations = [
-      { name: 'Obstetrics and Gynecology' }, { name: 'Pediatrics' },
-      { name: 'Internal Medicine' }, { name: 'Surgery' },
-      { name: 'Dermatology' }, { name: 'Ophthalmology' },
-      { name: 'Urology' }, { name: 'ENT' },
-      { name: 'Not Specified' }
-    ];
+// async function ensureSpecializations() {
+//   try {
+//     const specializations = [
+//       { name: 'Obstetrics and Gynecology' }, { name: 'Pediatrics' },
+//       { name: 'Internal Medicine' }, { name: 'Surgery' },
+//       { name: 'Dermatology' }, { name: 'Ophthalmology' },
+//       { name: 'Urology' }, { name: 'ENT' },
+//       { name: 'Not Specified' }
+//     ];
 
-    for (const spec of specializations) {
-      await Specialization.findOneAndUpdate(
-        { name: spec.name },
-        { $setOnInsert: spec },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-    }
-    console.log('✅ Specializations seeded successfully.');
-  } catch (error) {
-    console.error('❌ Error seeding specializations:', error);
-  }
-}
+//     for (const spec of specializations) {
+//       await Specialization.findOneAndUpdate(
+//         { name: spec.name },
+//         { $setOnInsert: spec },
+//         { upsert: true, new: true, setDefaultsOnInsert: true }
+//       );
+//     }
+//     console.log('✅ Specializations seeded successfully.');
+//   } catch (error) {
+//     console.error('❌ Error seeding specializations:', error);
+//   }
+// }
 
 // Call the startup scripts
-ensureFirstAdmin();
-ensureSpecializations();
+// ensureFirstAdmin();
+// ensureSpecializations();
 // ** END OF SECTION TO PUT BACK **
 
 
@@ -104,7 +104,9 @@ app.get('/myappointments.html', ensureAuthenticated, (req, res) => res.sendFile(
 app.get('/learnmore/:serviceName', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'learnmore.html'));
 });
-
+app.get('/profile.html', ensureAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'navScreens', 'profile.html'));
+});
 app.get('/doctor/dashboard', ensureDoctor, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'doctorScreen', 'doctorDashboard.html'));
 });

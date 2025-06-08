@@ -38,6 +38,90 @@ function initializeUI() {
     // Form Submissions
     document.getElementById('profile-form')?.addEventListener('submit', handleProfileUpdate);
     document.getElementById('schedule-form')?.addEventListener('submit', handleScheduleUpdate);
+
+    // --- CHANGE: Add "Change" button functionality ---
+    initializeEditableFields();
+}
+
+async function handleProfileUpdate(e) {
+    e.preventDefault();
+    const saveBtn = document.getElementById('save-profile-btn');
+    const messageArea = document.getElementById('profile-message-area');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    messageArea.className = 'message-area';
+
+    // --- CHANGE: Gather data from all profile fields ---
+    const formData = {
+        firstName: document.getElementById('doctor-firstName').value,
+        lastName: document.getElementById('doctor-lastName').value,
+        suffix: document.getElementById('doctor-suffix').value,
+        specialization: document.getElementById('doctor-specialization').value,
+        description: document.getElementById('doctor-description').value.trim(),
+    };
+
+    try {
+        // The backend route is the same, but it now accepts the new data
+        const response = await fetch('/api/doctor/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Update failed.');
+
+        messageArea.textContent = result.message;
+        messageArea.className = 'message-area success';
+
+        // --- CHANGE: Refresh the user name in the sidebar after a successful update ---
+        await loadUserInfo();
+
+    } catch (error) {
+        messageArea.textContent = error.message;
+        messageArea.className = 'message-area error';
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+        // Re-lock all fields after submission
+        document.querySelectorAll('#profile-form input, #profile-form textarea').forEach(el => {
+            if(!el.closest('.form-group').querySelector('select')) { // Don't lock select
+                 el.readOnly = true;
+                 el.classList.add('pre-filled');
+            }
+        });
+        document.querySelectorAll('#profile-form .edit-btn').forEach(btn => btn.style.display = 'inline-block');
+    }
+}
+
+function initializeEditableFields() {
+    document.querySelectorAll('#profile-form .edit-btn').forEach(button => {
+        const targetInputId = button.dataset.target;
+        const inputToEdit = document.getElementById(targetInputId);
+
+        if (!inputToEdit) return;
+
+        const relockField = () => {
+            inputToEdit.readOnly = true;
+            inputToEdit.classList.add('pre-filled');
+            button.style.display = 'inline-block';
+        };
+        
+        button.addEventListener('click', function() {
+            inputToEdit.readOnly = false;
+            inputToEdit.classList.remove('pre-filled');
+            inputToEdit.focus();
+            this.style.display = 'none';
+        });
+
+        inputToEdit.addEventListener('blur', relockField);
+        inputToEdit.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                relockField();
+            }
+        });
+    });
 }
 
 /**
@@ -134,14 +218,19 @@ function displayAppointments(appointments) {
 // --- PROFILE FORM LOGIC (Unchanged) ---
 async function loadProfileForm() {
     try {
+        // --- CHANGE: The backend route now returns all the data we need ---
         const [specResponse, profileResponse] = await Promise.all([
             fetch('/api/specializations'),
-            fetch('/api/doctor/profile')
+            fetch('/api/doctor/profile') // This response now includes the userAccount name
         ]);
+
         if (!specResponse.ok) throw new Error('Failed to load specializations.');
         if (!profileResponse.ok) throw new Error('Failed to load doctor profile.');
+
         const specializations = await specResponse.json();
         const profile = await profileResponse.json();
+
+        // Populate Specialization dropdown (no change)
         const specSelect = document.getElementById('doctor-specialization');
         specSelect.innerHTML = '<option value="">-- Select a Specialization --</option>';
         specializations.forEach(spec => {
@@ -155,40 +244,30 @@ async function loadProfileForm() {
         if (profile.specialization) {
             specSelect.value = profile.specialization._id;
         }
+
+        // Populate Description (no change)
         document.getElementById('doctor-description').value = profile.description || '';
+
+        // --- CHANGE: Populate the new name fields and make them read-only ---
+        const fieldsToPopulate = {
+            'doctor-firstName': profile.userAccount?.firstName,
+            'doctor-lastName': profile.userAccount?.lastName,
+            'doctor-suffix': profile.userAccount?.suffix,
+        };
+
+        for (const id in fieldsToPopulate) {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = fieldsToPopulate[id] || '';
+                input.readOnly = true;
+                input.classList.add('pre-filled');
+            }
+        }
+
     } catch (error) {
         console.error("Error setting up profile form:", error);
         document.getElementById('profile-message-area').className = 'message-area error';
         document.getElementById('profile-message-area').textContent = 'Error loading profile data.';
-    }
-}
-async function handleProfileUpdate(e) {
-    e.preventDefault();
-    const saveBtn = document.getElementById('save-profile-btn');
-    const messageArea = document.getElementById('profile-message-area');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
-    messageArea.className = 'message-area';
-    const formData = {
-        specialization: document.getElementById('doctor-specialization').value,
-        description: document.getElementById('doctor-description').value.trim(),
-    };
-    try {
-        const response = await fetch('/api/doctor/profile', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Update failed.');
-        messageArea.textContent = result.message;
-        messageArea.className = 'message-area success';
-    } catch (error) {
-        messageArea.textContent = error.message;
-        messageArea.className = 'message-area error';
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Changes';
     }
 }
 

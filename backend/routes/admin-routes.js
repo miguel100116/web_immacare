@@ -221,9 +221,9 @@ router.get('/doctors', async (req, res) => {
     const doctors = await Doctor.find({})
       .populate({
         path: 'userAccount',
-        select: 'fullname signupEmail'
+        // --- CHANGE: Select 'firstName' instead of 'fullname' ---
+        select: 'firstName signupEmail'
       })
-      // --- CHANGE 1: Populate the specialization's name ---
       .populate({
         path: 'specialization',
         select: 'name' 
@@ -241,13 +241,11 @@ router.post('/users/:userId/promote', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // 1. Check if the user exists
     const user = await Users.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User account not found.' });
     }
 
-    // 2. Check if a doctor profile already exists for this user
     if (user.isDoctor) {
       const existingDoctor = await Doctor.findOne({ userAccount: userId });
       if (existingDoctor) {
@@ -269,14 +267,15 @@ router.post('/users/:userId/promote', async (req, res) => {
 
     const newDoctor = new Doctor({
       userAccount: userId,
-      specialization: defaultSpec._id, // Use the ID of the specialization
+      specialization: defaultSpec._id,
     });
     await newDoctor.save(); 
 
     user.isDoctor = true;
     await user.save();
 
-    console.log(`✅ User promoted to Doctor: ${user.fullname}`);
+    // --- CHANGE: Log user.firstName instead of user.fullname ---
+    console.log(`✅ User promoted to Doctor: ${user.firstName}`);
     res.status(200).json({ message: 'User successfully promoted to a doctor.' });
   } catch (error) {
     console.error('Error promoting user to doctor:', error);
@@ -288,7 +287,6 @@ router.delete('/doctors/:doctorId/demote', async (req, res) => {
     try {
         const { doctorId } = req.params;
 
-        // 1. Find the Doctor profile to get the linked user's ID
         const doctorProfile = await Doctor.findById(doctorId);
         if (!doctorProfile) {
             return res.status(404).json({ error: 'Doctor profile not found.' });
@@ -296,12 +294,8 @@ router.delete('/doctors/:doctorId/demote', async (req, res) => {
         
         const userId = doctorProfile.userAccount;
 
-        // 2. Delete the Doctor profile document
-        // This removes their specialization, schedules, etc.
         await Doctor.findByIdAndDelete(doctorId);
 
-        // 3. Find the associated User and update their status
-        //    THIS IS THE CRUCIAL STEP YOU ASKED ABOUT.
         await Users.findByIdAndUpdate(userId, { isDoctor: false });
 
         console.log(`✅ Doctor profile removed and user demoted for user ID: ${userId}`);

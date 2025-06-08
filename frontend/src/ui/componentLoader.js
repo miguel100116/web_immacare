@@ -1,36 +1,42 @@
 // frontend/src/ui/componentLoader.js
 
 /**
- * Loads a skeleton component for an instant UI, then replaces it
- * with the final component once it's fetched.
+ * Fetches and injects an HTML component into a placeholder.
+ * Can optionally show a skeleton loader first.
+ * If finalComponentPath is not provided, 'skeletonPath' is treated as the final path.
+ *
  * @param {string} placeholderId - The ID of the element to inject into.
- * @param {string} skeletonPath - The path to the skeleton HTML file.
- * @param {string} finalComponentPath - The path to the final, real HTML component.
+ * @param {string} skeletonPath - The path to the skeleton OR the final component.
+ * @param {string} [finalComponentPath] - Optional. The path to the real component.
  */
 export async function loadComponent(placeholderId, skeletonPath, finalComponentPath) {
   const placeholder = document.getElementById(placeholderId);
-  if (!placeholder) return;
+  if (!placeholder) {
+    // This is correct: silently return if the placeholder isn't on the page.
+    return;
+  }
+
+  // --- THIS IS THE NEW, FLEXIBLE LOGIC ---
+  const isSkeleton = !!finalComponentPath; // True if a third argument exists
+  const mainComponentPath = finalComponentPath || skeletonPath; // Use the 3rd arg if it exists, otherwise use the 2nd.
 
   try {
-    // Step 1: Fetch and display the skeleton immediately
-    const skeletonResponse = await fetch(skeletonPath);
-    if (skeletonResponse.ok) {
-      const skeletonHtml = await skeletonResponse.text();
-      placeholder.innerHTML = skeletonHtml;
-    } else {
-      // If skeleton fails, still try to load the main component later
-      console.error(`Failed to load skeleton: ${skeletonResponse.statusText}`);
+    // Step 1: If it's a skeleton load, fetch and display it first.
+    if (isSkeleton) {
+      const skeletonResponse = await fetch(skeletonPath);
+      if (skeletonResponse.ok) {
+        placeholder.innerHTML = await skeletonResponse.text();
+      }
     }
 
-    // Step 2: Fetch the final component in the background
-    const finalResponse = await fetch(finalComponentPath);
-    if (!finalResponse.ok) {
-      throw new Error(`Failed to load final component: ${finalResponse.statusText}`);
+    // Step 2: Fetch the final, main component.
+    const mainResponse = await fetch(mainComponentPath);
+    if (!mainResponse.ok) {
+      throw new Error(`Failed to load component: ${mainComponentPath}`);
     }
-    const finalHtml = await finalResponse.text();
     
-    // Step 3: Replace the skeleton with the final component
-    placeholder.innerHTML = finalHtml;
+    // Step 3: Replace the placeholder's content with the final component.
+    placeholder.innerHTML = await mainResponse.text();
 
   } catch (error) {
     console.error(`Error loading component into #${placeholderId}:`, error);

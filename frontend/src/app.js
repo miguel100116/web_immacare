@@ -1,31 +1,39 @@
 // frontend/src/app.js
 
-// --- (Your imports are all correct) ---
+// ... (imports are correct) ...
 import { initializeLoginForm } from './auth/login.js';
 import { initializeSignupForm } from './auth/signup.js';
 import { initializeNavigation } from './navigation/navigation.js';
 import { initializeConfirmationModal } from './ui/modal.js';
 import { loadComponent } from './ui/componentLoader.js';
+import { initializeProfilePage } from './pages/profile.js';
 
-/**
- * The main entry point for the entire frontend application.
- * It runs all the necessary setup functions.
- */
+
 async function main() {
 
-  // --- THIS IS THE CORRECTED LINE ---
-  // The skeleton path comes first, then the final component path.
+  // --- THIS IS THE CORRECT WAY TO LOAD COMPONENTS ---
+
+  // Call 1: Load the Navbar (with its skeleton)
   await loadComponent(
-      'navbar-placeholder',                   // Argument 1: The ID of the div
-      'src/components/navbarSkeleton.html', // Argument 2: The path to the SKELETON
-      'src/components/navbar.html'          // Argument 3: The path to the REAL component
+      'navbar-placeholder',
+      'src/components/navbarSkeleton.html',
+      'src/components/navbar.html'
+  );
+
+  // Call 2: Load the Footer (without a skeleton)
+  await loadComponent(
+      'footer-placeholder',
+      'src/components/footer.html' // The flexible componentLoader now understands this
   );
   
-  // These functions will now run correctly after the REAL navbar has been loaded.
+  // --- END OF CORRECTIONS ---
+
+  // These functions will now run correctly
   await initializeNavigation();
   initializeLoginForm();
   initializeSignupForm();
   initializeConfirmationModal();
+  initializeProfilePage();
 }
 
 // Run the main function when the DOM is ready.

@@ -217,7 +217,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             const response = await fetch('/getUser');
             const userData = await response.json();
             if (userData.loggedIn) {
-                const fieldsToLock = { patientName: userData.fullname, age: userData.age, phone: userData.phoneNumber, address: userData.address };
+                const fieldsToLock = {  
+                    patientFirstName: userData.firstName, 
+                    patientLastName: userData.lastName,
+                    patientSuffix: userData.suffix,
+                    age: userData.age, 
+                    phone: userData.phoneNumber, 
+                    address: userData.address 
+                };
                 for (const id in fieldsToLock) {
                     const input = document.getElementById(id);
                     const value = fieldsToLock[id];

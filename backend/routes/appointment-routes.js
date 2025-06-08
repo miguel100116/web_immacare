@@ -1,7 +1,6 @@
 // backend/routes/appointment-routes.js
 const express = require('express');
 const Appointment = require('../models/appointment-model');
-// We don't need to import Specialization here for this fix, but it's good practice
 const router = express.Router();
 const mongoose = require('mongoose');
 const Doctor = require('../models/doctor-model');
@@ -24,19 +23,29 @@ router.post('/save-data', async (req, res) => {
             return res.status(400).redirect(`/appointment.html?error=${encodeURIComponent("Invalid specialization selected. Please try again.")}`);
         }
 
-        const doctor = await Doctor.findById(doctorId).populate('userAccount', 'fullname');
-        if (!doctor) {
+        // --- CHANGE START ---
+        // 1. Update the populate() call to fetch the specific name fields.
+        const doctor = await Doctor.findById(doctorId).populate('userAccount', 'firstName lastName suffix');
+        
+        if (!doctor || !doctor.userAccount) { // Added check for userAccount
             return res.status(404).redirect(`/appointment.html?error=${encodeURIComponent("Selected doctor not found.")}`);
         }
-        const doctorName = doctor.userAccount.fullname;
+
+        // 2. Manually construct the doctor's full name from the populated fields.
+        let doctorName = `${doctor.userAccount.firstName} ${doctor.userAccount.lastName}`;
+        if (doctor.userAccount.suffix) {
+            doctorName += ` ${doctor.userAccount.suffix}`;
+        }
+        doctorName = doctorName.trim();
+        // --- CHANGE END ---
         
-        // Double Booking Check (This logic is fine as is)
+        // Double Booking Check
        const existingAppointment = await Appointment.findOne({ doctorName, date, time, status: { $ne: 'Cancelled' } });
         if (existingAppointment) {
             return res.redirect(`/appointment.html?error=${encodeURIComponent(`Dr. ${doctorName} is already booked.`)}`);
         }
     
-        // User Info Check (This logic is fine as is)
+        // User Info Check
         if (!req.session.user || !req.session.user.id) {
           return res.status(401).send("User not authenticated to save appointment.");
         }
@@ -44,11 +53,11 @@ router.post('/save-data', async (req, res) => {
         // Construct the data for the new appointment
         const appointmentData = {
             doctor: doctorId,
-            doctorName,
-            specialization: specialization, // This is the ObjectId from the form
+            doctorName, // This now uses our manually constructed name
+            specialization: specialization, 
             date,
             time,
-            patientName: patientName || req.session.user.fullname,
+            patientName: patientName || req.session.user.fullname, // This uses the logged-in user's full name
             patientEmail: req.session.user.signupEmail,
             address,
             age,
@@ -61,15 +70,13 @@ router.post('/save-data', async (req, res) => {
         console.log("✅ Preparing to save appointment with this data:", appointmentData);
 
         const appointment = new Appointment(appointmentData);
-        await appointment.save(); // This should now work
+        await appointment.save();
     
         console.log("✅ Appointment saved successfully:", appointment._id);
         res.redirect('/myappointments.html?message=Appointment%20Saved%20Successfully!');
 
       } catch (err) {
-        // This is the block that's likely being triggered.
         console.error("❌ Mongoose validation or save error:", err);
-        // The error message will tell us exactly which field is wrong.
         res.status(500).redirect(`/appointment.html?error=${encodeURIComponent("An error occurred. Could not save appointment.")}`);
       }
 });
@@ -78,22 +85,19 @@ router.post('/save-data', async (req, res) => {
 router.get('/get-appointments', async (req, res) => {
     try {
         const appointments = await Appointment.find({ userId: req.session.user.id })
-          .populate('specialization', 'name') // Only populate specialization
+          .populate('specialization', 'name')
           .sort({ date: -1, time: -1 });
 
         if (!appointments) {
             return res.json([]);
         }
 
-        // --- EXPLICIT DATA TRANSFORMATION ---
-        // Create a new, clean array of objects to send.
         const responseData = appointments.map(app => ({
             _id: app._id,
             date: app.date,
             time: app.time,
-            doctorName: app.doctorName, // This is saved as a string, so it's safe
-            patientName: app.patientName, // This is also a string
-            // Safely access the populated name
+            doctorName: app.doctorName,
+            patientName: app.patientName,
             specializationName: app.specialization ? app.specialization.name : 'Unknown Specialty',
             reason: app.reason,
             status: app.status
@@ -115,7 +119,6 @@ router.delete("/cancel-appointment/:id", async (req, res) => {
         if (!appointment) {
           return res.status(404).json({ error: "Appointment not found." });
         }
-        // Use .toString() to safely compare ObjectIds
         if (appointment.userId.toString() !== req.session.user.id) {
             return res.status(403).json({ error: "You are not authorized to cancel this appointment." });
         }
