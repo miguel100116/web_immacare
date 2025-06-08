@@ -6,9 +6,26 @@ const jwt = require('jsonwebtoken');
 
 // Adjust the path to go up one level to find the 'models' directory
 const Users = require('../models/user-model'); 
+const Appointment = require('../models/appointment-model');
 
 const router = express.Router();
+const ensureApiAuthenticated = (req, res, next) => {
+    const authHeader = req.headers.authorization;
 
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Unauthorized: No token provided.' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'immacareSecretKey123');
+        req.user = decoded; // Attaches { userId: '...' } to the request
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Unauthorized: Invalid token.' });
+    }
+};
 /**
  * @route   POST /api/auth/mobile-register
  * @desc    Handle user registration from the mobile app.
