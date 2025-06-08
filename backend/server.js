@@ -43,6 +43,19 @@ mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.
   .then(() => console.log("✅ MongoDB Atlas connected successfully."))
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
+  // --- 6. API ROUTE WIRING ---
+app.use('/api/auth', authMobileRoutes); 
+
+app.use('/api', doctorRoutes);
+
+// Group 2: Authentication Routes (Handles login, logout, etc.)
+app.use('/', authRoutes);
+
+// Group 3: Protected Routes (Require a user to be logged in)
+app.use('/', ensureAuthenticated, appointmentRoutes);
+app.use('/api/admin', ensureAdmin, adminRoutes);
+app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
+app.use('/api/staff', ensureStaff, staffRoutes);
 
 // --- 4. STARTUP SCRIPTS ---
 // ** PUT THIS SECTION BACK IN **
@@ -116,19 +129,6 @@ app.get('/staff/dashboard', ensureStaff, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'staffScreen', 'staff.html'));
 });
 
-// --- 6. API ROUTE WIRING ---
-app.use('/api/auth', authMobileRoutes); 
-
-app.use('/api', doctorRoutes);
-
-// Group 2: Authentication Routes (Handles login, logout, etc.)
-app.use('/', authRoutes);
-
-// Group 3: Protected Routes (Require a user to be logged in)
-app.use('/', ensureAuthenticated, appointmentRoutes);
-app.use('/api/admin', ensureAdmin, adminRoutes);
-app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
-app.use('/api/staff', ensureStaff, staffRoutes);
 
 // --- 7. START SERVER ---
 app.listen(port, () => {
