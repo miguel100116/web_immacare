@@ -6,7 +6,8 @@ const InventoryItem = require('../models/inventoryItem-model');
 const Doctor = require('../models/doctor-model');
 const router = express.Router();
 const Specialization = require('../models/specialization-model');
-// NOTE: The `ensureAdmin` middleware will be applied in server.js for this whole router.
+const { createLog } = require('../logService');
+const AuditLog = require('../models/auditLog-model');
 
 // GET /api/admin/users
 router.get('/users', async (req, res) => {
@@ -188,6 +189,17 @@ router.post('/inventory', async (req, res) => {
             // ... other fields
         });
         await newItem.save();
+        
+        const adminUser = await Users.findById(req.session.user.id);
+        if (!adminUser) {
+            // This is a very unlikely edge case but good to have
+            return res.status(403).json({ error: 'Admin performing the action could not be found.' });
+        }
+        
+        // --- LOG INVENTORY CREATION ---
+        const invCreateDetails = `Admin '${adminUser.fullname}' created new inventory item '${newItem.itemName}' with quantity ${newItem.quantity}.`;
+        await createLog(req.session.user.id, 'INVENTORY_ITEM_CREATED', invCreateDetails);
+
         console.log('✅ New inventory item created by admin:', newItem._id);
         res.status(201).json(newItem);
     } catch (err) {
@@ -208,6 +220,12 @@ router.delete('/inventory/:id', async (req, res) => {
         if (!deletedItem) {
             return res.status(404).json({ error: 'Inventory item not found.' });
         }
+
+        // --- LOG INVENTORY DELETION ---
+        const invDeleteDetails = `Admin '${req.session.user.firstName}' deleted inventory item '${deletedItem.itemName}'.`;
+        await createLog(req.session.user.id, 'INVENTORY_ITEM_DELETED', invDeleteDetails);
+
+
         console.log(`✅ Inventory item ${itemId} deleted successfully.`);
         res.json({ message: 'Inventory item deleted successfully.', deletedItem });
     } catch (err) {
@@ -221,8 +239,7 @@ router.get('/doctors', async (req, res) => {
     const doctors = await Doctor.find({})
       .populate({
         path: 'userAccount',
-        // --- CHANGE: Select 'firstName' instead of 'fullname' ---
-        select: 'firstName signupEmail'
+        select: 'firstName lastName suffix signupEmail' 
       })
       .populate({
         path: 'specialization',
@@ -274,7 +291,14 @@ router.post('/users/:userId/promote', async (req, res) => {
     user.isDoctor = true;
     await user.save();
 
-    // --- CHANGE: Log user.firstName instead of user.fullname ---
+    const adminUser = await Users.findById(req.session.user.id);
+        if (!adminUser) {
+            // This is a very unlikely edge case but good to have
+            return res.status(403).json({ error: 'Admin performing the action could not be found.' });
+        }
+        const demoteDetails = `Admin '${adminUser.fullname}' promoted user '${user.fullname}' to Doctor.`;
+        await createLog(req.session.user.id, 'USER_DEMOTED_FROM_DOCTOR', demoteDetails);
+
     console.log(`✅ User promoted to Doctor: ${user.firstName}`);
     res.status(200).json({ message: 'User successfully promoted to a doctor.' });
   } catch (error) {
@@ -294,9 +318,24 @@ router.delete('/doctors/:doctorId/demote', async (req, res) => {
         
         const userId = doctorProfile.userAccount;
 
+        const user = await Users.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Associated user account could not be found.' });
+        }
+
         await Doctor.findByIdAndDelete(doctorId);
 
+
         await Users.findByIdAndUpdate(userId, { isDoctor: false });
+
+        // --- LOG THE DEMOTION ---
+        const adminUser = await Users.findById(req.session.user.id);
+        if (!adminUser) {
+            // This is a very unlikely edge case but good to have
+            return res.status(403).json({ error: 'Admin performing the action could not be found.' });
+        }
+        const demoteDetails = `Admin '${adminUser.fullname}' demoted Doctor '${user.fullname}'.`;
+        await createLog(req.session.user.id, 'USER_DEMOTED_FROM_DOCTOR', demoteDetails);
 
         console.log(`✅ Doctor profile removed and user demoted for user ID: ${userId}`);
         res.status(200).json({ message: 'Doctor status successfully removed.' });
@@ -304,6 +343,34 @@ router.delete('/doctors/:doctorId/demote', async (req, res) => {
     } catch (error) {
         console.error('Error demoting doctor:', error);
         res.status(500).json({ error: 'Server error while demoting doctor.' });
+    }
+});
+
+router.get('/audit-logs', async (req, res) => {
+    try {
+        console.log("➡️ [API] Received request for /api/admin/audit-logs");
+        const { date } = req.query;
+        let query = {};
+
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            query.createdAt = {
+                $gte: startOfDay,
+                $lt: endOfDay
+            };
+        }
+
+        const logs = await AuditLog.find(query).sort({ createdAt: -1 });
+        res.json(logs);
+
+    } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ error: 'Server error fetching audit logs.' });
     }
 });
 

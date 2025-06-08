@@ -7,11 +7,10 @@ import { initializeNavigation } from './navigation/navigation.js';
 import { initializeConfirmationModal } from './ui/modal.js';
 import { loadComponent } from './ui/componentLoader.js';
 import { initializeProfilePage } from './pages/profile.js';
+import { initializeSessionTimeout } from './auth/sessionTimeout.js';
 
 
 async function main() {
-
-  // --- THIS IS THE CORRECT WAY TO LOAD COMPONENTS ---
 
   // Call 1: Load the Navbar (with its skeleton)
   await loadComponent(
@@ -26,7 +25,8 @@ async function main() {
       'src/components/footer.html' // The flexible componentLoader now understands this
   );
   
-  // --- END OF CORRECTIONS ---
+
+  initializeSessionTimeout();
 
   // These functions will now run correctly
   await initializeNavigation();

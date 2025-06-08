@@ -4,6 +4,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { createLog } = require('../logService');
 
 // Note the path change: we are going up one directory (`../`) to find the `models` folder.
 const Users = require('../models/user-model'); 
@@ -177,18 +178,21 @@ router.post('/login', async (req, res) => {
         
         // --- THE FIX: NO MORE REDIRECT ---
         // Save the session and in the callback, send the JSON response.
-        req.session.save((err) => {
+        req.session.save(async (err) => { 
             if (err) {
                 console.error("❌ Session save error:", err);
                 return res.status(500).json({ error: "Could not save session." });
             }
 
+            // --- LOG THE LOGIN ACTION ---
+            await createLog(user._id, 'USER_LOGIN', `User '${user.fullname}' logged in successfully.`);
+            
             // Determine the redirect URL on the server
             let redirectUrl = "/main.html";
             if (user.isAdmin) redirectUrl = "/admin.html";
             else if (user.isDoctor) redirectUrl = "/doctor/dashboard";
 
-            console.log(`✅ Login success for ${user.fullname}. Sending redirect URL: ${redirectUrl}`);
+            console.log(`✅ Login success for ${user.email}. Sending redirect URL: ${redirectUrl}`);
             
             // Send a success response with the URL for the client to handle
             res.status(200).json({ success: true, redirect: redirectUrl });
@@ -299,8 +303,9 @@ router.put("/update-profile", ensureAuthenticated, async (req, res) => {
 
         // Update session with new details
         req.session.user.fullname = updatedUser.fullname;
-        req.session.save(err => {
+        req.session.save(async err => {
             if (err) console.error("Session save error after profile update:", err);
+            await createLog(userId, 'USER_PROFILE_UPDATE', `User '${updatedUser.fullname}' updated their profile.`);
             res.json({
                 success: true,
                 message: "Profile updated successfully",

@@ -211,6 +211,12 @@ tbody tr:hover {
 .archived-row .action-btn { opacity: 0.7; }
 .archived-row .action-btn.toggle-status-btn { cursor: not-allowed !important; }
 
+.status-badge.status-log {
+    background-color: #6c757d; /* A neutral grey */
+    color: white;
+    text-transform: capitalize;
+}
+
 /* Responsive */
 @media (max-width: 992px) { .stats-cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
 @media (max-width: 768px) {

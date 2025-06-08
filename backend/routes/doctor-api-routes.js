@@ -4,7 +4,7 @@ const Appointment = require('../models/appointment-model');
 const Doctor = require('../models/doctor-model');
 const router = express.Router();
 const mongoose = require('mongoose'); // <-- Add mongoose for ID validation
-
+const Users = require('../models/user-model');
 /**
  * @route   GET /api/doctor/appointments
  * @desc    Get all appointments assigned to the currently logged-in doctor

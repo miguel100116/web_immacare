@@ -7,8 +7,11 @@
     
     <!-- Link to Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Link to Flatpickr for the calendar filter -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
-    <!-- Link to your new, single stylesheet -->
+    <!-- Link to your admin stylesheet -->
     <link rel="stylesheet" href="/src/styles/adminScreenStyles.css">
 </head>
 
@@ -25,6 +28,7 @@
                 <li class="nav-item" data-target="doctors"><a href="#"><i class="fas fa-user-md"></i> Manage Doctors</a></li>
                 <li class="nav-item" data-target="appointments"><a href="#"><i class="fas fa-calendar-check"></i> Appointments</a></li>
                 <li class="nav-item" data-target="inventory"><a href="#"><i class="fas fa-boxes"></i> Inventory</a></li>
+                <li class="nav-item" data-target="audit-log"><a href="#"><i class="fas fa-history"></i> Audit Log</a></li>
                 <li class="nav-item" data-target="settings"><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
             <div class="user-info">
@@ -95,38 +99,35 @@
             </section>
 
             <section class="content-section" id="doctors">
-
-            <div class="section-header">
-                <h1>Doctor Management</h1>
-                        <!-- The "Add Doctor" button will work by promoting a user from the Manage Users table -->
-                        <p style="font-size: 0.9em; color: #6c757d;">Promote users to doctors from the 'Manage Users' section.</p>
-                    </div>
-                    <div class="filters">
-                        <input type="text" id="doctors-search" placeholder="Search by name, email, or specialization...">
-                        <button id="doctors-search-btn" class="filter-button">Search</button>
-                    </div>
-                    <div class="data-table">
-                        <table id="doctors-table">
-                            <thead>
-                                <tr>
-                                    <th>Doctor Name</th> <!-- <<< TYPO FIXED -->
-                                    <th>Email</th>
-                                    <th>Specialization</th>
-                                    <th>Profile Status</th>
-                                    <th>Actions</th> <!-- <<< ADD THIS LINE -->
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination-controls" id="doctors-pagination"></div>
-                </section>
+                <div class="section-header">
+                    <h1>Doctor Management</h1>
+                    <p style="font-size: 0.9em; color: #6c757d;">Promote users to doctors from the 'Manage Users' section.</p>
+                </div>
+                <div class="filters">
+                    <input type="text" id="doctors-search" placeholder="Search by name, email, or specialization...">
+                    <button id="doctors-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="doctors-table">
+                        <thead>
+                            <tr>
+                                <th>Doctor Name</th>
+                                <th>Email</th>
+                                <th>Specialization</th>
+                                <th>Profile Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="doctors-pagination"></div>
+            </section>
 
             <section class="content-section appointments-section" id="appointments">
                 <div class="section-header">
                     <h1>Appointments Management <span id="appointments-view-indicator" style="font-size: 0.7em; color: #555;">(Active)</span></h1>
                     <div>
-                        <!-- <button class="add-new-btn" id="add-new-appointment-btn"><i class="fas fa-plus"></i> Add Appointment</button> -->
                         <button class="secondary-btn" id="toggle-archived-view-btn"><i class="fas fa-archive"></i> View Archived</button>
                     </div>
                 </div>
@@ -160,6 +161,30 @@
                 </div>
                     <div class="pagination-controls" id="inventory-pagination"></div>
             </section>
+            
+            <section class="content-section" id="audit-log">
+                <div class="section-header">
+                    <h1>System Audit Log</h1>
+                </div>
+                <div class="filters">
+                    <input type="text" id="audit-log-date-filter" placeholder="Filter by Date...">
+                    <button id="audit-log-clear-filter-btn" class="secondary-btn">Clear Filter</button>
+                </div>
+                <div class="data-table">
+                    <<table id="auditLog-table"> 
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Timestamp</th>
+                                <th style="width: 15%;">Actor</th>
+                                <th style="width: 20%;">Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="auditLog-pagination"></div>
+            </section>
 
             <section class="content-section settings-section" id="settings">
                 <h1>System Settings</h1><p>System settings and configurations will be implemented here.</p>
@@ -167,6 +192,7 @@
         </main>
     </div>
 
+    <!-- --- MODALS ARE MOVED OUTSIDE THE MAIN CONTAINER --- -->
     <div class="modal" id="appointment-modal">
        <div class="modal-content">
             <div class="modal-header"><h2 id="appointment-modal-title">Add New Appointment</h2><span class="close-modal">×</span></div>
@@ -203,10 +229,8 @@
             </div>
             <div class="modal-body">
                 <form id="doctor-form">
-                    <!-- These hidden fields store the critical IDs -->
-                    <input type="hidden" id="doctor-profile-id"> <!-- For editing an existing Doctor profile -->
-                    <input type="hidden" id="doctor-user-id"> <!-- For linking to a User account -->
-                    
+                    <input type="hidden" id="doctor-profile-id">
+                    <input type="hidden" id="doctor-user-id">
                     <div class="form-group">
                         <label for="doctor-name-modal">Doctor Name (from User Profile):</label>
                         <input type="text" id="doctor-name-modal" disabled>
@@ -265,7 +289,7 @@
                     if (response.ok) {
                         const userData = await response.json();
                         if (userData.loggedIn && userData.isAdmin) {
-                            if(adminUserFullnameEl) adminUserFullnameEl.textContent = userData.firstName || 'Admin';
+                            if(adminUserFullnameEl) adminUserFullnameEl.textContent = userData.fullname || 'Admin';
                         } else {
                             window.location.href = '/login.html?message=Admin_access_required.';
                         }
@@ -300,6 +324,7 @@
             }
         });
     </script>
+    <script src="src/app.js" type="module" defer></script>
     <script src="src/pages/admin.js" defer></script>
 </body>
 </html>

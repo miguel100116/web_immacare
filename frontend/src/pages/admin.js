@@ -7,7 +7,8 @@ const dataCaches = {
     users: [],
     appointments: [],
     inventory: [],
-    doctors: []
+    doctors: [],
+    auditLog: []
 };
 
 let showingArchivedAppointments = false;
@@ -33,21 +34,49 @@ function initializeAdditionalUIEventListeners() {
         updateArchivedButtonText();
         updateAppointmentsViewIndicator();
     });
+
+    const dateFilterInput = document.getElementById('audit-log-date-filter');
+    if (dateFilterInput) {
+        flatpickr(dateFilterInput, {
+            dateFormat: "Y-m-d",
+            onChange: async function(selectedDates, dateStr, instance) {
+                const logs = await fetchAndStoreAuditLogs(dateStr);
+                displayPaginatedTable('auditLog', logs, 1);
+            }
+        });
+    }
+    document.getElementById('audit-log-clear-filter-btn')?.addEventListener('click', async () => {
+        // Clear the calendar input visually
+        if (dateFilterInput) {
+            flatpickr(dateFilterInput).clear();
+        }
+        // Fetch ALL logs again by calling with no date
+        const allLogs = await fetchAndStoreAuditLogs(); 
+        // Display the complete, unfiltered log list
+        displayPaginatedTable('auditLog', allLogs, 1); 
+    });
 }
 
 async function loadAllAdminData() {
     try {
-        const [users, appointments, inventoryItems, doctors] = await Promise.all([
+        const [users, appointments, inventoryItems, doctors, auditLogs] = await Promise.all([
             fetchAndStoreUsers(),
             fetchAndStoreAppointments(),
             fetchAndStoreInventoryItems(),
             fetchAndStoreDoctors(),
+            fetchAndStoreAuditLogs(),
         ]);
 
         if (users) displayPaginatedTable('users', users, 1);
         if (appointments) displayPaginatedTable('appointments', appointments, 1);
         if (inventoryItems) displayPaginatedTable('inventory', inventoryItems, 1);
         if (doctors) displayPaginatedTable('doctors', doctors, 1);
+        if (auditLogs) {
+            console.log("Calling displayPaginatedTable for 'auditLog'");
+            displayPaginatedTable('auditLog', auditLogs, 1);
+        } else {
+            console.error("'auditLogs' data is null or undefined after fetching.");
+        }
 
         updateDashboardStats({
             users: users?.length || 0,
@@ -92,6 +121,15 @@ function displayPaginatedTable(type, data, page = 1) {
 
     paginatedItems.forEach(item => renderRowFunction(tableBody, item));
     renderPaginationControls(paginationControls, page, totalPages, type, data);
+}
+
+function renderAuditLogRow(tableBody, log) {
+    const row = tableBody.insertRow();
+    const timestamp = new Date(log.createdAt);
+    row.insertCell().textContent = `${timestamp.toLocaleDateString()} ${timestamp.toLocaleTimeString()}`;
+    row.insertCell().textContent = log.actorName || 'System';
+    row.insertCell().innerHTML = `<span class="status-badge status-log">${log.action.replace(/_/g, ' ')}</span>`;
+    row.insertCell().textContent = log.details || 'N/A';
 }
 
 
@@ -214,6 +252,23 @@ function renderInventoryRow(tableBody, item) {
 // =====================================================================
 
 // --- Data Fetchers ---
+
+async function fetchAndStoreAuditLogs(date = null) {
+    try {
+        let url = '/api/admin/audit-logs';
+        if (date) {
+            url += `?date=${date}`;
+        }
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.statusText);
+        dataCaches.auditLog = await res.json();
+        return dataCaches.auditLog;
+    } catch (e) {
+        console.error('Fetch Audit Logs Error:', e);
+        return null;
+    }
+}
+
 async function fetchAndStoreUsers() { 
     try { 
         const res = await fetch('/api/admin/users'); 
