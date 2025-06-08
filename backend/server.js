@@ -19,12 +19,12 @@ const doctorRoutes = require('./routes/doctor-routes');
 const { ensureAuthenticated, ensureAdmin, ensureDoctor, ensureStaff } = require('./middleware/auth-middleware');
 const doctorApiRoutes = require('./routes/doctor-api-routes');
 const staffRoutes = require('./routes/staff-routes');
-const authMobileRoutes = require('./routes/auth-mobile-routes');
-const userMobileRoutes = require('./routes/user-mobile-routes');
-const { ensureApiAuthenticated } = require('./middleware/api-auth-middleware');
 
 // --- 2. CORE MIDDLEWARE ---
-app.use(cors()); // Use open CORS for development
+app.use(cors({
+  origin: 'http://localhost:5300',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
@@ -33,33 +33,66 @@ app.use(session({
   saveUninitialized: true,
   cookie: { secure: false } 
 }));
-// The express.static line was REMOVED from here.
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+
 
 // --- 3. DATABASE CONNECTION ---
 mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.net/accounts?retryWrites=true&w=majority')
   .then(() => console.log("✅ MongoDB Atlas connected successfully."))
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
-// ===================================================================
-// --- 4. API ROUTE WIRING (MUST BE FIRST) ---
-// ===================================================================
-app.use('/api/auth', authMobileRoutes); 
-app.use('/api', doctorRoutes);
-app.use('/api/user', ensureApiAuthenticated, userMobileRoutes);
-app.use('/', authRoutes); // Website auth
-app.use('/', ensureAuthenticated, appointmentRoutes); // Protected website routes
-app.use('/api/admin', ensureAdmin, adminRoutes);
-app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
-app.use('/api/staff', ensureStaff, staffRoutes);
 
-// ===================================================================
-// --- 5. STATIC FILE & PAGE SERVING (MUST BE AFTER API ROUTES) ---
-// ===================================================================
+// --- 4. STARTUP SCRIPTS ---
+// ** PUT THIS SECTION BACK IN **
+// async function ensureFirstAdmin() {
+//     // Your existing function to create the first admin user
+//     // This is important for initial setup
+//     const adminExists = await Users.findOne({ isAdmin: true });
+//     if (!adminExists) {
+//         console.log("No admin found, creating one...");
+//         const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASS || 'AdminPassword1!', 10);
+//         await Users.create({
+//             fullname: 'Admin User',
+//             signupEmail: process.env.ADMIN_EMAIL || 'admin@immacare.com',
+//             signupPassword: hashedPassword,
+//             isAdmin: true,
+//             isVerified: true
+//         });
+//         console.log("✅ Default admin created.");
+//     }
+// }
 
-// THIS IS THE CORRECT LOCATION FOR THE STATIC MIDDLEWARE
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+// async function ensureSpecializations() {
+//   try {
+//     const specializations = [
+//       { name: 'Obstetrics and Gynecology' }, { name: 'Pediatrics' },
+//       { name: 'Internal Medicine' }, { name: 'Surgery' },
+//       { name: 'Dermatology' }, { name: 'Ophthalmology' },
+//       { name: 'Urology' }, { name: 'ENT' },
+//       { name: 'Not Specified' }
+//     ];
 
-// These routes serve the specific HTML pages for your website
+//     for (const spec of specializations) {
+//       await Specialization.findOneAndUpdate(
+//         { name: spec.name },
+//         { $setOnInsert: spec },
+//         { upsert: true, new: true, setDefaultsOnInsert: true }
+//       );
+//     }
+//     console.log('✅ Specializations seeded successfully.');
+//   } catch (error) {
+//     console.error('❌ Error seeding specializations:', error);
+//   }
+// }
+
+// Call the startup scripts
+// ensureFirstAdmin();
+// ensureSpecializations();
+// ** END OF SECTION TO PUT BACK **
+
+
+// --- 5. STATIC PAGE SERVING ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'index.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'signup.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'authScreens', 'login.html')));
@@ -81,6 +114,19 @@ app.get('/doctor/dashboard', ensureDoctor, (req, res) => {
 app.get('/staff/dashboard', ensureStaff, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'staffScreen', 'staff.html'));
 });
+
+// --- 6. API ROUTE WIRING ---
+// (This part is now correct)
+app.use('/api', doctorRoutes);
+
+// Group 2: Authentication Routes (Handles login, logout, etc.)
+app.use('/', authRoutes);
+
+// Group 3: Protected Routes (Require a user to be logged in)
+app.use('/', ensureAuthenticated, appointmentRoutes);
+app.use('/api/admin', ensureAdmin, adminRoutes);
+app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
+app.use('/api/staff', ensureStaff, staffRoutes);
 
 // --- 7. START SERVER ---
 app.listen(port, () => {
