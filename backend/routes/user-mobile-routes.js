@@ -1,53 +1,89 @@
 // backend/routes/user-mobile-routes.js
 const express = require('express');
+const jwt = require('jsonwebtoken'); // Import JWT library
 const Users = require('../models/user-model');
 const Appointment = require('../models/appointment-model');
 const router = express.Router();
 
+// --- 1. JWT Authentication Middleware ---
+// This function will protect all routes in this file. It checks for a valid
+// token and attaches the user's info to the request.
+const ensureApiAuthenticated = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Unauthorized: No token provided.' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'immacareSecretKey123');
+        req.user = decoded; // Attaches { userId: '...' } to the request
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Unauthorized: Invalid token.' });
+    }
+};
+
+// --- 2. Corrected Profile Routes (with middleware) ---
+
 // GET /api/user/profile - Get the logged-in user's profile
-// The `ensureApiAuthenticated` middleware runs first. If the token is valid, `req.user` will be available.
-router.get('/profile', async (req, res) => {
+// This route is now protected.
+router.get('/profile', ensureApiAuthenticated, async (req, res) => {
     try {
         const userProfile = await Users.findById(req.user.userId).select('-signupPassword');
         if (!userProfile) {
-            return res.status(404).json({ error: 'User profile not found.' });
+            return res.status(404).json({ message: 'User profile not found.' });
         }
         res.json(userProfile);
     } catch (error) {
-        res.status(500).json({ error: 'Server error fetching profile.' });
+        res.status(500).json({ message: 'Server error fetching profile.' });
     }
 });
 
 // PUT /api/user/profile - Update the logged-in user's profile
-router.put('/profile', async (req, res) => {
+// THIS IS THE CORRECTED LOGIC
+router.put('/profile', ensureApiAuthenticated, async (req, res) => {
     try {
-        const { name, email, mobile, address, age } = req.body;
-        const nameParts = name.trim().split(' ');
+        // Destructure the correct fields sent by the mobile app
+        const { firstName, lastName, suffix, signupEmail, PhoneNumber, Address, Age } = req.body;
         
+        // Build the data object to update in the database
         const updatedData = {
-            firstName: nameParts.shift(),
-            lastName: nameParts.join(' '),
-            signupEmail: email,
-            PhoneNumber: mobile,
-            Address: address,
-            Age: age,
+            firstName,
+            lastName,
+            suffix,
+            signupEmail,
+            PhoneNumber,
+            Address,
+            Age,
         };
 
+        // Find the user by ID and update their document
         const updatedUser = await Users.findByIdAndUpdate(req.user.userId, updatedData, { new: true })
             .select('-signupPassword');
         
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found to update.' });
+        }
+        
+        // Send the updated user data back to the app
         res.json(updatedUser);
     } catch (error) {
-        res.status(500).json({ error: 'Server error updating profile.' });
+        console.error('Error updating profile:', error);
+        res.status(500).json({ message: 'Server error updating profile.' });
     }
 });
 
+// --- 3. Corrected Appointments Route (with middleware) ---
+
 // POST /api/user/appointments - Create a new appointment
-router.post('/appointments', async (req, res) => {
+// This route is now also protected.
+router.post('/appointments', ensureApiAuthenticated, async (req, res) => {
     try {
         const { doctor, specialization, date, time, reason } = req.body;
         
-        // The middleware gives us the user's details from the token
         const patientInfo = await Users.findById(req.user.userId);
         
         const newAppointment = new Appointment({
@@ -61,7 +97,7 @@ router.post('/appointments', async (req, res) => {
             address: patientInfo.Address,
             age: patientInfo.Age,
             phone: patientInfo.PhoneNumber,
-            userId: req.user.userId, // Link the appointment to the user
+            userId: req.user.userId,
             status: 'Scheduled',
         });
 
@@ -69,7 +105,7 @@ router.post('/appointments', async (req, res) => {
         res.status(201).json({ message: 'Appointment created successfully.', appointment: newAppointment });
     } catch (error) {
         console.error("Error creating mobile appointment:", error);
-        res.status(500).json({ error: 'Could not create appointment.' });
+        res.status(500).json({ message: 'Could not create appointment.' });
     }
 });
 
