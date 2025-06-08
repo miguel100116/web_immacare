@@ -19,6 +19,8 @@ const doctorRoutes = require('./routes/doctor-routes');
 const { ensureAuthenticated, ensureAdmin, ensureDoctor, ensureStaff } = require('./middleware/auth-middleware');
 const doctorApiRoutes = require('./routes/doctor-api-routes');
 const staffRoutes = require('./routes/staff-routes');
+const authMobileRoutes = require('./routes/auth-mobile-routes');
+const userMobileRoutes = require('./routes/user-mobile-routes');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
@@ -115,15 +117,21 @@ app.get('/staff/dashboard', ensureStaff, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'staffScreen', 'staff.html'));
 });
 
+app.use('/api', doctorRoutes); // e.g., /api/specializations
 // --- 6. API ROUTE WIRING ---
-// (This part is now correct)
-app.use('/api', doctorRoutes);
+app.use('/', authRoutes); // Handles web login/logout
+app.use('/', ensureAuthenticated, appointmentRoutes); // Handles web appointments
 
-// Group 2: Authentication Routes (Handles login, logout, etc.)
-app.use('/', authRoutes);
 
-// Group 3: Protected Routes (Require a user to be logged in)
-app.use('/', ensureAuthenticated, appointmentRoutes);
+
+// =================== ADD THIS NEW SECTION ===================
+// Group 3: Mobile App API Routes
+app.use('/api/auth', authMobileRoutes); // Mounts /api/auth/mobile-login, etc.
+// TODO: Protect these routes with a JWT middleware later
+// app.use('/api/user', ensureApiAuthenticated, userMobileRoutes); // Mounts /api/user/profile, etc.
+// ===========================================================
+
+// Group 4: Role-Protected API Routes (Admins, Doctors, Staff)
 app.use('/api/admin', ensureAdmin, adminRoutes);
 app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
 app.use('/api/staff', ensureStaff, staffRoutes);
