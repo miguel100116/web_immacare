@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpires: Date,
     isAdmin: { type: Boolean, default: false },
     isDoctor: { type: Boolean, default: false },
+    isStaff: { type: Boolean, default: false },
 });
 
 userSchema.virtual('fullname').get(function() {

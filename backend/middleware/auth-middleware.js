@@ -33,8 +33,17 @@ function ensureDoctor(req, res, next) {
   res.status(403).redirect('/main.html?message=Doctor_access_required');
 }
 
+function ensureStaff(req, res, next) {
+    if (req.session.user && req.session.user.isStaff) {
+        return next();
+    }
+    res.status(403).send('Forbidden: Staff only');
+}
+
+
 module.exports = {
     ensureAuthenticated,
     ensureAdmin,
-    ensureDoctor
+    ensureDoctor,
+    ensureStaff
 };

@@ -263,6 +263,10 @@ router.post('/users/:userId/promote', async (req, res) => {
       return res.status(404).json({ error: 'User account not found.' });
     }
 
+    if (user.isStaff) {
+      return res.status(409).json({ error: 'Cannot promote a Staff member to Doctor. Demote from Staff first.' });
+    }
+
     if (user.isDoctor) {
       const existingDoctor = await Doctor.findOne({ userAccount: userId });
       if (existingDoctor) {
@@ -371,6 +375,44 @@ router.get('/audit-logs', async (req, res) => {
     } catch (error) {
         console.error("Error fetching audit logs:", error);
         res.status(500).json({ error: 'Server error fetching audit logs.' });
+    }
+});
+
+router.post('/users/:userId/toggle-staff', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await Users.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        const isPromotingToStaff = !user.isStaff;
+        if (isPromotingToStaff && user.isDoctor) {
+            return res.status(409).json({ error: 'Cannot make a Doctor a Staff member. Demote from Doctor first.' });
+        }
+        
+        // Toggle the staff status
+        user.isStaff = !user.isStaff;
+        await user.save();
+
+        // Log the action
+        const adminUser = await Users.findById(req.session.user.id);
+        const action = user.isStaff ? 'promoted' : 'demoted';
+        const logDetails = `Admin '${adminUser.fullname}' ${action} user '${user.fullname}' ${user.isStaff ? 'to' : 'from'} Staff.`;
+        
+        // We can reuse the doctor promotion/demotion action types for simplicity or create new ones.
+        // For now, let's keep it simple. If you need more specific logging, you can add new enums.
+        await createLog(req.session.user.id, 'USER_PROFILE_UPDATE', logDetails);
+
+        res.json({
+            message: `User successfully ${action} ${user.isStaff ? 'to' : 'from'} Staff.`,
+            user: user
+        });
+
+    } catch (error) {
+        console.error('Error toggling staff status:', error);
+        res.status(500).json({ error: 'Server error while toggling staff status.' });
     }
 });
 

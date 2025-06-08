@@ -217,6 +217,27 @@ tbody tr:hover {
     text-transform: capitalize;
 }
 
+.status-badge.status-staff-yes {
+  background-color: #17a2b8; /* A nice teal color for staff */
+  color: white;
+}
+
+.status-badge.status-staff-no {
+  background-color: #e9ecef; /* Same as other 'no' badges */
+  color: #6c757d;
+}
+
+.action-btn:disabled {
+    background-color: #f0f0f0;
+    color: #ccc;
+    cursor: not-allowed;
+    border-color: #ddd;
+}
+
+.action-btn:disabled:hover {
+    background-color: #f0f0f0; /* Prevents hover effect */
+}
+
 /* Responsive */
 @media (max-width: 992px) { .stats-cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
 @media (max-width: 768px) {

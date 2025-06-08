@@ -1,0 +1,145 @@
+<!-- START OF FILE: frontend/src/screens/staffScreen/staff.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard - ImmaCare+</title>
+    
+    <!-- Link to Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- This now points to the new, dedicated stylesheet for the staff panel -->
+    <link rel="stylesheet" href="/src/styles/staffScreenStyles.css">
+</head>
+
+<body>
+    <div class="container" id="staff-dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>ImmaCare</h2>
+                <p>Staff Panel</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-target="dashboard"><a href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li class="nav-item" data-target="patients"><a href="#"><i class="fas fa-procedures"></i> Patient Records</a></li>
+                <!-- Add more staff-specific links here in the future -->
+            </ul>
+            <div class="user-info">
+                <div class="avatar"><i class="fas fa-user-nurse"></i></div>
+                <div class="details">
+                    <h4 id="staff-user-fullname">Staff Member</h4>
+                    <a href="/logout" id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <!-- Header content can be added later -->
+            </header>
+
+            <section class="content-section dashboard-section active" id="dashboard">
+                <h1>Staff Dashboard</h1>
+                <p>Welcome! This is where staff-specific features will be.</p>
+                <p>The first feature to build will be the Patient Records section.</p>
+            </section>
+
+            <section class="content-section" id="patients" style="display: none;">
+                <div class="section-header">
+                    <h1>Patient Records</h1>
+                    <button class="add-new-btn" id="add-new-patient-btn"><i class="fas fa-plus"></i> Add New Patient</button>
+                </div>
+                <div class="filters">
+                    <input type="text" id="patients-search" placeholder="Search by patient name or email...">
+                    <button id="patients-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="patients-table">
+                         <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Last Visit</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Patient data will be loaded here by staff.js -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="patients-pagination"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- == Patient Record Modal == -->
+    <!-- ============================================= -->
+    <div class="modal" id="patient-record-modal">
+       <div class="modal-content large">
+            <div class="modal-header">
+                <h2 id="patient-modal-title">Patient Record</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <!-- Patient's Personal Info Display -->
+                <div class="patient-info-header">
+                    <h3 id="modal-patient-name">Patient Name</h3>
+                    <p><strong>Email:</strong> <span id="modal-patient-email"></span></p>
+                    <p><strong>Phone:</strong> <span id="modal-patient-phone"></span></p>
+                    <p><strong>Address:</strong> <span id="modal-patient-address"></span></p>
+                </div>
+    
+                <hr>
+    
+                <!-- Add New Consultation Form -->
+                <h4>Add New Consultation Note</h4>
+                <form id="consultation-form">
+                    <input type="hidden" id="patient-record-id">
+                    <div class="form-row">
+                        <div class="custom-select-wrapper">
+                            <select id="consult-doctor" required>
+                                <option value="">Loading doctors...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="consult-complaint">Complaint*</label>
+                            <input type="text" id="consult-complaint" required>
+                        </div>
+                    </div>
+                     <div class="form-group">
+                        <label for="consult-diagnosis">Diagnosis*</label>
+                        <input type="text" id="consult-diagnosis" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="consult-treatment">Treatment Plan</label>
+                        <textarea id="consult-treatment" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="save-btn">Add Note</button>
+                    </div>
+                </form>
+                
+                <hr>
+    
+                <!-- Consultation History Display -->
+                <h4>Consultation History</h4>
+                <div class="consultation-history-list" id="consultation-history-list">
+                    <!-- History items will be rendered here by JS -->
+                    <p>No consultation history found.</p>
+                </div>
+
+                <div class="pagination-controls" id="consultation-pagination">
+                    <!-- Pagination buttons will be rendered here by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/src/pages/staff.js" defer></script>
+</body>
+</html>

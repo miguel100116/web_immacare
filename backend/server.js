@@ -16,8 +16,9 @@ const authRoutes = require('./routes/auth-routes');
 const appointmentRoutes = require('./routes/appointment-routes');
 const adminRoutes = require('./routes/admin-routes');
 const doctorRoutes = require('./routes/doctor-routes');
-const { ensureAuthenticated, ensureAdmin, ensureDoctor } = require('./middleware/auth-middleware');
+const { ensureAuthenticated, ensureAdmin, ensureDoctor, ensureStaff } = require('./middleware/auth-middleware');
 const doctorApiRoutes = require('./routes/doctor-api-routes');
+const staffRoutes = require('./routes/staff-routes');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
@@ -110,6 +111,9 @@ app.get('/profile.html', ensureAuthenticated, (req, res) => {
 app.get('/doctor/dashboard', ensureDoctor, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'doctorScreen', 'doctorDashboard.html'));
 });
+app.get('/staff/dashboard', ensureStaff, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'staffScreen', 'staff.html'));
+});
 
 // --- 6. API ROUTE WIRING ---
 // (This part is now correct)
@@ -122,6 +126,7 @@ app.use('/', authRoutes);
 app.use('/', ensureAuthenticated, appointmentRoutes);
 app.use('/api/admin', ensureAdmin, adminRoutes);
 app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
+app.use('/api/staff', ensureStaff, staffRoutes);
 
 // --- 7. START SERVER ---
 app.listen(port, () => {

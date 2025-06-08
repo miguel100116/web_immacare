@@ -151,6 +151,10 @@ function renderPaginationControls(container, currentPage, totalPages, type, orig
 }
 
 // --- ROW RENDERERS ---
+// frontend/src/pages/admin.js
+
+// --- Find and replace ONLY the renderUsersRow function ---
+
 function renderUsersRow(tableBody, user) {
     const row = tableBody.insertRow();
     row.insertCell().textContent = user.firstName || 'N/A';
@@ -161,21 +165,85 @@ function renderUsersRow(tableBody, user) {
     row.insertCell().textContent = user.Sex || 'N/A';
     row.insertCell().innerHTML = `<span class="status-badge status-${user.isVerified ? 'yes' : 'no'}">${user.isVerified ? 'Yes' : 'No'}</span>`;
     row.insertCell().innerHTML = `<span class="status-badge status-${user.isAdmin ? 'admin' : 'user'}">${user.isAdmin ? 'Yes' : 'No'}</span>`;
+    row.insertCell().innerHTML = `<span class="status-badge status-staff-${user.isStaff ? 'yes' : 'no'}">${user.isStaff ? 'Yes' : 'No'}</span>`;
+    
     const actionsCell = row.insertCell();
+    let buttonsHtml = '';
+
+    // --- NEW, MUTUALLY EXCLUSIVE LOGIC ---
+
+    // 1. Determine if the "Promote to Doctor" button should be enabled.
+    const canPromoteToDoctor = !user.isDoctor && !user.isStaff;
     if (user.isDoctor) {
-        // If user is already a doctor, show a status badge
-        actionsCell.innerHTML = `<span class="status-badge status-doctor">Doctor</span>`;
+        buttonsHtml += `<span class="status-badge status-doctor">Doctor</span>`;
     } else {
-        // Otherwise, show the promote button
-        actionsCell.innerHTML = `
-            <button class="action-btn promote-btn" data-user-id="${user._id}" data-user-name="${user.firstName}" title="Add to Doctor">
+        buttonsHtml += `
+            <button 
+                class="action-btn promote-btn" 
+                data-user-id="${user._id}" 
+                data-user-name="${user.fullname}" 
+                title="${canPromoteToDoctor ? 'Promote to Doctor' : 'User is Staff, cannot be a Doctor'}" 
+                ${!canPromoteToDoctor ? 'disabled' : ''}>
                 <i class="fas fa-user-md"></i>
             </button>`;
-        // Add the event listener to call our new function
-        actionsCell.querySelector('.promote-btn').addEventListener('click', (e) => {
-            const button = e.currentTarget;
-            promoteUserToDoctor(button.dataset.userId, button.dataset.userName);
+    }
+
+    // 2. Determine if the "Toggle Staff" button should be enabled.
+    // A user can be promoted to staff ONLY if they are not a doctor.
+    // A user can ALWAYS be demoted from staff.
+    const canToggleStaff = !user.isDoctor || user.isStaff;
+    const staffIcon = user.isStaff ? 'fa-user-slash' : 'fa-user-plus';
+    const staffTitle = user.isStaff ? 'Demote from Staff' : 
+                       (canToggleStaff ? 'Promote to Staff' : 'User is a Doctor, cannot be Staff');
+
+    buttonsHtml += `
+        <button 
+            class="action-btn toggle-staff-btn" 
+            data-user-id="${user._id}" 
+            data-user-name="${user.fullname}" 
+            title="${staffTitle}" 
+            ${!canToggleStaff ? 'disabled' : ''}>
+            <i class="fas ${staffIcon}"></i>
+        </button>`;
+    
+    actionsCell.innerHTML = buttonsHtml;
+
+    // 3. Add event listeners (these will only work on non-disabled buttons)
+    actionsCell.querySelector('.promote-btn')?.addEventListener('click', (e) => {
+        if (e.currentTarget.disabled) return;
+        promoteUserToDoctor(e.currentTarget.dataset.userId, e.currentTarget.dataset.userName);
+    });
+    
+    actionsCell.querySelector('.toggle-staff-btn')?.addEventListener('click', (e) => {
+        if (e.currentTarget.disabled) return;
+        toggleStaffStatus(e.currentTarget.dataset.userId, e.currentTarget.dataset.userName);
+    });
+    // --- END OF NEW LOGIC ---
+}
+
+async function toggleStaffStatus(userId, userName) {
+    const user = dataCaches.users.find(u => u._id === userId);
+    const action = user?.isStaff ? 'demote' : 'promote';
+
+    if (!confirm(`Are you sure you want to ${action} "${userName}" ${action === 'promote' ? 'to' : 'from'} Staff?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/toggle-staff`, {
+            method: 'POST',
         });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to update staff status.');
+        }
+        alert(result.message);
+        // Refresh the users table to show the change
+        const users = await fetchAndStoreUsers();
+        displayPaginatedTable('users', users, 1);
+    } catch (error) {
+        console.error('Error toggling staff status:', error);
+        alert(`Error: ${error.message}`);
     }
 }
 
