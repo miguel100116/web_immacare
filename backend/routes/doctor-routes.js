@@ -34,7 +34,7 @@ router.get('/doctors', async (req, res) => {
       query.specialization = specializationId;
     }
     const doctors = await Doctor.find(query)
-      .populate({ path: 'userAccount', select: 'fullname signupEmail' })
+      .populate({ path: 'userAccount', select: 'firstName lastName suffix' })
       .populate({ path: 'specialization', select: 'name' })
       .sort('userAccount.fullname');
     res.json(doctors);

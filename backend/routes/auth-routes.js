@@ -40,20 +40,20 @@ router.post('/check-email', async (req, res) => {
     }
 });
 
-router.post('/check-fullname', async (req, res) => {
-    try {
-        const user = await Users.findOne({ fullname: req.body.fullname });
-        res.json({ exists: !!user });
-    } catch (error) {
-        res.status(500).json({ error: "Server error" });
-    }
-});
+// router.post('/check-fullname', async (req, res) => {
+//     try {
+//         const user = await Users.findOne({ fullname: req.body.fullname });
+//         res.json({ exists: !!user });
+//     } catch (error) {
+//         res.status(500).json({ error: "Server error" });
+//     }
+// });
 
 
 // --- REGISTRATION & VERIFICATION ---
 
 router.post('/post', async (req, res) => {
-    const { fullname, signupEmail, Age, Sex, PhoneNumber, Address, signupPassword, confirmPassword } = req.body;
+    const { firstName, lastName, suffix, signupEmail, Age, Sex, PhoneNumber, Address, signupPassword, confirmPassword } = req.body;
 
     if (signupPassword !== confirmPassword) {
         return res.status(400).json({ error: "❌ Passwords do not match" });
@@ -66,17 +66,17 @@ router.post('/post', async (req, res) => {
     }
 
     try {
-        if (await Users.findOne({ signupEmail })) return res.status(400).json({ error: "Email already registered" });
-        if (await Users.findOne({ fullname })) return res.status(400).json({ error: "Full name already registered" });
+        if (await Users.findOne({ signupEmail })) return res.status(400).json({ error: "Email already registered" });   
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) return res.status(400).json({ error: "Please enter a valid email address" });
-        if (fullname.split(/\s+/).length < 2) return res.status(400).json({ error: "Please enter your full name (first and last name)" });
         if (PhoneNumber && PhoneNumber.replace(/\D/g, '').length < 10) return res.status(400).json({ error: "Please enter a valid phone number (at least 10 digits)" });
 
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
 
         const user = new Users({
-            fullname,
+            firstName,
+            lastName,
+            suffix,
             signupEmail,
             Age,
             Sex,
@@ -96,7 +96,7 @@ router.post('/post', async (req, res) => {
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <h2 style="color: #4CAF50;">Welcome to ImmaCare+</h2>
-                <h3>Hello ${fullname},</h3>
+                <h3>Hello ${firstName},</h3>
                 <p>Please click the button below to verify your email address:</p>
                 <div style="text-align: center; margin: 30px 0;">
                   <a href="http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}"
@@ -287,11 +287,11 @@ router.get("/check-auth", ensureAuthenticated, (req, res) => {
 
 router.put("/update-profile", ensureAuthenticated, async (req, res) => {
     const userId = req.session.user.id;
-    const { fullname, Age, Sex, PhoneNumber } = req.body;
+    const { firstName, lastName, suffix, Age, Sex, PhoneNumber, Address } = req.body;
 
     try {
         const updatedUser = await Users.findByIdAndUpdate(userId,
-            { fullname, Age, Sex, PhoneNumber },
+            { firstName, lastName, suffix, Age, Sex, PhoneNumber, Address},
             { new: true, runValidators: true }
         ).select('-signupPassword');
 
@@ -323,6 +323,9 @@ router.get('/getUser', async (req, res) => { // Make it async
                 res.json({
                     loggedIn: true,
                     fullname: user.fullname,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    suffix: user.suffix,
                     signupEmail: user.signupEmail,
                     isAdmin: user.isAdmin,
                     isDoctor: user.isDoctor, 

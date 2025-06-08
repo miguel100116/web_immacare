@@ -1,0 +1,131 @@
+/* START OF FILE frontend/src/styles/profileStyles.css */
+
+/*
+ * ==================================================
+ *  Styles for the User Profile Page
+ * ==================================================
+ */
+
+/* --- Main Layout Containers --- */
+
+.profile-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 50px 20px;
+    background-color: #eeecde; /* Matches the main theme */
+}
+
+.profile-container {
+    max-width: 700px;
+    width: 100%;
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #001c5c; /* From style.css theme */
+    font-size: 26px;
+    font-weight: bold;
+}
+
+
+/* --- Form Structure & Groups --- */
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    align-items: baseline;
+}
+
+.form-group {
+    flex: 1;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    text-align: left; /* Aligns labels to the left */
+}
+
+
+/*
+ * ==================================================
+ *  Editable Fields with "Change" Button
+ *  This is the key section that fixes the alignment.
+ * ==================================================
+ */
+
+/* This div holds the input and the button together */
+.input-with-button {
+    position: relative;
+    width: 100%;
+}
+
+/* We add padding to the right of the input to make space for the button */
+.input-with-button input {
+    width: 100%;
+    padding-right: 85px; /* Space for the button */
+    box-sizing: border-box; /* Ensures padding is part of the width */
+}
+
+/* The "Change" button is positioned absolutely inside its parent */
+.edit-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%; /* Moves the top edge of the button to the middle */
+    transform: translateY(-90%); /* Pulls the button up by half its own height */
+    
+    /* The rest of the styling */
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.edit-btn:hover {
+    background-color: #5a6268;
+}
+
+/* This is the greyed-out style for locked fields */
+input.pre-filled {
+    background-color: #e9ecef;
+    color: #495057;
+    cursor: not-allowed;
+    border-color: #ced4da;
+}
+
+
+/* --- Message Area & Submit Button --- */
+
+.message-area {
+    text-align: center;
+    margin-top: 25px;
+    font-weight: bold;
+    min-height: 1.2em;
+    font-size: 15px;
+}
+
+.message-area.success {
+    color: #28a745; /* Green for success */
+}
+
+.message-area.error {
+    color: #dc3545; /* Red for error */
+}
+
+/* Inherits from .submit-btn in style.css, but we can override if needed */
+#save-profile-btn {
+    width: 100%;
+    margin-top: 10px;
+}

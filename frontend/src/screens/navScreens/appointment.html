@@ -64,10 +64,27 @@
                 <!-- SECTION 1: USER INFORMATION (Unchanged) -->
                 <fieldset class="form-section">
                     <legend>Your Information</legend>
-                    <label for="patientName">Name*</label>
-                    <div class="input-with-button">
-                        <input type="text" id="patientName" name="patientName" required placeholder="Name">
-                        <button type="button" class="edit-btn" data-target="patientName">Change</button>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="patientFirstName">First Name*</label>
+                            <div class="input-with-button">
+                                <input type="text" id="patientFirstName" name="firstName" required placeholder="First Name">
+                                <button type="button" class="edit-btn" data-target="patientFirstName">Change</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="patientLastName">Last Name*</label>
+                            <div class="input-with-button">
+                                <input type="text" id="patientLastName" name="lastName" required placeholder="Last Name">
+                                <button type="button" class="edit-btn" data-target="patientLastName">Change</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Suffix is optional -->
+                    <label for="patientSuffix">Suffix</label>
+                     <div class="input-with-button">
+                        <input type="text" id="patientSuffix" name="suffix" placeholder="e.g., Jr., III">
+                        <button type="button" class="edit-btn" data-target="patientSuffix">Change</button>
                     </div>
                     <label for="age">Age*</label>
                     <div class="input-with-button">
@@ -131,7 +148,7 @@
         </div>
     </div>
     
-    <footer class="footer"></footer>
+    <div id="footer-placeholder"></div>
     <div id="confirmationModal" class="modal"></div>
     <script src="src/pages/appointment.js" defer></script>
     <script src="src/app.js" type="module" defer></script>
