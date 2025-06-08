@@ -15,13 +15,22 @@ const router = express.Router();
  * @access  Public
  */
 router.post('/mobile-register', async (req, res) => {
-    // In your mobile app's Registration.js, you now send 'name' which is the full name.
-    // The model expects `firstName` and `lastName`. We split it here.
+    // 1. Get the data from the mobile app's request body
     const { name, email, password, age, mobile, address, gender } = req.body;
 
+    // --- START OF THE FIX ---
+    // These validations are now consistent with the web version
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Name, email, and password are required.' });
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+    if (mobile && mobile.replace(/\D/g, '').length < 10) {
+        return res.status(400).json({ message: "Please enter a valid phone number (at least 10 digits)" });
+    }
+    // You could add password complexity checks here too if desired
+    // --- END OF THE FIX ---
 
     try {
         if (await Users.findOne({ signupEmail: email })) {
@@ -36,21 +45,23 @@ router.post('/mobile-register', async (req, res) => {
         const firstName = nameParts.shift(); // Takes the first part
         const lastName = nameParts.join(' '); // Joins the rest
 
+        // --- THE KEY CHANGE IS HERE ---
+        // We create the user with the exact same field names as auth-routes.js
         const user = new Users({
-            firstName,
-            lastName,
+            firstName,      // from 'name'
+            lastName,       // from 'name'
             signupEmail: email,
             Age: age,
-            Sex: gender,
-            PhoneNumber: mobile,
+            Sex: gender,    // 'Sex' matches the web registration field
+            PhoneNumber: mobile, // 'PhoneNumber' matches the web registration field
             Address: address,
             signupPassword: hashedPassword,
-            isVerified: true // Mobile users can be auto-verified for simplicity
+            isVerified: true // Mobile users are auto-verified
         });
         
         await user.save();
 
-        console.log("✅ Mobile user registered:", user.fullname);
+        console.log("✅ Mobile user registered with consistent data:", user.fullname);
         res.status(201).json({ message: "Registration successful! You can now log in." });
 
     } catch (error) {
@@ -65,6 +76,7 @@ router.post('/mobile-register', async (req, res) => {
  * @access  Public
  */
 router.post('/mobile-login', async (req, res) => {
+    // This route is already fine and does not need changes.
     try {
         const { email, password } = req.body;
         const user = await Users.findOne({ signupEmail: email });
@@ -78,7 +90,6 @@ router.post('/mobile-login', async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials." });
         }
 
-        // --- Create JWT Token ---
         const payload = {
             userId: user._id,
             name: user.fullname,
@@ -89,11 +100,10 @@ router.post('/mobile-login', async (req, res) => {
 
         const token = jwt.sign(
             payload,
-            process.env.JWT_SECRET || 'immacareSecretKey123', // IMPORTANT: Use a strong, secret key from your .env file!
+            process.env.JWT_SECRET || 'immacareSecretKey123',
             { expiresIn: '30d' }
         );
 
-        // --- Respond with Token and User Data ---
         console.log(`✅ Mobile login success for ${user.signupEmail}.`);
         res.status(200).json({
             message: 'Login successful',
