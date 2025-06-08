@@ -19,6 +19,7 @@ const doctorRoutes = require('./routes/doctor-routes');
 const { ensureAuthenticated, ensureAdmin, ensureDoctor, ensureStaff } = require('./middleware/auth-middleware');
 const doctorApiRoutes = require('./routes/doctor-api-routes');
 const staffRoutes = require('./routes/staff-routes');
+const authMobileRoutes = require('./routes/auth-mobile-routes');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
@@ -120,6 +121,7 @@ app.get('/staff/dashboard', ensureStaff, (req, res) => {
 app.use('/api', doctorRoutes);
 
 // Group 2: Authentication Routes (Handles login, logout, etc.)
+app.use('/api/auth', authMobileRoutes); 
 app.use('/', authRoutes);
 
 // Group 3: Protected Routes (Require a user to be logged in)
