@@ -57,13 +57,13 @@ router.post('/post', async (req, res) => {
     const { firstName, lastName, suffix, signupEmail, Age, Sex, PhoneNumber, Address, signupPassword, confirmPassword } = req.body;
 
     if (signupPassword !== confirmPassword) {
-        return res.status(400).json({ error: "❌ Passwords do not match" });
+        return res.status(400).json({ error: "Passwords do not match" });
     }
 
     if (signupPassword.length < 8 || !/[A-Z]/.test(signupPassword) ||
-        !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) ||
+        !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) || 
         !/[^A-Za-z0-9]/.test(signupPassword)) {
-        return res.status(400).json({ error: "Password must meet complexity requirements" });
+        return res.status(400).json({ error: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character" });
     }
 
     try {
@@ -173,15 +173,14 @@ router.post('/login', async (req, res) => {
             fullname: user.fullname,
             signupEmail: user.signupEmail,
             isAdmin: user.isAdmin,
-            isDoctor: user.isDoctor,
-            isStaff: user.isStaff
+            isDoctor: user.isDoctor
         };
         
         // --- THE FIX: NO MORE REDIRECT ---
         // Save the session and in the callback, send the JSON response.
         req.session.save(async (err) => { 
             if (err) {
-                console.error("❌ Session save error:", err);
+                console.error("Session save error:", err);
                 return res.status(500).json({ error: "Could not save session." });
             }
 
@@ -192,9 +191,8 @@ router.post('/login', async (req, res) => {
             let redirectUrl = "/main.html";
             if (user.isAdmin) redirectUrl = "/admin.html";
             else if (user.isDoctor) redirectUrl = "/doctor/dashboard";
-            else if (user.isStaff) redirectUrl = "/staff/dashboard";
 
-            console.log(`✅ Login success for ${user.signupEmail}. Sending redirect URL: ${redirectUrl}`);
+            console.log(`✅ Login success for ${user.email}. Sending redirect URL: ${redirectUrl}`);
             
             // Send a success response with the URL for the client to handle
             res.status(200).json({ success: true, redirect: redirectUrl });
@@ -335,8 +333,7 @@ router.get('/getUser', async (req, res) => { // Make it async
                     suffix: user.suffix,
                     signupEmail: user.signupEmail,
                     isAdmin: user.isAdmin,
-                    isDoctor: user.isDoctor,
-                    isStaff: user.isStaff,
+                    isDoctor: user.isDoctor, 
                     address: user.Address,
                     age: user.Age,
                     phoneNumber: user.PhoneNumber 
