@@ -137,8 +137,7 @@ app.use('/api/staff', ensureStaff, staffRoutes);
 
 // Protected web routes (for creating appointments from the website)
 // FIX: We make this more specific so it doesn't catch /api requests.
-app.use('/appointments', ensureAuthenticated, appointmentRoutes);
-
+app.use('/api/appointments', ensureAuthenticated, appointmentRoutes)
 // General web authentication routes (login, logout, registration)
 // This is very general, so it comes last.
 app.use('/', authRoutes);

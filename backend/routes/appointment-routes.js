@@ -11,8 +11,7 @@ const Doctor = require('../models/doctor-model');
 router.post('/save-data', async (req, res) => {
     try {
         console.log("📨 Received appointment data:", req.body);
-       const { date, time, patientName, specialization, doctor: doctorId, reason, address, age, phone } = req.body;
-
+        const { date, time, firstName, lastName, suffix, specialization, doctor: doctorId, reason, address, age, phone } = req.body;
         // --- VALIDATION STEP ---
         if (!doctorId || !mongoose.Types.ObjectId.isValid(doctorId)) {
           console.error(`❌ VALIDATION FAILED: Doctor ID is invalid. Received: ${doctorId}`);
@@ -49,7 +48,7 @@ router.post('/save-data', async (req, res) => {
         if (!req.session.user || !req.session.user.id) {
           return res.status(401).send("User not authenticated to save appointment.");
         }
-    
+        const patientFullName = `${firstName} ${lastName}${suffix ? ' ' + suffix : ''}`.trim();
         // Construct the data for the new appointment
         const appointmentData = {
             doctor: doctorId,
@@ -57,7 +56,7 @@ router.post('/save-data', async (req, res) => {
             specialization: specialization, 
             date,
             time,
-            patientName: patientName || req.session.user.fullname, // This uses the logged-in user's full name
+            patientName: patientFullName, // This uses the logged-in user's full name
             patientEmail: req.session.user.signupEmail,
             address,
             age,

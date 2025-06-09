@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!tableBody) return; // Exit if the table isn't on the page
 
   // Fetch the user's appointments from the backend
-  fetch("/get-appointments")
+  fetch("/api/appointments/get-appointments")
     .then((res) => {
         if (!res.ok) {
             throw new Error(`Network response was not ok, status: ${res.status}`);
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('cancel-btn')) {
             const id = e.target.dataset.id;
             if (confirm("Are you sure you want to cancel this appointment?")) {
-                fetch(`/cancel-appointment/${id}`, { method: "DELETE" })
+                fetch(`/api/appointments/cancel-appointment/${id}`, { method: "DELETE" })
                 .then(res => {
                     if(!res.ok) throw new Error('Cancellation failed');
                     // Reload the page to show the updated list

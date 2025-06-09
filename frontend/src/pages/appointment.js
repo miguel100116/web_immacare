@@ -286,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         try {
-            const response = await fetch('/save-data', {
+            const response = await fetch('/api/appointments/save-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
