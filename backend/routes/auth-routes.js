@@ -172,7 +172,8 @@ router.post('/login', async (req, res) => {
             fullname: user.fullname,
             signupEmail: user.signupEmail,
             isAdmin: user.isAdmin,
-            isDoctor: user.isDoctor
+            isDoctor: user.isDoctor,
+            isStaff: user.isStaff
         };
         
         // --- THE FIX: NO MORE REDIRECT ---
@@ -187,9 +188,16 @@ router.post('/login', async (req, res) => {
             await createLog(user._id, 'USER_LOGIN', `User '${user.fullname}' logged in successfully.`);
             
             // Determine the redirect URL on the server
-            let redirectUrl = "/main.html";
-            if (user.isAdmin) redirectUrl = "/admin.html";
-            else if (user.isDoctor) redirectUrl = "/doctor/dashboard";
+            let redirectUrl;
+            if (user.isAdmin) {
+                redirectUrl = "/admin.html";
+            } else if (user.isDoctor) {
+                redirectUrl = "/doctor/dashboard";
+            } else if (user.isStaff) {
+                redirectUrl = "/staff/dashboard"; // This is the new condition
+            } else {
+                redirectUrl = "/main.html"; // Default for regular users
+            }
 
             console.log(`✅ Login success for ${user.email}. Sending redirect URL: ${redirectUrl}`);
             
@@ -332,7 +340,8 @@ router.get('/getUser', async (req, res) => { // Make it async
                     suffix: user.suffix,
                     signupEmail: user.signupEmail,
                     isAdmin: user.isAdmin,
-                    isDoctor: user.isDoctor, 
+                    isDoctor: user.isDoctor,
+                    isStaff: user.isStaff,
                     address: user.Address,
                     age: user.Age,
                     phoneNumber: user.PhoneNumber 
@@ -346,6 +355,55 @@ router.get('/getUser', async (req, res) => { // Make it async
         }
     } else {
         res.json({ loggedIn: false });
+    }
+});
+
+router.post('/change-password', ensureAuthenticated, async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmNewPassword } = req.body;
+        const userId = req.session.user.id;
+
+        // 1. Validation
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            return res.status(400).json({ error: 'All fields are required.' });
+        }
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({ error: 'New passwords do not match.' });
+        }
+        if (newPassword.length < 8) {
+            return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+        }
+        // Add full complexity check for consistency
+        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+            return res.status(400).json({ error: "Password must contain uppercase, lowercase, number, and special character." });
+        }
+
+        // 2. Find the user
+        const user = await Users.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // 3. Verify their current password
+        const isMatch = await bcrypt.compare(currentPassword, user.signupPassword);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect current password.' });
+        }
+        
+        // 4. Hash and save the new password
+        const saltRounds = 10;
+        user.signupPassword = await bcrypt.hash(newPassword, saltRounds);
+        await user.save();
+        
+        // Log this action
+        await createLog(userId, 'USER_PROFILE_UPDATE', `User '${user.fullname}' changed their password.`);
+        
+        console.log(`✅ Password changed successfully for user: ${user.signupEmail}`);
+        res.status(200).json({ message: 'Password updated successfully!' });
+
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ error: 'Server error while changing password.' });
     }
 });
 

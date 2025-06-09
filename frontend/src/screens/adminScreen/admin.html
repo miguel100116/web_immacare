@@ -26,6 +26,7 @@
                 <li class="nav-item active" data-target="dashboard"><a href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li class="nav-item" data-target="users"><a href="#"><i class="fas fa-users-cog"></i> Manage Users</a></li>
                 <li class="nav-item" data-target="doctors"><a href="#"><i class="fas fa-user-md"></i> Manage Doctors</a></li>
+                <li class="nav-item" data-target="staff"><a href="#"><i class="fas fa-user-shield"></i> Manage Staff</a></li>
                 <li class="nav-item" data-target="appointments"><a href="#"><i class="fas fa-calendar-check"></i> Appointments</a></li>
                 <li class="nav-item" data-target="inventory"><a href="#"><i class="fas fa-boxes"></i> Inventory</a></li>
                 <li class="nav-item" data-target="audit-log"><a href="#"><i class="fas fa-history"></i> Audit Log</a></li>
@@ -88,9 +89,7 @@
                                 <th>Age</th>
                                 <th>Sex</th>
                                 <th>Verified</th>
-                                <th>Admin</th>
-                                <th>Actions</th>
-                                <th>Doctor/Staff</th> 
+                                <th>Role</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -102,8 +101,9 @@
             <section class="content-section" id="doctors">
                 <div class="section-header">
                     <h1>Doctor Management</h1>
-                    <p style="font-size: 0.9em; color: #6c757d;">Promote users to doctors from the 'Manage Users' section.</p>
+                    <button class="add-new-btn" id="add-new-doctor-btn"><i class="fas fa-plus"></i> Add Doctor Account</button>
                 </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: -10px; margin-bottom: 20px;"> This table lists all users with doctor profiles. New doctor accounts can be created using the button above..</p>
                 <div class="filters">
                     <input type="text" id="doctors-search" placeholder="Search by name, email, or specialization...">
                     <button id="doctors-search-btn" class="filter-button">Search</button>
@@ -124,6 +124,35 @@
                     </table>
                 </div>
                 <div class="pagination-controls" id="doctors-pagination"></div>
+            </section>
+
+            <section class="content-section" id="staff">
+                <div class="section-header">
+                    <h1>Staff Management</h1>
+                    <button class="add-new-btn" id="add-new-staff-btn"><i class="fas fa-plus"></i> Add Staff Account</button>
+                </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: -10px; margin-bottom: 20px;">
+                    This table lists all non-doctor staff members. New staff accounts can be created using the button above.
+                </p>
+                <div class="filters">
+                    <input type="text" id="staff-search" placeholder="Search by name or email...">
+                    <button id="staff-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="staff-table">
+                        <thead>
+                            <tr>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="staff-pagination"></div>
             </section>
 
             <section class="content-section appointments-section" id="appointments">
@@ -173,7 +202,7 @@
                     <button id="audit-log-clear-filter-btn" class="secondary-btn">Clear Filter</button>
                 </div>
                 <div class="data-table">
-                    <<table id="auditLog-table"> 
+                    <table id="auditLog-table"> 
                         <thead>
                             <tr>
                                 <th style="width: 20%;">Timestamp</th>
@@ -190,6 +219,9 @@
 
             <section class="content-section settings-section" id="settings">
                 <h1>System Settings</h1><p>System settings and configurations will be implemented here.</p>
+                <button type="button" class="change-password-btn" id="open-password-modal-btn">
+                <i class="fas fa-key"></i> Change Password
+            </button>
             </section>
         </main>
     </div>
@@ -278,6 +310,53 @@
         </div>
     </div>
 
+    <div class="modal" id="add-doctor-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="add-doctor-modal-title">Add New Doctor Account</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-doctor-form">
+                    <p id="add-doctor-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></p>
+                    <div class="form-group"><input type="text" id="doctor-firstName" name="firstName" placeholder="First Name" required /></div>
+                    <div class="form-group"><input type="text" id="doctor-lastName" name="lastName" placeholder="Last Name" required /></div>
+                    <div class="form-group"><input type="text" id="doctor-suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" /></div>
+                    <div class="form-group"><input type="email" id="doctor-signupEmail" name="signupEmail" placeholder="Email Address" required /></div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="add-staff-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="add-staff-modal-title">Add New Staff Account</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-staff-form">
+                    <p id="add-staff-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></p>
+                    <div class="form-group"><input type="text" id="staff-firstName" name="firstName" placeholder="First Name" required /></div>
+                    <div class="form-group"><input type="text" id="staff-lastName" name="lastName" placeholder="Last Name" required /></div>
+                    <div class="form-group"><input type="text" id="staff-suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" /></div>
+                    <div class="form-group"><input type="email" id="staff-signupEmail" name="signupEmail" placeholder="Email Address" required /></div>
+                    <p style="font-size: 0.8em; color: #666; text-align: center; margin-top: -5px; margin-bottom: 15px;">
+                        A temporary password will be automatically generated.
+                    </p>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Inline script for immediate UI interactions & admin session check
         document.addEventListener('DOMContentLoaded', function() {
@@ -326,6 +405,8 @@
             }
         });
     </script>
+    <password-modal></password-modal>
+    <script src="/src/components/PasswordModal.js" type="module" defer></script>
     <script src="src/app.js" type="module" defer></script>
     <script src="src/pages/admin.js" defer></script>
 </body>

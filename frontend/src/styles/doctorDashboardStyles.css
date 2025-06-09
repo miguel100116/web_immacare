@@ -508,3 +508,33 @@ input.pre-filled {
     border-top: 1px solid #e0e0e0;
     margin: 25px 0;
 }
+
+.secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Space between icon and text */
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    
+    /* Outline Style */
+    color: var(--primary-color); /* Use theme color for text */
+    background-color: transparent;
+    border: 2px solid var(--primary-color);
+    
+    transition: all 0.2s ease-in-out;
+}
+
+.secondary-btn:hover {
+    background-color: var(--primary-color); /* Fill with theme color on hover */
+    color: white;
+}
+
+.secondary-btn i {
+    font-size: 0.9em;
+}

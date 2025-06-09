@@ -1,15 +1,34 @@
-// START OF FILE frontend/src/pages/profile.js
+// REMOVE the export. This file will run itself.
+// export function initializeProfilePage() { ... }
 
-export function initializeProfilePage() {
+// --- START: Wrap everything in a DOMContentLoaded listener ---
+document.addEventListener('DOMContentLoaded', () => {
+
     const profileForm = document.getElementById('profile-form');
     if (!profileForm) return; // Only run on the profile page
 
     const messageArea = document.getElementById('profile-message-area');
 
-    /**
-     * Fetches user data and populates the form fields.
-     */
+    // --- The 'initializePasswordModal' logic goes here ---
+    const openPasswordModalBtn = document.getElementById('open-password-modal-btn');
+    const passwordModalComponent = document.querySelector('password-modal');
+    
+    // Add some console logs to be 100% sure
+    console.log("Profile.js: Searching for button:", openPasswordModalBtn);
+    console.log("Profile.js: Searching for modal component:", passwordModalComponent);
+
+    if (openPasswordModalBtn && passwordModalComponent) {
+        openPasswordModalBtn.addEventListener('click', () => {
+            console.log("Profile.js: 'Change Password' button clicked!");
+            passwordModalComponent.show();
+        });
+    } else {
+        console.error("Profile.js: Could not find the password button or modal component.");
+    }
+    // --- End of password modal logic ---
+
     async function loadProfileData() {
+        // ... (this function's content is fine)
         try {
             const response = await fetch('/getUser');
             if (!response.ok) throw new Error('Could not fetch user data.');
@@ -43,10 +62,8 @@ export function initializeProfilePage() {
         }
     }
 
-    /**
-     * Adds event listeners to the "Change" buttons to make fields editable.
-     */
     function initializeEditableFields() {
+        // ... (this function's content is fine)
         profileForm.querySelectorAll('.edit-btn').forEach(button => {
             const targetId = button.dataset.target;
             const input = document.getElementById(targetId);
@@ -60,10 +77,8 @@ export function initializeProfilePage() {
         });
     }
 
-    /**
-     * Handles the form submission to update the user's profile.
-     */
     async function handleProfileUpdate(event) {
+        // ... (this function's content is fine)
         event.preventDefault();
         const saveBtn = document.getElementById('save-profile-btn');
         saveBtn.disabled = true;
@@ -71,14 +86,13 @@ export function initializeProfilePage() {
         messageArea.textContent = '';
         
         const formData = new FormData(profileForm);
-        // The names need to match the backend API's expectations.
         const dataToSave = {
             firstName: formData.get('firstName'),
             lastName: formData.get('lastName'),
             suffix: formData.get('suffix'),
-            Age: formData.get('age'), // Backend expects 'Age' with capital A
-            PhoneNumber: formData.get('phone'), // Backend expects 'PhoneNumber'
-            Address: formData.get('address'), // Backend expects 'Address'
+            Age: formData.get('age'),
+            PhoneNumber: formData.get('phone'),
+            Address: formData.get('address'),
         };
 
         try {
@@ -94,7 +108,6 @@ export function initializeProfilePage() {
             messageArea.textContent = 'Profile updated successfully!';
             messageArea.className = 'message-area success';
 
-            // Re-lock the fields
             profileForm.querySelectorAll('input').forEach(input => {
                 input.readOnly = true;
                 input.classList.add('pre-filled');
@@ -113,4 +126,5 @@ export function initializeProfilePage() {
     loadProfileData();
     initializeEditableFields();
     profileForm.addEventListener('submit', handleProfileUpdate);
-}
+
+}); // --- END: Wrap everything in a DOMContentLoaded listener ---

@@ -238,6 +238,36 @@ tbody tr:hover {
     background-color: #f0f0f0; /* Prevents hover effect */
 }
 
+.change-password-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Space between icon and text */
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    
+    /* Outline Style */
+    color: var(--primary-color); /* Use theme color for text */
+    background-color: transparent;
+    border: 2px solid var(--primary-color);
+    
+    transition: all 0.2s ease-in-out;
+}
+
+.change-password-btn:hover {
+    background-color: var(--primary-color); /* Fill with theme color on hover */
+    color: white;
+}
+
+.change-password-btn i {
+    font-size: 0.9em;
+}
+
 /* Responsive */
 @media (max-width: 992px) { .stats-cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
 @media (max-width: 768px) {

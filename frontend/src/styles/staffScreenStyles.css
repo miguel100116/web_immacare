@@ -2,7 +2,7 @@
 
 /*
  * ==================================================
- *  Core Layout & Theme (Inherited from Admin Panel)
+ *  Core Layout & Theme
  * ==================================================
  */
 
@@ -143,7 +143,7 @@ body {
 .content-section {
     display: none;
     background-color: var(--white-text);
-    padding: 20px;
+    padding: 25px; /* Increased padding for more space */
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     margin-bottom: 20px;
@@ -303,6 +303,8 @@ tbody tr:hover {
 
 .form-group input[type="text"],
 .form-group input[type="email"],
+.form-group input[type="number"],
+.form-group input[type="tel"],
 .form-group textarea {
     width: 100%;
     padding: .5rem .75rem;
@@ -373,62 +375,171 @@ tbody tr:hover {
     width: 100%;
 }
 
-/* Style the actual <select> element */
 .custom-select-wrapper select {
-    /* Appearance Reset */
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    
-    /* Box Model & Layout */
     display: block;
     width: 100%;
-    padding: .5rem 2.5rem .5rem .75rem; /* Make space on the right for the arrow */
-    
-    /* Typography */
+    padding: .5rem 2.5rem .5rem .75rem;
     font-size: 1rem;
     font-weight: 400;
     line-height: 1.5;
     color: #495057;
-    
-    /* Background & Border */
     background-color: #fff;
     border: 1px solid #ced4da;
     border-radius: .25rem;
-    
-    /* Other */
     cursor: pointer;
     transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
 
-/* Style the focus state */
 .custom-select-wrapper select:focus {
     border-color: #80bdff;
     outline: 0;
     box-shadow: 0 0 0 .2rem rgba(0,123,255,.25);
 }
 
-/* Style the disabled state */
 .custom-select-wrapper select:disabled {
     background-color: #e9ecef;
     opacity: 0.7;
     cursor: not-allowed;
 }
 
-/* Create the custom dropdown arrow using a pseudo-element */
 .custom-select-wrapper::after {
-    content: '\f078'; /* Font Awesome "chevron-down" icon */
-    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free"; /* Use Font Awesome */
-    font-weight: 900; /* Required for solid icons */
+    content: '\f078';
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free";
+    font-weight: 900;
     font-size: 0.8rem;
     color: #888;
-    
-    /* Positioning */
     position: absolute;
     top: 50%;
     right: 15px;
     transform: translateY(-50%);
+    pointer-events: none;
+}
+
+/*
+ * ==================================================
+ *  Staff Profile Section Styles
+ * ==================================================
+ */
+
+.profile-container {
+    max-width: 700px;
+    margin: 0 auto; /* Center the container */
+}
+
+.profile-container p {
+    text-align: center;
+    color: var(--gray-medium);
+    margin-bottom: 20px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+.form-row .form-group {
+    flex: 1;
+}
+
+.input-with-button {
+    position: relative;
+    width: 100%;
+}
+
+.input-with-button input {
+    width: 100%;
+    padding-right: 85px; /* Space for the button */
+    box-sizing: border-box;
+}
+
+.edit-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.edit-btn:hover {
+    background-color: #5a6268;
+}
+
+input.pre-filled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.submit-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    font-size: 1em;
+    font-weight: bold;
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.submit-btn:hover {
+    background-color: #0056b3;
+}
+
+.form-divider {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 25px 0;
+}
+
+.message-area {
+    text-align: center; 
+    margin-top: 15px;
+    font-weight: bold;
+    min-height: 1.2em;
+}
+.message-area.success { color: #28a745; }
+.message-area.error { color: #dc3545; }
+
+.button-wrapper {
+    text-align: center;
+    width: 100%;
+}
+
+.secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Space between icon and text */
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
     
-    /* Other */
-    pointer-events: none; /* Allows clicks to pass through to the select element */
+    /* Outline Style */
+    color: var(--primary-blue); /* Use theme color for text */
+    background-color: transparent;
+    border: 2px solid var(--primary-blue);
+    
+    transition: all 0.2s ease-in-out;
+}
+
+.secondary-btn:hover {
+    background-color: var(--primary-blue); /* Fill with theme color on hover */
+    color: white;
+}
+
+.secondary-btn i {
+    font-size: 0.9em;
 }

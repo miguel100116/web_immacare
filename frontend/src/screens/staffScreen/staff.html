@@ -12,6 +12,9 @@
     
     <!-- This now points to the new, dedicated stylesheet for the staff panel -->
     <link rel="stylesheet" href="/src/styles/staffScreenStyles.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 </head>
 
 <body>
@@ -24,6 +27,8 @@
             <ul class="nav-menu">
                 <li class="nav-item active" data-target="dashboard"><a href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li class="nav-item" data-target="patients"><a href="#"><i class="fas fa-procedures"></i> Patient Records</a></li>
+                <li class="nav-item" data-target="financials"><a href="#"><i class="fas fa-file-invoice-dollar"></i> Financials</a></li>
+                <li class="nav-item" data-target="profile"><a href="#"><i class="fas fa-user-edit"></i> My Profile</a></li>
                 <!-- Add more staff-specific links here in the future -->
             </ul>
             <div class="user-info">
@@ -49,7 +54,7 @@
             <section class="content-section" id="patients" style="display: none;">
                 <div class="section-header">
                     <h1>Patient Records</h1>
-                    <button class="add-new-btn" id="add-new-patient-btn"><i class="fas fa-plus"></i> Add New Patient</button>
+                    <!-- <button class="add-new-btn" id="add-new-patient-btn"><i class="fas fa-plus"></i> Add New Patient</button> -->
                 </div>
                 <div class="filters">
                     <input type="text" id="patients-search" placeholder="Search by patient name or email...">
@@ -72,6 +77,101 @@
                     </table>
                 </div>
                 <div class="pagination-controls" id="patients-pagination"></div>
+            </section>
+
+            <section class="content-section" id="financials" style="display: none;">
+                <div class="section-header">
+                    <h1>Financial Records</h1>
+                    <button class="add-new-btn" id="add-financial-record-btn"><i class="fas fa-plus"></i> Add Expense</button>
+                </div>
+                <div class="filters">
+                    <input type="text" id="financials-month-filter" placeholder="Select Month and Year...">
+                    <button id="generate-report-btn" class="secondary-btn"><i class="fas fa-download"></i> Generate Report</button>
+                </div>
+                <div class="data-table">
+                    <table id="financials-table">
+                         <thead>
+                            <tr>
+                                <th>Purchase Date</th>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Price (Each)</th>
+                                <th>Total Price</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="financials-pagination"></div>
+            </section>
+
+             <section class="content-section" id="profile" style="display: none;">
+                 <div class="section-header">
+                    <h1>Manage My Profile</h1>
+                </div>
+                <!-- START: Replace the old .profile-container with this new, structured one -->
+                <div class="profile-container">
+                    <form id="staff-profile-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="staff-profile-firstName">First Name</label>
+                                <div class="input-with-button">
+                                    <input type="text" id="staff-profile-firstName" name="firstName" required>
+                                    <button type="button" class="edit-btn" data-target="staff-profile-firstName">Change</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="staff-profile-lastName">Last Name</label>
+                                <div class="input-with-button">
+                                    <input type="text" id="staff-profile-lastName" name="lastName" required>
+                                    <button type="button" class="edit-btn" data-target="staff-profile-lastName">Change</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label for="staff-profile-suffix">Suffix</label>
+                             <div class="input-with-button">
+                                <input type="text" id="staff-profile-suffix" name="suffix">
+                                <button type="button" class="edit-btn" data-target="staff-profile-suffix">Change</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-profile-age">Age</label>
+                            <div class="input-with-button">
+                                <input type="number" id="staff-profile-age" name="age" required>
+                                <button type="button" class="edit-btn" data-target="staff-profile-age">Change</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-profile-phone">Phone Number</label>
+                            <div class="input-with-button">
+                                <input type="tel" id="staff-profile-phone" name="phone" required>
+                                <button type="button" class="edit-btn" data-target="staff-profile-phone">Change</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="staff-profile-address">Address</label>
+                            <div class="input-with-button">
+                                <input type="text" id="staff-profile-address" name="address" required>
+                                <button type="button" class="edit-btn" data-target="staff-profile-address">Change</button>
+                            </div>
+                        </div>
+        
+                        <button type="submit" class="submit-btn" id="save-staff-profile-btn">Save Changes</button>
+                    </form>
+                    <div id="staff-profile-message-area" class="message-area"></div>
+        
+                    <hr class="form-divider">
+                    
+                    <!-- Wrap the button for better centering control -->
+                    <div class="button-wrapper">
+                        <button type="button" class="secondary-btn" id="open-password-modal-btn">
+                            <i class="fas fa-key"></i> Change Password
+                        </button>
+                    </div>
+                </div>
+                <!-- END: New profile container -->
             </section>
         </main>
     </div>
@@ -140,6 +240,49 @@
         </div>
     </div>
 
+    <div class="modal" id="financial-record-modal">
+       <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Financial Record</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="financial-record-form">
+                    <div class="form-group">
+                        <label for="fr-item-name">Item Name*</label>
+                        <input type="text" id="fr-item-name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fr-quantity">Quantity*</label>
+                            <input type="number" id="fr-quantity" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="fr-price">Price (per item)*</label>
+                            <input type="number" id="fr-price" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fr-purchase-date">Purchase Date*</label>
+                        <input type="date" id="fr-purchase-date" required>
+                    </div>
+                     <div class="form-group">
+                        <label for="fr-description">Description (Optional)</label>
+                        <textarea id="fr-description" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Save Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+    <password-modal></password-modal>
+    <script src="/src/components/PasswordModal.js" type="module" defer></script>
     <script src="/src/pages/staff.js" defer></script>
 </body>
 </html>
