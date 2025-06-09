@@ -57,11 +57,11 @@ router.post('/post', async (req, res) => {
     const { firstName, lastName, suffix, signupEmail, Age, Sex, PhoneNumber, Address, signupPassword, confirmPassword } = req.body;
 
     if (signupPassword !== confirmPassword) {
-        return res.status(400).json({ error: "Passwords do not match" });
+        return res.status(400).json({ error: "❌ Passwords do not match" });
     }
 
     if (signupPassword.length < 8 || !/[A-Z]/.test(signupPassword) ||
-        !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) || 
+        !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) ||
         !/[^A-Za-z0-9]/.test(signupPassword)) {
         return res.status(400).json({ error: "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character" });
     }
@@ -149,7 +149,6 @@ router.get('/verify', async (req, res) => {
         res.status(500).send('<h2>Verification Failed</h2><p>An error occurred.</p>');
     }
 });
-
 
 // --- LOGIN / LOGOUT & SESSION ---
 

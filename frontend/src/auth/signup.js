@@ -25,7 +25,7 @@ export function initializeSignupForm() {
     const data = Object.fromEntries(formData.entries());
 
     // --- Client-side validation ---
-    if (data.signupPassword !== data.confirmPassword) {
+   if (data.signupPassword !== data.confirmPassword) {
       if (messageArea) messageArea.textContent = 'Passwords do not match.';
       return;
     }
