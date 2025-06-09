@@ -19,6 +19,8 @@ const doctorRoutes = require('./routes/doctor-routes');
 const { ensureAuthenticated, ensureAdmin, ensureDoctor, ensureStaff } = require('./middleware/auth-middleware');
 const doctorApiRoutes = require('./routes/doctor-api-routes');
 const staffRoutes = require('./routes/staff-routes');
+const authMobileRoutes = require('./routes/auth-mobile-routes');
+const userMobileRoutes = require('./routes/user-mobile-routes');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
@@ -115,18 +117,32 @@ app.get('/staff/dashboard', ensureStaff, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'frontend', 'src', 'screens', 'staffScreen', 'staff.html'));
 });
 
-// --- 6. API ROUTE WIRING ---
-// (This part is now correct)
-app.use('/api', doctorRoutes);
+// Public API routes (no login required)
+app.use('/api', doctorRoutes); // Provides /api/specializations, /api/doctors, etc.
 
-// Group 2: Authentication Routes (Handles login, logout, etc.)
-app.use('/', authRoutes);
+// Mobile App API routes
+app.use('/api/auth', authMobileRoutes); // Provides /api/auth/mobile-login
+// TODO: Protect userMobileRoutes with a JWT middleware
+app.use('/api/user', userMobileRoutes); // Provides /api/user/profile etc.
 
-// Group 3: Protected Routes (Require a user to be logged in)
-app.use('/', ensureAuthenticated, appointmentRoutes);
+// Role-protected API routes (requires web session login)
 app.use('/api/admin', ensureAdmin, adminRoutes);
 app.use('/api/doctor', ensureDoctor, doctorApiRoutes);
 app.use('/api/staff', ensureStaff, staffRoutes);
+
+
+// --- GROUP 2: WEB APPLICATION ROUTES ---
+// These routes are for the browser-based frontend. They handle form submissions
+// that redirect, or serve data for specific web pages.
+
+// Protected web routes (for creating appointments from the website)
+// FIX: We make this more specific so it doesn't catch /api requests.
+app.use('/appointments', ensureAuthenticated, appointmentRoutes);
+
+// General web authentication routes (login, logout, registration)
+// This is very general, so it comes last.
+app.use('/', authRoutes);
+
 
 // --- 7. START SERVER ---
 app.listen(port, () => {
