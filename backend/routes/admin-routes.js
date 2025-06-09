@@ -8,6 +8,7 @@ const router = express.Router();
 const Specialization = require('../models/specialization-model');
 const { createLog } = require('../logService');
 const AuditLog = require('../models/auditLog-model');
+const bcrypt = require('bcrypt');
 
 // GET /api/admin/users
 router.get('/users', async (req, res) => {
@@ -311,44 +312,6 @@ router.post('/users/:userId/promote', async (req, res) => {
   }
 });
 
-router.delete('/doctors/:doctorId/demote', async (req, res) => {
-    try {
-        const { doctorId } = req.params;
-
-        const doctorProfile = await Doctor.findById(doctorId);
-        if (!doctorProfile) {
-            return res.status(404).json({ error: 'Doctor profile not found.' });
-        }
-        
-        const userId = doctorProfile.userAccount;
-
-        const user = await Users.findById(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'Associated user account could not be found.' });
-        }
-
-        await Doctor.findByIdAndDelete(doctorId);
-
-
-        await Users.findByIdAndUpdate(userId, { isDoctor: false });
-
-        // --- LOG THE DEMOTION ---
-        const adminUser = await Users.findById(req.session.user.id);
-        if (!adminUser) {
-            // This is a very unlikely edge case but good to have
-            return res.status(403).json({ error: 'Admin performing the action could not be found.' });
-        }
-        const demoteDetails = `Admin '${adminUser.fullname}' demoted Doctor '${user.fullname}'.`;
-        await createLog(req.session.user.id, 'USER_DEMOTED_FROM_DOCTOR', demoteDetails);
-
-        console.log(`✅ Doctor profile removed and user demoted for user ID: ${userId}`);
-        res.status(200).json({ message: 'Doctor status successfully removed.' });
-
-    } catch (error) {
-        console.error('Error demoting doctor:', error);
-        res.status(500).json({ error: 'Server error while demoting doctor.' });
-    }
-});
 
 router.get('/audit-logs', async (req, res) => {
     try {
@@ -416,5 +379,146 @@ router.post('/users/:userId/toggle-staff', async (req, res) => {
     }
 });
 
+router.post('/create-doctor', async (req, res) => {
+    try {
+        const { firstName, lastName, suffix, signupEmail } = req.body;
+
+        if (!firstName || !lastName || !signupEmail) {
+            return res.status(400).json({ error: "First name, last name, and email are required." });
+        }
+        if (await Users.findOne({ signupEmail })) {
+            return res.status(409).json({ error: "Email is already registered." });
+        }
+
+        const cleanFirstName = firstName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        const cleanLastName = lastName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        const currentYear = new Date().getFullYear();
+        const defaultPassword = `${cleanFirstName}${cleanLastName}ImmaCare!${currentYear}`;
+        
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
+
+        const newUser = new Users({
+            firstName, lastName, suffix, signupEmail,
+            signupPassword: hashedPassword,
+            isVerified: true,
+            isDoctor: true,
+        });
+        await newUser.save();
+        
+        let defaultSpec = await Specialization.findOne({ name: 'Not Specified' });
+        if (!defaultSpec) {
+            defaultSpec = await Specialization.findById('6843ea4f218f1f7d99b0814e');
+        }
+        if (!defaultSpec) {
+            const criticalError = 'Default specialization could not be found. Cannot create doctor profile.';
+            console.error(`CRITICAL ERROR: ${criticalError}`);
+            return res.status(500).json({ error: `Server Configuration Error: ${criticalError}` });
+        }
+        
+        const newDoctorProfile = new Doctor({
+            userAccount: newUser._id,
+            specialization: defaultSpec._id,
+        });
+        await newDoctorProfile.save();
+
+        // --- FINALIZED LOGGING LOGIC ---
+        const adminUser = await Users.findById(req.session.user.id);
+
+        if (!adminUser) {
+            console.error(`CRITICAL: Admin user with ID ${req.session.user.id} not found for logging action.`);
+            const logDetails = `New doctor account created for '${newUser.fullname}'. (Admin actor not found for full log details).`;
+            // Log as a system action, using the correct enum value
+            await createLog(null, 'USER_ACCOUNT_CREATED', logDetails);
+        } else {
+            const logDetails = `Admin '${adminUser.fullname}' created new doctor account for '${newUser.fullname}'.`;
+            // Use the correct, now-valid enum value
+            await createLog(req.session.user.id, 'USER_ACCOUNT_CREATED', logDetails);
+        }
+        console.log(`CURRENT YEAR: ${currentYear}`)
+        console.log(`✅ Admin created new doctor: ${newUser.fullname} (User ID: ${newUser._id})`);
+        
+        res.status(201).json({ 
+            message: 'Doctor account created successfully.',
+            defaultPassword: defaultPassword
+        });
+
+    } catch (error) {
+        // This will now correctly report a validation error if the enum is wrong.
+        console.error('Error in /api/admin/create-doctor:', error);
+        res.status(500).json({ error: 'Server error while creating doctor account.' });
+    }
+});
+
+router.get('/staff', async (req, res) => {
+   try {
+    // Find users who are marked as staff but are NOT doctors or admins
+    const staffMembers = await Users.find({
+      isStaff: true,
+      isDoctor: { $ne: true },
+      isAdmin: { $ne: true }
+    }, '-signupPassword') // Exclude password from the result
+    .sort({ lastName: 1, firstName: 1 });
+
+    res.json(staffMembers);
+  } catch (error) {
+    console.error('Error fetching staff for admin panel:', error);
+    res.status(500).json({ error: 'Server error fetching staff members.' });
+  }
+});
+
+router.post('/create-staff', async (req, res) => {
+    try {
+        const { firstName, lastName, suffix, signupEmail } = req.body;
+
+        if (!firstName || !lastName || !signupEmail) {
+            return res.status(400).json({ error: "First name, last name, and email are required." });
+        }
+        if (await Users.findOne({ signupEmail })) {
+            return res.status(409).json({ error: "Email is already registered." });
+        }
+
+        // --- AUTOMATIC PASSWORD GENERATION (same logic as doctors) ---
+        const cleanFirstName = firstName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        const cleanLastName = lastName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+        const currentYear = new Date().getFullYear();
+        const defaultPassword = `${cleanFirstName}${cleanLastName}ImmaCare!${currentYear}`;
+        
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
+
+        // --- Create the User account with isStaff: true ---
+        const newUser = new Users({
+            firstName,
+            lastName,
+            suffix,
+            signupEmail,
+            signupPassword: hashedPassword,
+            isVerified: true, // Admin-created accounts are auto-verified
+            isStaff: true,    // Mark them as a staff member
+        });
+        await newUser.save();
+
+        // --- Log the Action ---
+        const adminUser = await Users.findById(req.session.user.id);
+        const logDetails = `Admin '${adminUser ? adminUser.fullname : 'System'}' created new staff account for '${newUser.fullname}'.`;
+        // Use the correct, now-valid enum value
+        await createLog(adminUser ? adminUser._id : null, 'USER_ACCOUNT_CREATED', logDetails);
+
+        console.log(`✅ Admin created new staff member: ${newUser.fullname} (User ID: ${newUser._id})`);
+        
+        // --- Send the generated password back to the admin ---
+        res.status(201).json({ 
+            message: 'Staff account created successfully.',
+            defaultPassword: defaultPassword 
+        });
+
+    } catch (error) {
+        console.error('Error in /api/admin/create-staff:', error);
+        res.status(500).json({ error: 'Server error while creating staff account.' });
+    }
+});
+
+module.exports = router;
 
 module.exports = router;

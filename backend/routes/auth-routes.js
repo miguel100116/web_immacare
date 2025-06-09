@@ -359,5 +359,54 @@ router.get('/getUser', async (req, res) => { // Make it async
     }
 });
 
+router.post('/change-password', ensureAuthenticated, async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmNewPassword } = req.body;
+        const userId = req.session.user.id;
+
+        // 1. Validation
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            return res.status(400).json({ error: 'All fields are required.' });
+        }
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({ error: 'New passwords do not match.' });
+        }
+        if (newPassword.length < 8) {
+            return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+        }
+        // Add full complexity check for consistency
+        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+            return res.status(400).json({ error: "Password must contain uppercase, lowercase, number, and special character." });
+        }
+
+        // 2. Find the user
+        const user = await Users.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // 3. Verify their current password
+        const isMatch = await bcrypt.compare(currentPassword, user.signupPassword);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect current password.' });
+        }
+        
+        // 4. Hash and save the new password
+        const saltRounds = 10;
+        user.signupPassword = await bcrypt.hash(newPassword, saltRounds);
+        await user.save();
+        
+        // Log this action
+        await createLog(userId, 'USER_PROFILE_UPDATE', `User '${user.fullname}' changed their password.`);
+        
+        console.log(`✅ Password changed successfully for user: ${user.signupEmail}`);
+        res.status(200).json({ message: 'Password updated successfully!' });
+
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ error: 'Server error while changing password.' });
+    }
+});
+
 // Finally, export the router
 module.exports = router;

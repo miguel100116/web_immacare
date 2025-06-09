@@ -73,9 +73,19 @@
                 <button type="submit" class="submit-btn" id="save-profile-btn">Save Changes</button>
             </form>
             <div id="profile-message-area" class="message-area"></div>
+
+            <hr class="form-divider">
+
+            <button type="button" class="secondary-btn" id="open-password-modal-btn">
+                <i class="fas fa-key"></i> Change Password
+            </button>
         </div>
     </div>
     <div id="footer-placeholder"></div>
+
+    <password-modal></password-modal>
     <script src="/src/app.js" type="module" defer></script>
+    <script src="/src/components/PasswordModal.js" type="module" defer></script>
+    <script src="/src/pages/profile.js" type="module" defer></script>
 </body>
 </html>

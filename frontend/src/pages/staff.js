@@ -27,6 +27,19 @@ function initializeStaffUI() {
             });
         });
     });
+
+     window.customElements.whenDefined('password-modal').then(() => {
+        // Now it's safe to find the elements and add the listener.
+        const openPasswordModalBtn = document.getElementById('open-password-modal-btn');
+        const passwordModalComponent = document.querySelector('password-modal');
+        
+        if (openPasswordModalBtn && passwordModalComponent) {
+            openPasswordModalBtn.addEventListener('click', () => {
+                passwordModalComponent.show();
+            });
+        }
+    });
+    
     verifyStaffSession();
     initializeModalEventListeners();
     setupPatientSearch();

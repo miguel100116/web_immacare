@@ -6,7 +6,7 @@ import { initializeSignupForm } from './auth/signup.js';
 import { initializeNavigation } from './navigation/navigation.js';
 import { initializeConfirmationModal } from './ui/modal.js';
 import { loadComponent } from './ui/componentLoader.js';
-import { initializeProfilePage } from './pages/profile.js';
+// import { initializeProfilePage } from './pages/profile.js';
 import { initializeSessionTimeout } from './auth/sessionTimeout.js';
 
 
@@ -33,7 +33,6 @@ async function main() {
   initializeLoginForm();
   initializeSignupForm();
   initializeConfirmationModal();
-  initializeProfilePage();
 }
 
 // Run the main function when the DOM is ready.

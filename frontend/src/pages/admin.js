@@ -8,6 +8,7 @@ const dataCaches = {
     appointments: [],
     inventory: [],
     doctors: [],
+    staff: [],
     auditLog: []
 };
 
@@ -26,6 +27,8 @@ function initializeAdditionalUIEventListeners() {
     initializeModalEventListeners();
     setupSearchListeners();
     document.getElementById('add-new-appointment-btn')?.addEventListener('click', () => openAddAppointmentModal());
+    document.getElementById('add-new-doctor-btn')?.addEventListener('click', () => openAddDoctorModal());
+    document.getElementById('add-new-staff-btn')?.addEventListener('click', () => openAddStaffModal());
     document.getElementById('add-new-inventory-item-btn')?.addEventListener('click', () => openAddInventoryItemModal());
     document.getElementById('toggle-archived-view-btn')?.addEventListener('click', async () => {
         showingArchivedAppointments = !showingArchivedAppointments;
@@ -55,15 +58,28 @@ function initializeAdditionalUIEventListeners() {
         // Display the complete, unfiltered log list
         displayPaginatedTable('auditLog', allLogs, 1); 
     });
+
+    window.customElements.whenDefined('password-modal').then(() => {
+        // Now it's safe to find the elements and add the listener.
+        const openPasswordModalBtn = document.getElementById('open-password-modal-btn');
+        const passwordModalComponent = document.querySelector('password-modal');
+        
+        if (openPasswordModalBtn && passwordModalComponent) {
+            openPasswordModalBtn.addEventListener('click', () => {
+                passwordModalComponent.show();
+            });
+        }
+    });
 }
 
 async function loadAllAdminData() {
     try {
-        const [users, appointments, inventoryItems, doctors, auditLogs] = await Promise.all([
+        const [users, appointments, inventoryItems, doctors, staff, auditLogs] = await Promise.all([
             fetchAndStoreUsers(),
             fetchAndStoreAppointments(),
             fetchAndStoreInventoryItems(),
             fetchAndStoreDoctors(),
+            fetchAndStoreStaff(),
             fetchAndStoreAuditLogs(),
         ]);
 
@@ -71,6 +87,7 @@ async function loadAllAdminData() {
         if (appointments) displayPaginatedTable('appointments', appointments, 1);
         if (inventoryItems) displayPaginatedTable('inventory', inventoryItems, 1);
         if (doctors) displayPaginatedTable('doctors', doctors, 1);
+        if (staff) displayPaginatedTable('staff', staff, 1);
         if (auditLogs) {
             console.log("Calling displayPaginatedTable for 'auditLog'");
             displayPaginatedTable('auditLog', auditLogs, 1);
@@ -164,87 +181,25 @@ function renderUsersRow(tableBody, user) {
     row.insertCell().textContent = user.Age || 'N/A';
     row.insertCell().textContent = user.Sex || 'N/A';
     row.insertCell().innerHTML = `<span class="status-badge status-${user.isVerified ? 'yes' : 'no'}">${user.isVerified ? 'Yes' : 'No'}</span>`;
-    row.insertCell().innerHTML = `<span class="status-badge status-${user.isAdmin ? 'admin' : 'user'}">${user.isAdmin ? 'Yes' : 'No'}</span>`;
-    row.insertCell().innerHTML = `<span class="status-badge status-staff-${user.isStaff ? 'yes' : 'no'}">${user.isStaff ? 'Yes' : 'No'}</span>`;
     
-    const actionsCell = row.insertCell();
-    let buttonsHtml = '';
-
-    // --- NEW, MUTUALLY EXCLUSIVE LOGIC ---
-
-    // 1. Determine if the "Promote to Doctor" button should be enabled.
-    const canPromoteToDoctor = !user.isDoctor && !user.isStaff;
-    if (user.isDoctor) {
-        buttonsHtml += `<span class="status-badge status-doctor">Doctor</span>`;
+    // Simplified Admin/Role column
+    const roleCell = row.insertCell();
+    if (user.isAdmin) {
+        roleCell.innerHTML = `<span class="status-badge status-admin">Admin</span>`;
+    } else if (user.isDoctor) {
+        roleCell.innerHTML = `<span class="status-badge status-doctor">Doctor</span>`;
+    } else if (user.isStaff) {
+        roleCell.innerHTML = `<span class="status-badge status-staff-yes">Staff</span>`;
     } else {
-        buttonsHtml += `
-            <button 
-                class="action-btn promote-btn" 
-                data-user-id="${user._id}" 
-                data-user-name="${user.fullname}" 
-                title="${canPromoteToDoctor ? 'Promote to Doctor' : 'User is Staff, cannot be a Doctor'}" 
-                ${!canPromoteToDoctor ? 'disabled' : ''}>
-                <i class="fas fa-user-md"></i>
-            </button>`;
+        roleCell.innerHTML = `<span class="status-badge status-user">User</span>`;
     }
 
-    // 2. Determine if the "Toggle Staff" button should be enabled.
-    // A user can be promoted to staff ONLY if they are not a doctor.
-    // A user can ALWAYS be demoted from staff.
-    const canToggleStaff = !user.isDoctor || user.isStaff;
-    const staffIcon = user.isStaff ? 'fa-user-slash' : 'fa-user-plus';
-    const staffTitle = user.isStaff ? 'Demote from Staff' : 
-                       (canToggleStaff ? 'Promote to Staff' : 'User is a Doctor, cannot be Staff');
-
-    buttonsHtml += `
-        <button 
-            class="action-btn toggle-staff-btn" 
-            data-user-id="${user._id}" 
-            data-user-name="${user.fullname}" 
-            title="${staffTitle}" 
-            ${!canToggleStaff ? 'disabled' : ''}>
-            <i class="fas ${staffIcon}"></i>
-        </button>`;
-    
-    actionsCell.innerHTML = buttonsHtml;
-
-    // 3. Add event listeners (these will only work on non-disabled buttons)
-    actionsCell.querySelector('.promote-btn')?.addEventListener('click', (e) => {
-        if (e.currentTarget.disabled) return;
-        promoteUserToDoctor(e.currentTarget.dataset.userId, e.currentTarget.dataset.userName);
-    });
-    
-    actionsCell.querySelector('.toggle-staff-btn')?.addEventListener('click', (e) => {
-        if (e.currentTarget.disabled) return;
-        toggleStaffStatus(e.currentTarget.dataset.userId, e.currentTarget.dataset.userName);
-    });
-    // --- END OF NEW LOGIC ---
-}
-
-async function toggleStaffStatus(userId, userName) {
-    const user = dataCaches.users.find(u => u._id === userId);
-    const action = user?.isStaff ? 'demote' : 'promote';
-
-    if (!confirm(`Are you sure you want to ${action} "${userName}" ${action === 'promote' ? 'to' : 'from'} Staff?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/toggle-staff`, {
-            method: 'POST',
-        });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to update staff status.');
-        }
-        alert(result.message);
-        // Refresh the users table to show the change
-        const users = await fetchAndStoreUsers();
-        displayPaginatedTable('users', users, 1);
-    } catch (error) {
-        console.error('Error toggling staff status:', error);
-        alert(`Error: ${error.message}`);
-    }
+    // The "Actions" and "Doctor/Staff" columns can be simplified or combined.
+    // Let's remove the dedicated action buttons.
+    // We are now assuming the last two columns are for "Admin" and "Role".
+    // Let's adjust the table header in admin.html to match this.
+    // row.insertCell().textContent = 'N/A'; // Placeholder for the old "Actions"
+    // row.insertCell().textContent = 'N/A'; // Placeholder for the old "Doctor/Staff"
 }
 
 function renderAppointmentsRow(tableBody, appt) {
@@ -285,20 +240,21 @@ function renderDoctorsRow(tableBody, doctor) {
 
     // --- UPDATE THIS ACTIONS CELL ---
     const actionsCell = row.insertCell();
-    actionsCell.innerHTML = `
-        <button class="action-btn demote-doctor-btn" data-doctor-id="${doctor._id}" data-user-name="${doctor.userAccount?.firstName}" title="Remove Doctor Status">
-            <i class="fas fa-user-slash"></i>
-        </button>
-    `;
-
-    // Add event listener for the new demote button
-    actionsCell.querySelector('.demote-doctor-btn').addEventListener('click', (e) => {
-        const button = e.currentTarget;
-        demoteDoctor(button.dataset.doctorId, button.dataset.userName);
-    });
+    actionsCell.innerHTML = `<span class="status-badge status-doctor">Doctor</span>`;
 
     // We can leave the edit listener commented out for now
     // actionsCell.querySelector('.edit-doctor-btn').addEventListener('click', () => openDoctorModalForEditing(doctor));
+}
+
+function renderStaffRow(tableBody, staffMember) {
+    const row = tableBody.insertRow();
+    row.insertCell().textContent = staffMember.firstName || 'N/A';
+    row.insertCell().textContent = staffMember.lastName || 'N/A';
+    row.insertCell().textContent = staffMember.signupEmail || 'N/A';
+    row.insertCell().textContent = staffMember.PhoneNumber || 'N/A';
+    
+    const actionsCell = row.insertCell();
+    actionsCell.innerHTML = `<span class="status-badge status-staff-yes">Staff</span>`;
 }
 
 function renderInventoryRow(tableBody, item) {
@@ -378,6 +334,18 @@ async function fetchAndStoreDoctors() {
         console.error('Fetch Doctors Error:', e); return null; 
     } 
 }
+
+async function fetchAndStoreStaff() {
+    try { 
+        const res = await fetch('/api/admin/staff'); 
+        if (!res.ok) throw new Error(res.statusText); 
+        dataCaches.staff = await res.json(); 
+        return dataCaches.staff; 
+    } catch (e) { 
+        console.error('Fetch Staff Error:', e); 
+        return null; 
+    } 
+}
 // --- Action Handlers (Updated to use pagination) ---
 async function toggleAppointmentStatus(id, currentStatus) {
     const statusCycle = { 'Scheduled': 'Completed', 'Completed': 'Cancelled', 'Cancelled': 'Scheduled' };
@@ -403,34 +371,6 @@ async function archiveAppointment(id, isArchived) {
     } catch (error) { console.error(`Error ${action}ing:`, error); alert(`Error: ${error.message}`); }
 }
 
-async function promoteUserToDoctor(userId, userName) {
-    // Ask the admin for confirmation
-    if (!confirm(`Are you sure you want to promote "${userName}" to a Doctor? This will create a doctor profile for them.`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/promote`, {
-            method: 'POST',
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to promote user.');
-        }
-
-        alert(result.message);
-
-        // Refresh both the users and doctors tables to show the change
-        loadAllAdminData();
-
-    } catch (error) {
-        console.error('Error promoting user:', error);
-        alert(`Error: ${error.message}`);
-    }
-}
-
 async function deleteInventoryItem(id, name) {
     if (!confirm(`Delete "${name}"? This action cannot be undone.`)) return;
     try {
@@ -450,34 +390,6 @@ async function deleteInventoryItem(id, name) {
     } catch (error) { 
         console.error('Error deleting item:', error); 
         alert(`Error: ${error.message}`); 
-    }
-}
-
-async function demoteDoctor(doctorId, doctorName) {
-    // A crucial confirmation step for a destructive action
-    if (!confirm(`Are you sure you want to remove doctor status for "${doctorName}"? This will delete their doctor profile.`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/admin/doctors/${doctorId}/demote`, {
-            method: 'DELETE',
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to demote doctor.');
-        }
-
-        alert(result.message);
-
-        // Refresh all data to reflect the change in both the users and doctors tables
-        await loadAllAdminData();
-
-    } catch (error) {
-        console.error('Error demoting doctor:', error);
-        alert(`Error: ${error.message}`);
     }
 }
 
@@ -506,7 +418,6 @@ function openAddAppointmentModal() {
             phone: form.querySelector('#appointment-phone-modal').value,
             status: form.querySelector('#appointment-status-modal').value,
         };
-        // ... (your validation logic is fine) ...
 
         try {
             const response = await fetch('/api/admin/appointments', {
@@ -515,13 +426,111 @@ function openAddAppointmentModal() {
             if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Error ${response.status}`); }
             modal.style.display = 'none';
 
-            // --- THIS IS THE FIX ---
             const appointments = await fetchAndStoreAppointments();
             displayPaginatedTable('appointments', appointments, 1); // Use the new function
 
             updateDashboardStats({ appointments: allAppointmentsDataCache.length });
             alert('Appointment added!');
         } catch (error) { console.error('Error adding appointment:', error); alert(`Error: ${error.message}`); }
+    };
+}
+
+function openAddDoctorModal() {
+    const modal = document.getElementById('add-doctor-modal');
+    const form = document.getElementById('add-doctor-form');
+    const messageArea = document.getElementById('add-doctor-message-area');
+
+    if (!modal || !form || !messageArea) return;
+
+    // Reset form and message area
+    form.reset();
+    messageArea.textContent = '';
+    modal.style.display = 'flex';
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        messageArea.textContent = '';
+        messageArea.style.color = 'red';
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/api/admin/create-doctor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'An unknown error occurred.');
+            }
+
+            // Success!
+            alert('Doctor account created successfully!');
+            modal.style.display = 'none';
+
+            // Refresh all data to show the new doctor in the lists
+            await loadAllAdminData();
+
+        } catch (error) {
+            console.error('Error creating doctor account:', error);
+            messageArea.textContent = error.message;
+        }
+    };
+}
+
+function openAddStaffModal() {
+    const modal = document.getElementById('add-staff-modal');
+    const form = document.getElementById('add-staff-form');
+    const messageArea = document.getElementById('add-staff-message-area');
+
+    if (!modal || !form || !messageArea) return;
+
+    // Reset form and message area
+    form.reset();
+    messageArea.textContent = '';
+    modal.style.display = 'flex';
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        messageArea.textContent = '';
+        messageArea.style.color = 'red';
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            // Call the new 'create-staff' endpoint
+            const response = await fetch('/api/admin/create-staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'An unknown error occurred.');
+            }
+
+            // Success! Display the generated password from the server's response.
+            alert(
+                `Staff account created successfully!\n\n` +
+                `Default Password: ${result.defaultPassword}\n\n` +
+                `Please share this with the staff member and advise them to change it upon their first login.`
+            );
+            modal.style.display = 'none';
+
+            // Refresh all data to show the new staff member in the lists
+            await loadAllAdminData();
+
+        } catch (error) {
+            console.error('Error creating staff account:', error);
+            messageArea.textContent = error.message;
+        }
     };
 }
 
@@ -654,6 +663,13 @@ function setupSearchListeners() {
 
                 return docFullName.includes(term) || specialization.includes(term);
             }
+            
+        },
+        { 
+            type: 'staff', 
+            filter: (item, term) => 
+                (item.fullname || '').toLowerCase().includes(term) || 
+                (item.signupEmail || '').toLowerCase().includes(term)
         }
     ];
 

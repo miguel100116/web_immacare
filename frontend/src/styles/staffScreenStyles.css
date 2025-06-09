@@ -432,3 +432,33 @@ tbody tr:hover {
     /* Other */
     pointer-events: none; /* Allows clicks to pass through to the select element */
 }
+
+.secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Space between icon and text */
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    
+    /* Outline Style */
+    color: var(--primary-blue); /* Use theme color for text */
+    background-color: transparent;
+    border: 2px solid var(--primary-blue);
+    
+    transition: all 0.2s ease-in-out;
+}
+
+.secondary-btn:hover {
+    background-color: var(--primary-blue); /* Fill with theme color on hover */
+    color: white;
+}
+
+.secondary-btn i {
+    font-size: 0.9em;
+}
