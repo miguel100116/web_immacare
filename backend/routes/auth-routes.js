@@ -173,7 +173,8 @@ router.post('/login', async (req, res) => {
             fullname: user.fullname,
             signupEmail: user.signupEmail,
             isAdmin: user.isAdmin,
-            isDoctor: user.isDoctor
+            isDoctor: user.isDoctor,
+            isStaff: user.isStaff
         };
         
         // --- THE FIX: NO MORE REDIRECT ---
@@ -188,9 +189,16 @@ router.post('/login', async (req, res) => {
             await createLog(user._id, 'USER_LOGIN', `User '${user.fullname}' logged in successfully.`);
             
             // Determine the redirect URL on the server
-            let redirectUrl = "/main.html";
-            if (user.isAdmin) redirectUrl = "/admin.html";
-            else if (user.isDoctor) redirectUrl = "/doctor/dashboard";
+            let redirectUrl;
+            if (user.isAdmin) {
+                redirectUrl = "/admin.html";
+            } else if (user.isDoctor) {
+                redirectUrl = "/doctor/dashboard";
+            } else if (user.isStaff) {
+                redirectUrl = "/staff/dashboard"; // This is the new condition
+            } else {
+                redirectUrl = "/main.html"; // Default for regular users
+            }
 
             console.log(`✅ Login success for ${user.email}. Sending redirect URL: ${redirectUrl}`);
             
@@ -333,7 +341,8 @@ router.get('/getUser', async (req, res) => { // Make it async
                     suffix: user.suffix,
                     signupEmail: user.signupEmail,
                     isAdmin: user.isAdmin,
-                    isDoctor: user.isDoctor, 
+                    isDoctor: user.isDoctor,
+                    isStaff: user.isStaff,
                     address: user.Address,
                     age: user.Age,
                     phoneNumber: user.PhoneNumber 
