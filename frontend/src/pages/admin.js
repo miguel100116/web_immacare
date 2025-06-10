@@ -9,11 +9,13 @@ const dataCaches = {
     inventory: [],
     doctors: [],
     staff: [],
-    auditLog: []
+    auditLog: [],
+    financials: []
 };
 
 let showingArchivedAppointments = false;
 const ITEMS_PER_PAGE = 10;
+let currentFinancialsFilter = '';
 
 // =====================================================================
 // --- INITIALIZATION ---
@@ -37,6 +39,38 @@ function initializeAdditionalUIEventListeners() {
         updateArchivedButtonText();
         updateAppointmentsViewIndicator();
     });
+
+    // --- Financials UI Listeners (from staff.js) ---
+    document.getElementById('add-financial-record-btn')?.addEventListener('click', openFinancialRecordModal);
+    document.getElementById('generate-report-btn')?.addEventListener('click', handleGenerateReport);
+    
+    const financialsMonthFilter = document.getElementById('financials-month-filter');
+    if (financialsMonthFilter) {
+        flatpickr(financialsMonthFilter, {
+            plugins: [
+                new monthSelectPlugin({
+                  shorthand: true, 
+                  dateFormat: "Y-m",
+                  altFormat: "F Y",
+                })
+            ],
+            onChange: function(selectedDates, dateStr, instance) {
+                currentFinancialsFilter = dateStr;
+                loadFinancialRecordsAdmin(dateStr); 
+            },
+            onReady: function(selectedDates, dateStr, instance) {
+                if (!instance.input.value) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                    const defaultMonth = `${year}-${month}`;
+                    instance.setDate(defaultMonth);
+                    currentFinancialsFilter = defaultMonth;
+                    loadFinancialRecordsAdmin(defaultMonth); 
+                }
+            }
+        });
+    }
 
     const dateFilterInput = document.getElementById('audit-log-date-filter');
     if (dateFilterInput) {
@@ -89,11 +123,11 @@ async function loadAllAdminData() {
         if (doctors) displayPaginatedTable('doctors', doctors, 1);
         if (staff) displayPaginatedTable('staff', staff, 1);
         if (auditLogs) {
-            console.log("Calling displayPaginatedTable for 'auditLog'");
             displayPaginatedTable('auditLog', auditLogs, 1);
         } else {
             console.error("'auditLogs' data is null or undefined after fetching.");
         }
+        // Financials are loaded on-demand by the month picker, so no initial load here.
 
         updateDashboardStats({
             users: users?.length || 0,
@@ -104,6 +138,7 @@ async function loadAllAdminData() {
         updateAppointmentsViewIndicator();
     } catch (error) {
         console.error("Error loading admin data:", error);
+        // Optionally, display a global error message on the dashboard
     }
 }
 
@@ -168,10 +203,6 @@ function renderPaginationControls(container, currentPage, totalPages, type, orig
 }
 
 // --- ROW RENDERERS ---
-// frontend/src/pages/admin.js
-
-// --- Find and replace ONLY the renderUsersRow function ---
-
 function renderUsersRow(tableBody, user) {
     const row = tableBody.insertRow();
     row.insertCell().textContent = user.firstName || 'N/A';
@@ -182,7 +213,6 @@ function renderUsersRow(tableBody, user) {
     row.insertCell().textContent = user.Sex || 'N/A';
     row.insertCell().innerHTML = `<span class="status-badge status-${user.isVerified ? 'yes' : 'no'}">${user.isVerified ? 'Yes' : 'No'}</span>`;
     
-    // Simplified Admin/Role column
     const roleCell = row.insertCell();
     if (user.isAdmin) {
         roleCell.innerHTML = `<span class="status-badge status-admin">Admin</span>`;
@@ -193,13 +223,6 @@ function renderUsersRow(tableBody, user) {
     } else {
         roleCell.innerHTML = `<span class="status-badge status-user">User</span>`;
     }
-
-    // The "Actions" and "Doctor/Staff" columns can be simplified or combined.
-    // Let's remove the dedicated action buttons.
-    // We are now assuming the last two columns are for "Admin" and "Role".
-    // Let's adjust the table header in admin.html to match this.
-    // row.insertCell().textContent = 'N/A'; // Placeholder for the old "Actions"
-    // row.insertCell().textContent = 'N/A'; // Placeholder for the old "Doctor/Staff"
 }
 
 function renderAppointmentsRow(tableBody, appt) {
@@ -238,12 +261,8 @@ function renderDoctorsRow(tableBody, doctor) {
         : '<span class="status-badge status-pending">Pending</span>';
     row.insertCell().innerHTML = profileStatus;
 
-    // --- UPDATE THIS ACTIONS CELL ---
     const actionsCell = row.insertCell();
     actionsCell.innerHTML = `<span class="status-badge status-doctor">Doctor</span>`;
-
-    // We can leave the edit listener commented out for now
-    // actionsCell.querySelector('.edit-doctor-btn').addEventListener('click', () => openDoctorModalForEditing(doctor));
 }
 
 function renderStaffRow(tableBody, staffMember) {
@@ -271,24 +290,50 @@ function renderInventoryRow(tableBody, item) {
     actionsCell.querySelector('.delete-btn').addEventListener('click', (e) => deleteInventoryItem(e.currentTarget.dataset.id, item.itemName));
 }
 
+function renderFinancialsRow(tableBody, record) {
+    const row = tableBody.insertRow();
+    row.insertCell().textContent = new Date(record.purchaseDate).toLocaleDateString();
+    row.insertCell().textContent = record.itemName;
+    row.insertCell().textContent = record.quantity;
+    row.insertCell().textContent = `₱${record.price.toFixed(2)}`;
+    row.insertCell().textContent = `₱${record.totalPrice.toFixed(2)}`;
+    row.insertCell().textContent = record.description || 'N/A';
+}
+
 // =====================================================================
 // --- DATA FETCHING & ACTIONS ---
 // =====================================================================
 
-// --- Data Fetchers ---
+async function handleApiResponse(response) {
+    if (response.ok) {
+        return response.json();
+    }
+    const errorText = await response.text();
+    let errorMessage;
+    try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || `Request failed with status ${response.status}`;
+    } catch (e) {
+        errorMessage = errorText;
+        if (errorMessage.length > 150 || errorMessage.trim().startsWith('<!DOCTYPE')) {
+            errorMessage = `Request failed: ${response.status} ${response.statusText}`;
+        }
+    }
+    throw new Error(errorMessage);
+}
+
+// --- Data Fetchers (now using the robust handleApiResponse helper) ---
 
 async function fetchAndStoreAuditLogs(date = null) {
     try {
         let url = '/api/admin/audit-logs';
-        if (date) {
-            url += `?date=${date}`;
-        }
+        if (date) url += `?date=${date}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error(res.statusText);
-        dataCaches.auditLog = await res.json();
+        dataCaches.auditLog = await handleApiResponse(res);
         return dataCaches.auditLog;
     } catch (e) {
         console.error('Fetch Audit Logs Error:', e);
+        alert(e.message);
         return null;
     }
 }
@@ -296,56 +341,88 @@ async function fetchAndStoreAuditLogs(date = null) {
 async function fetchAndStoreUsers() { 
     try { 
         const res = await fetch('/api/admin/users'); 
-        if (!res.ok) throw new Error(res.statusText); 
-        dataCaches.users = await res.json(); 
+        dataCaches.users = await handleApiResponse(res);
         return dataCaches.users; 
     } catch (e) { 
         console.error('Fetch Users Error:', e); 
+        alert(e.message);
         return null; 
     } 
 }
+
 async function fetchAndStoreAppointments() { 
     try { 
         const url = `/api/admin/appointments?archived=${showingArchivedAppointments}`; 
-        const res = await fetch(url); if (!res.ok) throw new Error(res.statusText); 
-        dataCaches.appointments = await res.json(); return dataCaches.appointments; 
+        const res = await fetch(url); 
+        dataCaches.appointments = await handleApiResponse(res);
+        return dataCaches.appointments; 
     } catch (e) { 
-        console.error('Fetch Appointments Error:', e); 
+        console.error('Fetch Appointments Error:', e);
+        alert(e.message);
         return null; 
     } 
 }
+
 async function fetchAndStoreInventoryItems() { 
     try { 
         const res = await fetch('/api/admin/inventory'); 
-        if (!res.ok) throw new Error(res.statusText); 
-        dataCaches.inventory = await res.json(); 
+        dataCaches.inventory = await handleApiResponse(res);
         return dataCaches.inventory; 
     } catch (e) { 
         console.error('Fetch Inventory Error:', e); 
+        alert(e.message);
         return null; 
     } 
 }
+
 async function fetchAndStoreDoctors() { 
-    try { const res = await fetch('/api/admin/doctors'); 
-        if (!res.ok) throw new Error(res.statusText); 
-        dataCaches.doctors = await res.json(); 
+    try { 
+        const res = await fetch('/api/admin/doctors'); 
+        dataCaches.doctors = await handleApiResponse(res);
         return dataCaches.doctors; 
     } catch (e) { 
-        console.error('Fetch Doctors Error:', e); return null; 
+        console.error('Fetch Doctors Error:', e);
+        alert(e.message);
+        return null; 
     } 
 }
 
 async function fetchAndStoreStaff() {
     try { 
         const res = await fetch('/api/admin/staff'); 
-        if (!res.ok) throw new Error(res.statusText); 
-        dataCaches.staff = await res.json(); 
+        dataCaches.staff = await handleApiResponse(res);
         return dataCaches.staff; 
     } catch (e) { 
-        console.error('Fetch Staff Error:', e); 
+        console.error('Fetch Staff Error:', e);
+        alert(e.message);
         return null; 
     } 
 }
+
+async function fetchAndStoreFinancials(monthYear) {
+    if (!monthYear) return null;
+    try {
+        // --- THIS IS THE FIX: Call the admin route ---
+        const response = await fetch(`/api/admin/financials?month=${monthYear}`);
+        dataCaches.financials = await handleApiResponse(response);
+        return dataCaches.financials;
+    } catch (error) {
+        console.error('Error loading financial records:', error);
+        alert(error.message); // Display the specific error
+        const tableBody = document.querySelector("#financials-table tbody");
+        if(tableBody) tableBody.innerHTML = `<tr><td colspan="6" class="error-cell">${error.message}</td></tr>`;
+        return null;
+    }
+}
+
+// --- Wrapper for on-demand loading and displaying financials ---
+async function loadFinancialRecordsAdmin(monthYear) {
+    const records = await fetchAndStoreFinancials(monthYear);
+    if (records) {
+         displayPaginatedTable('financials', records, 1);
+    }
+}
+
 // --- Action Handlers (Updated to use pagination) ---
 async function toggleAppointmentStatus(id, currentStatus) {
     const statusCycle = { 'Scheduled': 'Completed', 'Completed': 'Cancelled', 'Cancelled': 'Scheduled' };
@@ -376,14 +453,9 @@ async function deleteInventoryItem(id, name) {
     try {
         await fetch(`/api/admin/inventory/${id}`, { method: 'DELETE' });
         
-        // This refetches and updates the cache, which is correct.
         const data = await fetchAndStoreInventoryItems(); 
-        
-        // This redisplays the table, which is also correct.
         displayPaginatedTable('inventory', data, 1);
         
-        // --- THIS IS THE FIX ---
-        // Update the dashboard stats using the correct cache object.
         updateDashboardStats({ inventory: dataCaches.inventory.length });
         
         alert(`"${name}" deleted.`);
@@ -393,7 +465,7 @@ async function deleteInventoryItem(id, name) {
     }
 }
 
-// --- MODALS (Corrected to use pagination on success) ---
+// --- MODALS ---
 function openAddAppointmentModal() {
     const modal = document.getElementById('appointment-modal');
     const form = document.getElementById('appointment-form');
@@ -423,13 +495,13 @@ function openAddAppointmentModal() {
             const response = await fetch('/api/admin/appointments', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newData)
             });
-            if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Error ${response.status}`); }
+            await handleApiResponse(response); // Use helper here
             modal.style.display = 'none';
 
             const appointments = await fetchAndStoreAppointments();
-            displayPaginatedTable('appointments', appointments, 1); // Use the new function
+            displayPaginatedTable('appointments', appointments, 1); 
 
-            updateDashboardStats({ appointments: allAppointmentsDataCache.length });
+            updateDashboardStats({ appointments: dataCaches.appointments.length });
             alert('Appointment added!');
         } catch (error) { console.error('Error adding appointment:', error); alert(`Error: ${error.message}`); }
     };
@@ -439,42 +511,24 @@ function openAddDoctorModal() {
     const modal = document.getElementById('add-doctor-modal');
     const form = document.getElementById('add-doctor-form');
     const messageArea = document.getElementById('add-doctor-message-area');
-
     if (!modal || !form || !messageArea) return;
-
-    // Reset form and message area
     form.reset();
     messageArea.textContent = '';
     modal.style.display = 'flex';
-
     form.onsubmit = async (e) => {
         e.preventDefault();
         messageArea.textContent = '';
         messageArea.style.color = 'red';
-
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-
         try {
             const response = await fetch('/api/admin/create-doctor', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
             });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || 'An unknown error occurred.');
-            }
-
-            // Success!
+            const result = await handleApiResponse(response);
             alert('Doctor account created successfully!');
             modal.style.display = 'none';
-
-            // Refresh all data to show the new doctor in the lists
             await loadAllAdminData();
-
         } catch (error) {
             console.error('Error creating doctor account:', error);
             messageArea.textContent = error.message;
@@ -486,103 +540,33 @@ function openAddStaffModal() {
     const modal = document.getElementById('add-staff-modal');
     const form = document.getElementById('add-staff-form');
     const messageArea = document.getElementById('add-staff-message-area');
-
     if (!modal || !form || !messageArea) return;
-
-    // Reset form and message area
     form.reset();
     messageArea.textContent = '';
     modal.style.display = 'flex';
-
     form.onsubmit = async (e) => {
         e.preventDefault();
         messageArea.textContent = '';
         messageArea.style.color = 'red';
-
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-
         try {
-            // Call the new 'create-staff' endpoint
             const response = await fetch('/api/admin/create-staff', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
             });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || 'An unknown error occurred.');
-            }
-
-            // Success! Display the generated password from the server's response.
+            const result = await handleApiResponse(response);
             alert(
                 `Staff account created successfully!\n\n` +
                 `Default Password: ${result.defaultPassword}\n\n` +
                 `Please share this with the staff member and advise them to change it upon their first login.`
             );
             modal.style.display = 'none';
-
-            // Refresh all data to show the new staff member in the lists
             await loadAllAdminData();
-
         } catch (error) {
             console.error('Error creating staff account:', error);
             messageArea.textContent = error.message;
         }
     };
-}
-
-function openDoctorModalForPromotion(userId, userName) {
-    const modal = document.getElementById('doctor-modal');
-    const form = document.getElementById('doctor-form');
-    if (!modal || !form) return;
-
-    form.reset();
-    document.getElementById('doctor-modal-title').textContent = 'Promote User to Doctor';
-    document.getElementById('doctor-user-id').value = userId; // Store the user ID
-    document.getElementById('doctor-profile-id').value = ''; // No doctor profile ID yet
-    document.getElementById('doctor-name-modal').value = userName;
-    
-    modal.style.display = 'flex';
-
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-        const doctorData = {
-            specialization: document.getElementById('doctor-specialization-modal').value,
-            schedules: document.getElementById('doctor-schedules-modal').value.split(',').map(s => s.trim()),
-            acceptedHMOs: document.getElementById('doctor-hmos-modal').value.split(',').map(s => s.trim()),
-            description: document.getElementById('doctor-description-modal').value,
-        };
-
-        try {
-            // This is the new API route we defined
-            const response = await fetch(`/api/admin/users/${userId}/create-doctor-profile`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(doctorData)
-            });
-            if (!response.ok) { const d = await response.json(); throw new Error(d.error || 'Failed to create profile'); }
-            
-            modal.style.display = 'none';
-            alert('User successfully promoted to Doctor!');
-            
-            // Refresh both users and doctors tables
-            loadAllAdminData();
-
-        } catch (error) {
-            console.error('Error promoting user:', error);
-            alert(`Error: ${error.message}`);
-        }
-    };
-}
-
-function openDoctorModalForEditing(doctor) {
-    // This function would be very similar, but it would pre-fill all fields
-    // from the `doctor` object and perform a PUT request to `/api/admin/doctors/:id`
-    // (This part can be implemented next, but the promotion logic is the key part)
-    alert(`Editing for ${doctor.userAccount.fullname} can be implemented here.`);
 }
 
 function openAddInventoryItemModal() {
@@ -606,70 +590,86 @@ function openAddInventoryItemModal() {
             const response = await fetch('/api/admin/inventory', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newData)
             });
-            if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Error ${response.status}`); }
+            await handleApiResponse(response);
             modal.style.display = 'none';
 
-            // --- THIS IS THE FIX ---
             const inventory = await fetchAndStoreInventoryItems();
-            displayPaginatedTable('inventory', inventory, 1); // Use the new function
+            displayPaginatedTable('inventory', inventory, 1); 
 
             updateDashboardStats({ inventory: dataCaches.inventory.length });
             alert('Item added!');
         } catch (error) { console.error('Error adding item:', error); alert(`Error: ${error.message}`); }
     };
 }
-// Remember to update the .onsubmit handlers inside these functions to call
-// `displayPaginatedTable(type, data, 1)` after a successful add.
 
+// --- Financials Modals & Handlers (from staff.js) ---
+function openFinancialRecordModal() {
+    const modal = document.getElementById('financial-record-modal');
+    const form = document.getElementById('financial-record-form');
+    form.reset();
+    document.getElementById('fr-purchase-date').valueAsDate = new Date();
+    modal.style.display = 'flex';
+    form.onsubmit = handleAddFinancialRecord;
+}
 
-// --- SEARCH FUNCTIONALITY (Updated to use pagination) ---
+async function handleAddFinancialRecord(event) {
+    event.preventDefault();
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
 
+    const recordData = {
+        itemName: form.querySelector('#fr-item-name').value,
+        quantity: parseInt(form.querySelector('#fr-quantity').value),
+        price: parseFloat(form.querySelector('#fr-price').value),
+        purchaseDate: form.querySelector('#fr-purchase-date').value,
+        description: form.querySelector('#fr-description').value,
+    };
+
+    try {
+        // --- THIS IS THE FIX: Call the admin route ---
+        const response = await fetch('/api/admin/financials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(recordData)
+        });
+        await handleApiResponse(response);
+        
+        alert('Record saved successfully!');
+        form.closest('.modal').style.display = 'none';
+        
+        await loadFinancialRecordsAdmin(currentFinancialsFilter);
+
+    } catch (error) {
+        console.error('Error saving financial record:', error);
+        alert(`Error: ${error.message}`);
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+// --- SEARCH FUNCTIONALITY ---
 function setupSearchListeners() {
     const configs = [
         { 
             type: 'users', 
-            filter: (item, term) => {
-                const firstName = (item.firstName || '').toLowerCase();
-                const lastName = (item.lastName || '').toLowerCase();
-                const email = (item.signupEmail || '').toLowerCase();
-                
-                const fullName = `${firstName} ${lastName}`;
-
-                return fullName.includes(term) || 
-                       firstName.includes(term) ||
-                       lastName.includes(term) || 
-                       email.includes(term);
-            }
+            filter: (item, term) => ((item.firstName || '').toLowerCase() + ' ' + (item.lastName || '').toLowerCase()).includes(term) || (item.signupEmail || '').toLowerCase().includes(term)
         },
         { 
             type: 'appointments', 
-            filter: (item, term) => 
-                (item.patientName || '').toLowerCase().includes(term) || 
-                (item.doctorName || '').toLowerCase().includes(term)
+            filter: (item, term) => (item.patientName || '').toLowerCase().includes(term) || (item.doctorName || '').toLowerCase().includes(term)
         },
         { 
             type: 'inventory', 
-            filter: (item, term) => 
-                (item.itemName || '').toLowerCase().includes(term)
+            filter: (item, term) => (item.itemName || '').toLowerCase().includes(term)
         },
         { 
             type: 'doctors', 
-             filter: (item, term) => {
-                // Let's apply the same logic for doctors for consistency
-                const docFirstName = (item.userAccount?.firstName || '').toLowerCase();
-                const docLastName = (item.userAccount?.lastName || '').toLowerCase();
-                const docFullName = `${docFirstName} ${docLastName}`;
-                const specialization = (item.specialization?.name || '').toLowerCase();
-
-                return docFullName.includes(term) || specialization.includes(term);
-            }
-            
+             filter: (item, term) => ((item.userAccount?.firstName || '').toLowerCase() + ' ' + (item.userAccount?.lastName || '').toLowerCase()).includes(term) || (item.specialization?.name || '').toLowerCase().includes(term)
         },
         { 
             type: 'staff', 
-            filter: (item, term) => 
-                (item.fullname || '').toLowerCase().includes(term) || 
-                (item.signupEmail || '').toLowerCase().includes(term)
+            filter: (item, term) => ((item.firstName || '').toLowerCase() + ' ' + (item.lastName || '').toLowerCase()).includes(term) || (item.signupEmail || '').toLowerCase().includes(term)
         }
     ];
 
@@ -680,7 +680,6 @@ function setupSearchListeners() {
         if (inputEl && btnEl) {
             const search = () => {
                 const searchTerm = inputEl.value.toLowerCase().trim();
-                // This is the crucial change. We access our object directly.
                 const dataCache = dataCaches[config.type]; 
                 
                 if (!dataCache) {
@@ -696,7 +695,6 @@ function setupSearchListeners() {
             };
 
             btnEl.addEventListener('click', search);
-            // We'll keep the live-search functionality
             inputEl.addEventListener('input', search);
         }
     });
@@ -705,27 +703,25 @@ function setupSearchListeners() {
 
 // --- UI HELPERS & UTILITIES ---
 function initializeModalEventListeners() {
-    document.querySelectorAll('.modal').forEach(modal => {
+    document.querySelectorAll('.modal:not(password-modal .modal)').forEach(modal => {
         modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
     });
     document.querySelectorAll('.close-modal, .modal .cancel-btn').forEach(btn => {
-        btn.addEventListener('click', () => { btn.closest('.modal').style.display = 'none'; });
+         if (!btn.closest('password-modal')) {
+            btn.addEventListener('click', () => btn.closest('.modal').style.display = 'none');
+        }
     });
 }
 
-// --- DASHBOARD STATS ---
 function updateDashboardStats(data = {}) {
     if (data.users !== undefined) {
-        const usersCountEl = document.getElementById('dashboard-total-users');
-        if (usersCountEl) usersCountEl.textContent = data.users;
+        document.getElementById('dashboard-total-users').textContent = data.users;
     }
     if (data.appointments !== undefined) {
-        const apptsCountEl = document.getElementById('dashboard-appointments-count');
-        if (apptsCountEl) apptsCountEl.textContent = data.appointments;
+        document.getElementById('dashboard-appointments-count').textContent = data.appointments;
     }
     if (data.inventory !== undefined) {
-        const inventoryItemsEl = document.getElementById('dashboard-inventory-items');
-        if (inventoryItemsEl) inventoryItemsEl.textContent = data.inventory;
+        document.getElementById('dashboard-inventory-items').textContent = data.inventory;
     }
 }
 
@@ -740,6 +736,52 @@ function updateArchivedButtonText() {
 function updateAppointmentsViewIndicator() {
     const indicator = document.getElementById('appointments-view-indicator');
     if (indicator) indicator.textContent = showingArchivedAppointments ? '(Archived)' : '(Active)';
+}
+
+// --- Financials Report Generation (from staff.js) ---
+function handleGenerateReport() {
+    if (dataCaches.financials.length === 0) {
+        alert("No data available for the selected month to generate a report.");
+        return;
+    }
+
+    const monthYear = new Date(currentFinancialsFilter + '-02').toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    let reportContent = `ImmaCare+ Financial Report\n`;
+    reportContent += `Month: ${monthYear}\n`;
+    reportContent += `Generated On: ${new Date().toLocaleString()}\n`;
+    reportContent += `==================================================\n\n`;
+
+    let totalExpenses = 0;
+    dataCaches.financials.forEach(record => {
+        reportContent += `Item:         ${record.itemName}\n`;
+        reportContent += `Quantity:     ${record.quantity}\n`;
+        reportContent += `Price (each): ₱${record.price.toFixed(2)}\n`;
+        reportContent += `Total:        ₱${record.totalPrice.toFixed(2)}\n`;
+        if (record.description) {
+            reportContent += `Description:  ${record.description}\n`;
+        }
+        reportContent += `--------------------------------------------------\n`;
+        totalExpenses += record.totalPrice;
+    });
+
+    reportContent += `\n==================================================\n`;
+    reportContent += `TOTAL EXPENSE: ₱${totalExpenses.toFixed(2)}\n`;
+    
+    downloadReportAsTxt(reportContent, `Financial_Report_${currentFinancialsFilter}.txt`);
+}
+
+function downloadReportAsTxt(content, filename) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) { 
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
 function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }

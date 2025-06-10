@@ -9,7 +9,7 @@ const Specialization = require('../models/specialization-model');
 const { createLog } = require('../logService');
 const AuditLog = require('../models/auditLog-model');
 const bcrypt = require('bcrypt');
-
+const FinancialRecord = require('../models/financialRecord-model');
 // GET /api/admin/users
 router.get('/users', async (req, res) => {
     try {
@@ -519,6 +519,63 @@ router.post('/create-staff', async (req, res) => {
     }
 });
 
-module.exports = router;
+router.get('/financials', async (req, res) => {
+    try {
+        const { month } = req.query; // Expecting month in "YYYY-MM" format
+
+        if (!month) {
+            return res.status(400).json({ error: 'Month query parameter (YYYY-MM) is required.' });
+        }
+
+        const year = parseInt(month.split('-')[0]);
+        const monthIndex = parseInt(month.split('-')[1]) - 1; // JS months are 0-11
+
+        const startDate = new Date(year, monthIndex, 1);
+        const endDate = new Date(year, monthIndex + 1, 0, 23, 59, 59); // Last day of the month
+
+        const records = await FinancialRecord.find({
+            purchaseDate: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        })
+        .populate('recordedBy', 'fullname') // Get the name of the staff who recorded it
+        .sort({ purchaseDate: -1 });
+
+        res.json(records);
+
+    } catch (error) {
+        console.error("Error fetching financial records:", error);
+        res.status(500).json({ error: 'Server error while fetching records.' });
+    }
+});
+
+// POST /api/admin/financials
+// Creates a new financial record
+router.post('/financials', async (req, res) => {
+    try {
+        const { itemName, price, quantity, description, purchaseDate } = req.body;
+
+        if (!itemName || price === undefined || quantity === undefined) {
+            return res.status(400).json({ error: 'Item name, price, and quantity are required.' });
+        }
+
+        const newRecord = new FinancialRecord({
+            itemName,
+            price,
+            quantity,
+            description,
+            purchaseDate: purchaseDate ? new Date(purchaseDate) : new Date(),
+            recordedBy: req.session.user.id // From the logged-in admin's session
+        });
+
+        await newRecord.save();
+        res.status(201).json(newRecord);
+
+    } catch (error) {
+        console.error("Error creating financial record:", error);
+        res.status(500).json({ error: 'Server error while creating record.' });
+    }
+});
 
 module.exports = router;

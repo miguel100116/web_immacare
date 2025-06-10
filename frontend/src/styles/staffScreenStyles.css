@@ -448,6 +448,28 @@ tbody tr:hover {
     width: 100%;
 }
 
+/* --- START: NEW STYLE BLOCK for inputs with icons --- */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon input {
+    width: 100%;
+    padding-right: 35px; /* Make space for the icon */
+}
+
+.input-with-icon i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-medium);
+    pointer-events: none; /* Allows clicking through the icon to the input */
+}
+/* --- END: NEW STYLE BLOCK --- */
+
 .input-with-button input {
     width: 100%;
     padding-right: 85px; /* Space for the button */

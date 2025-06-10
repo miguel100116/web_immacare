@@ -442,11 +442,18 @@ function setupPatientSearch() {
 }
 
 function openFinancialRecordModal() {
-    // ... function content is fine ...
     const modal = document.getElementById('financial-record-modal');
     const form = document.getElementById('financial-record-form');
     form.reset();
-    document.getElementById('fr-purchase-date').valueAsDate = new Date();
+    
+    // Initialize flatpickr on the date input
+    flatpickr("#fr-purchase-date", {
+        dateFormat: "Y-m-d",    // Format for the server
+        altInput: true,         // Show a user-friendly date
+        altFormat: "F j, Y",    // e.g., "August 1, 2024"
+        defaultDate: "today"    // Default to the current day
+    });
+    
     modal.style.display = 'flex';
     form.onsubmit = handleAddFinancialRecord;
 }

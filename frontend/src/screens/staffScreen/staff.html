@@ -264,7 +264,12 @@
                     </div>
                     <div class="form-group">
                         <label for="fr-purchase-date">Purchase Date*</label>
-                        <input type="date" id="fr-purchase-date" required>
+                        <!-- START: Improved Date Input -->
+                        <div class="input-with-icon">
+                            <input type="text" id="fr-purchase-date" placeholder="Click to select a date..." required>
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <!-- END: Improved Date Input -->
                     </div>
                      <div class="form-group">
                         <label for="fr-description">Description (Optional)</label>

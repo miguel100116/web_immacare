@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Link to Flatpickr for the calendar filter -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Link to Flatpickr Month Select Plugin CSS (for Financials) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <!-- Link to your admin stylesheet -->
@@ -29,6 +31,7 @@
                 <li class="nav-item" data-target="staff"><a href="#"><i class="fas fa-user-shield"></i> Manage Staff</a></li>
                 <li class="nav-item" data-target="appointments"><a href="#"><i class="fas fa-calendar-check"></i> Appointments</a></li>
                 <li class="nav-item" data-target="inventory"><a href="#"><i class="fas fa-boxes"></i> Inventory</a></li>
+                <li class="nav-item" data-target="financials"><a href="#"><i class="fas fa-file-invoice-dollar"></i> Financials</a></li>
                 <li class="nav-item" data-target="audit-log"><a href="#"><i class="fas fa-history"></i> Audit Log</a></li>
                 <li class="nav-item" data-target="settings"><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
@@ -193,6 +196,33 @@
                     <div class="pagination-controls" id="inventory-pagination"></div>
             </section>
             
+            <section class="content-section" id="financials">
+                <div class="section-header">
+                    <h1>Financial Records</h1>
+                    <button class="add-new-btn" id="add-financial-record-btn"><i class="fas fa-plus"></i> Add Expense</button>
+                </div>
+                <div class="filters">
+                    <input type="text" id="financials-month-filter" placeholder="Select Month and Year...">
+                    <button id="generate-report-btn" class="secondary-btn"><i class="fas fa-download"></i> Generate Report</button>
+                </div>
+                <div class="data-table">
+                    <table id="financials-table">
+                         <thead>
+                            <tr>
+                                <th>Purchase Date</th>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Price (Each)</th>
+                                <th>Total Price</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="financials-pagination"></div>
+            </section>
+
             <section class="content-section" id="audit-log">
                 <div class="section-header">
                     <h1>System Audit Log</h1>
@@ -309,6 +339,45 @@
             </div>
         </div>
     </div>
+    
+    <div class="modal" id="financial-record-modal">
+       <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Financial Record</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="financial-record-form">
+                    <div class="form-group">
+                        <label for="fr-item-name">Item Name*</label>
+                        <input type="text" id="fr-item-name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fr-quantity">Quantity*</label>
+                            <input type="number" id="fr-quantity" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="fr-price">Price (per item)*</label>
+                            <input type="number" id="fr-price" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fr-purchase-date">Purchase Date*</label>
+                        <input type="date" id="fr-purchase-date" required>
+                    </div>
+                     <div class="form-group">
+                        <label for="fr-description">Description (Optional)</label>
+                        <textarea id="fr-description" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Save Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="modal" id="add-doctor-modal">
         <div class="modal-content">
@@ -407,6 +476,7 @@
     </script>
     <password-modal></password-modal>
     <script src="/src/components/PasswordModal.js" type="module" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
     <script src="src/app.js" type="module" defer></script>
     <script src="src/pages/admin.js" defer></script>
 </body>
