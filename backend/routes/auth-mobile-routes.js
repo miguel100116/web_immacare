@@ -10,6 +10,29 @@ const Users = require('../models/user-model');
 
 const router = express.Router();
 
+const verifyToken = (req, res, next) => {
+    // Get the token from the Authorization header, which is usually "Bearer <TOKEN>"
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token == null) {
+        // No token was sent, so the user is not authorized
+        return res.status(401).json({ message: 'Authentication token required.' });
+    }
+
+    // Verify the token is valid and not expired
+    jwt.verify(token, process.env.JWT_SECRET || 'immacareSecretKey123', (err, user) => {
+        if (err) {
+            // Token is invalid or expired
+            return res.status(403).json({ message: 'Invalid or expired token.' });
+        }
+        // If the token is valid, attach the decoded user payload to the request object
+        req.user = user; 
+        // Call next() to pass control to the next function in the chain (the route handler)
+        next();
+    });
+};
+
 /**
  * @route   POST /api/auth/mobile-register
  * @desc    Handle user registration from the mobile app.
