@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken'); // Import JWT library
 const Users = require('../models/user-model');
 const Appointment = require('../models/appointment-model');
 const router = express.Router();
-
+const { createLog } = require('../logService');
 // --- 1. JWT Authentication Middleware ---
 // This function will protect all routes in this file. It checks for a valid
 // token and attaches the user's info to the request.
@@ -82,7 +82,21 @@ router.put('/profile', ensureApiAuthenticated, async (req, res) => {
 // This route is now also protected.
 router.post('/appointments', ensureApiAuthenticated, async (req, res) => {
     try {
-        const { doctor, specialization, date, time, reason } = req.body;
+        // Add rescheduleOf to the destructuring
+        const { doctor, specialization, date, time, reason, rescheduleOf } = req.body;
+        
+        // --- RESCHEDULE LOGIC ---
+        if (rescheduleOf) {
+            const originalAppointment = await Appointment.findById(rescheduleOf);
+            if (originalAppointment && originalAppointment.userId.toString() === req.user.userId) {
+                originalAppointment.status = 'Rescheduled';
+                await originalAppointment.save();
+
+                const logDetails = `User '${req.user.name}' rescheduled their appointment originally on ${originalAppointment.date}. New date: ${date}.`;
+                await createLog(req.user.userId, 'APPOINTMENT_STATUS_CHANGED', logDetails);
+            }
+        }
+        // --- END RESCHEDULE LOGIC ---
         
         const patientInfo = await Users.findById(req.user.userId);
         
@@ -138,8 +152,7 @@ router.get('/appointments', ensureApiAuthenticated, async (req, res) => {
     }
 });
 
-// Also, add a route for deleting/cancelling appointments for mobile
-router.delete('/appointments/:appointmentId', ensureApiAuthenticated, async (req, res) => {
+router.put('/appointments/:appointmentId/cancel', ensureApiAuthenticated, async (req, res) => {
     try {
         const { appointmentId } = req.params;
 
@@ -148,13 +161,19 @@ router.delete('/appointments/:appointmentId', ensureApiAuthenticated, async (req
             return res.status(404).json({ message: "Appointment not found." });
         }
         
-        // Security check: Ensure the user from the token owns this appointment
         if (appointment.userId.toString() !== req.user.userId) {
-            return res.status(403).json({ message: "You are not authorized to cancel this appointment." });
+            return res.status(403).json({ message: "You are not authorized to modify this appointment." });
         }
         
-        await Appointment.findByIdAndDelete(appointmentId);
-        res.status(200).json({ message: "Appointment cancelled successfully." });
+        // Update status instead of deleting
+        appointment.status = 'Cancelled';
+        await appointment.save();
+
+        // Log the action
+        const logDetails = `User '${req.user.name}' cancelled their appointment for ${appointment.date} at ${appointment.time}.`;
+        await createLog(req.user.userId, 'APPOINTMENT_STATUS_CHANGED', logDetails);
+
+        res.status(200).json({ message: "Appointment cancelled successfully.", appointment });
 
     } catch (error) {
         console.error("Error cancelling mobile appointment:", error)
