@@ -123,5 +123,45 @@ router.post('/mobile-login', async (req, res) => {
 });
 
 
+router.post('/change-password', verifyToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmNewPassword } = req.body;
+        const userId = req.user.userId; // Get user ID from the verified token
+
+        // 1. Validation
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            return res.status(400).json({ message: 'All password fields are required.' });
+        }
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({ message: 'New passwords do not match.' });
+        }
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: 'New password must be at least 8 characters long.' });
+        }
+
+        // 2. Find the user
+        const user = await Users.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // 3. Verify their current password
+        const isMatch = await bcrypt.compare(currentPassword, user.signupPassword);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Incorrect current password.' });
+        }
+        
+        // 4. Hash and save the new password
+        user.signupPassword = await bcrypt.hash(newPassword, 10);
+        await user.save();
+        
+        console.log(`✅ Password changed successfully for mobile user: ${user.signupEmail}`);
+        res.status(200).json({ message: 'Password updated successfully!' });
+
+    } catch (error) {
+        console.error('Error changing password for mobile user:', error);
+        res.status(500).json({ message: 'Server error while changing password.' });
+    }
+});
 
 module.exports = router;
