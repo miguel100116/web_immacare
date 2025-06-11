@@ -5,7 +5,8 @@ const inventoryItemSchema = new mongoose.Schema({
     itemName: { type: String, required: true, unique: true },
     quantity: { type: Number, required: true, default: 0, min: 0 },
     description: String,
-    reorderLevel: { type: Number, default: 10 }
+    reorderLevel: { type: Number, default: 10 },
+    isArchived: { type: Boolean, default: false } 
 }, { timestamps: true });
 
 // Virtual for status (calculated based on quantity and reorderLevel)

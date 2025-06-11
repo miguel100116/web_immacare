@@ -180,8 +180,17 @@
 
             <section class="content-section inventory-section" id="inventory">
                 <div class="section-header">
-                    <h1>Inventory Management</h1>
-                    <button class="add-new-btn" id="add-new-inventory-item-btn"><i class="fas fa-plus"></i> Add Item</button>
+                    <h1>Inventory Management <span id="inventory-view-indicator" class="view-indicator" style="font-size: 0.7em; color: #555;">(Active)</span></h1>
+                    
+
+                    <div class="header-actions"> 
+                        <button id="toggle-archived-inventory-btn" class="secondary-btn">
+                            <i class="fas fa-archive"></i> View Archived
+                        </button>
+                        <button class="add-new-btn" id="add-new-inventory-item-btn">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
                 </div>
                 <div class="filters">
                     <input type="text" id="inventory-search" placeholder="Search by item name...">

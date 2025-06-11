@@ -4,6 +4,7 @@ const Appointment = require('../models/appointment-model');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Doctor = require('../models/doctor-model');
+const { createLog } = require('../logService');
 
 // NOTE: ensureAuthenticated will be applied in server.js before this router is used.
 
@@ -11,8 +12,7 @@ const Doctor = require('../models/doctor-model');
 router.post('/save-data', async (req, res) => {
     try {
         console.log("📨 Received appointment data:", req.body);
-        const { date, time, firstName, lastName, suffix, specialization, doctor: doctorId, reason, address, age, phone } = req.body;
-        // --- VALIDATION STEP ---
+        const { date, time, firstName, lastName, suffix, specialization, doctor: doctorId, reason, address, age, phone, rescheduleOf } = req.body;        // --- VALIDATION STEP ---
         if (!doctorId || !mongoose.Types.ObjectId.isValid(doctorId)) {
           console.error(`❌ VALIDATION FAILED: Doctor ID is invalid. Received: ${doctorId}`);
              return res.status(400).redirect(`/appointment.html?error=${encodeURIComponent("A valid doctor must be selected.")}`);
@@ -39,7 +39,12 @@ router.post('/save-data', async (req, res) => {
         // --- CHANGE END ---
         
         // Double Booking Check
-       const existingAppointment = await Appointment.findOne({ doctorName, date, time, status: { $ne: 'Cancelled' } });
+        const existingAppointment = await Appointment.findOne({ 
+            doctorName, 
+            date, 
+            time, 
+            status: { $in: ['Scheduled', 'Completed'] } 
+        });
         if (existingAppointment) {
             return res.redirect(`/appointment.html?error=${encodeURIComponent(`Dr. ${doctorName} is already booked.`)}`);
         }
@@ -48,6 +53,20 @@ router.post('/save-data', async (req, res) => {
         if (!req.session.user || !req.session.user.id) {
           return res.status(401).send("User not authenticated to save appointment.");
         }
+
+        if (rescheduleOf && mongoose.Types.ObjectId.isValid(rescheduleOf)) {
+            const originalAppointment = await Appointment.findById(rescheduleOf);
+            if (originalAppointment && originalAppointment.userId.toString() === req.session.user.id) {
+                
+                // --- THIS IS THE FIX ---
+                originalAppointment.status = 'Rescheduled'; // Change "Cancelled" to "Rescheduled"
+                await originalAppointment.save();
+                
+                const logDetails = `User '${req.session.user.fullname}' rescheduled their appointment originally on ${originalAppointment.date}. New date: ${date}.`;
+                await createLog(req.session.user.id, 'APPOINTMENT_STATUS_CHANGED', logDetails);
+            }
+        }
+        
         const patientFullName = `${firstName} ${lastName}${suffix ? ' ' + suffix : ''}`.trim();
         // Construct the data for the new appointment
         const appointmentData = {
@@ -84,26 +103,25 @@ router.post('/save-data', async (req, res) => {
 router.get('/get-appointments', async (req, res) => {
     try {
         const appointments = await Appointment.find({ userId: req.session.user.id })
-          .populate('specialization', 'name')
-          .sort({ date: -1, time: -1 });
+            // --- POPULATE THE FULL DOCTOR AND SPECIALIZATION OBJECTS ---
+            .populate({
+              path: 'doctor',
+              populate: { 
+                  path: 'userAccount', 
+                  // --- THIS IS THE FIX ---
+                  // We must select the real fields that the 'fullname' virtual depends on.
+                  select: 'firstName lastName suffix' 
+              }
+          })
+            .populate('specialization') // Get the full specialization object
+            .sort({ date: -1, time: -1 });
 
         if (!appointments) {
             return res.json([]);
         }
-
-        const responseData = appointments.map(app => ({
-            _id: app._id,
-            date: app.date,
-            time: app.time,
-            doctorName: app.doctorName,
-            patientName: app.patientName,
-            specializationName: app.specialization ? app.specialization.name : 'Unknown Specialty',
-            reason: app.reason,
-            status: app.status
-        }));
         
-        console.log("✅ Sending this transformed data to frontend:", responseData);
-        res.json(responseData);
+        // No transformation needed, send the rich data directly to the frontend
+        res.json(appointments);
 
       } catch (err) {
         console.error("❌ Error fetching appointments:", err);
@@ -111,23 +129,33 @@ router.get('/get-appointments', async (req, res) => {
       }
 });
 
-// DELETE /cancel-appointment/:id (User cancels an appointment)
-router.delete("/cancel-appointment/:id", async (req, res) => {
+//  /cancel-appointment/:id (User cancels an appointment)
+router.put("/cancel-appointment/:id", async (req, res) => {
     try {
-        const appointment = await Appointment.findById(req.params.id);
+        const appointmentId = req.params.id;
+        const userId = req.session.user.id;
+
+        const appointment = await Appointment.findById(appointmentId);
         if (!appointment) {
-          return res.status(404).json({ error: "Appointment not found." });
+            return res.status(404).json({ error: "Appointment not found." });
         }
-        if (appointment.userId.toString() !== req.session.user.id) {
+        if (appointment.userId.toString() !== userId) {
             return res.status(403).json({ error: "You are not authorized to cancel this appointment." });
         }
         
-        await Appointment.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: "Appointment cancelled." });
-      } catch (err) {
+        // --- THE KEY CHANGE: Update status instead of deleting ---
+        appointment.status = 'Cancelled';
+        await appointment.save();
+
+        // --- LOG THE ACTION ---
+        const logDetails = `User '${req.session.user.fullname}' cancelled their appointment for ${appointment.date} at ${appointment.time}.`;
+        await createLog(userId, 'APPOINTMENT_STATUS_CHANGED', logDetails);
+
+        res.status(200).json({ message: "Appointment cancelled successfully." });
+    } catch (err) {
         console.error("Error cancelling appointment:", err)
         res.status(500).json({ error: "Error cancelling appointment." });
-      }
+    }
 });
 
 

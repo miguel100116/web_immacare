@@ -161,9 +161,12 @@ tbody tr:hover {
 .status-scheduled, .status-active { background-color: #007bff; }
 .status-completed, .status-yes, .status-in-stock { background-color: #28a745; }
 .status-cancelled, .status-no, .status-out-of-stock { background-color: #dc3545; }
+.status-rescheduled {
+    background-color: #ffc107; /* Amber */
+}
 .status-admin { background-color: #fd7e14; }
 .status-user { background-color: #6c757d; }
-.status-pending, .status-low-stock { background-color: #ffc107; color: #212529;}
+.status-pending, .status-low-stock { background-color: #ffc107;}
 .status-doctor { background-color: #6f42c1; }
 
 /* Action Buttons in Tables */
@@ -267,6 +270,8 @@ tbody tr:hover {
 .change-password-btn i {
     font-size: 0.9em;
 }
+
+
 
 /* Responsive */
 @media (max-width: 992px) { .stats-cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }

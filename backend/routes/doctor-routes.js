@@ -58,7 +58,7 @@ router.get('/booked-times', async (req, res) => {
     const appointments = await Appointment.find({
       doctor: doctorId,
       date: date,
-      status: { $ne: 'Cancelled' }
+      status: { $in: ['Scheduled', 'Completed'] }
     });
     const bookedTimes = appointments.map(app => app.time);
     res.json(bookedTimes);

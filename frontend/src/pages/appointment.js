@@ -194,6 +194,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const urlParams = new URLSearchParams(window.location.search);
         const specIdParam = urlParams.get('specialization');
         const doctorIdParam = urlParams.get('doctor');
+        const reasonParam = urlParams.get('reason'); // <-- New
+        const rescheduleIdParam = urlParams.get('rescheduleOf'); // <-- New
         const errorMsg = urlParams.get('error');
 
         if (errorMsg) {
@@ -201,12 +203,26 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('form-message-area').style.color = 'red';
         }
 
+        // Pre-fill the reason if it exists
+        if (reasonParam) {
+            document.getElementById('reason').value = decodeURIComponent(reasonParam);
+        }
+
+        // Add a hidden input to the form to track the original appointment ID
+        if (rescheduleIdParam) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'rescheduleOf';
+            hiddenInput.value = rescheduleIdParam;
+            appointmentForm.appendChild(hiddenInput);
+        }
+
         if (specIdParam) {
             specializationSelect.value = specIdParam;
             await updateDoctorOptions();
             if (doctorIdParam) {
                 doctorSelect.value = doctorIdParam;
-                await onDoctorChange(); // Use the main change handler
+                await onDoctorChange();
             }
         }
     }

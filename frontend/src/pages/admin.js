@@ -13,6 +13,7 @@ const dataCaches = {
     financials: []
 };
 
+let showingArchivedInventory = false;
 let showingArchivedAppointments = false;
 const ITEMS_PER_PAGE = 10;
 let currentFinancialsFilter = '';
@@ -39,7 +40,12 @@ function initializeAdditionalUIEventListeners() {
         updateArchivedButtonText();
         updateAppointmentsViewIndicator();
     });
-
+    document.getElementById('toggle-archived-inventory-btn')?.addEventListener('click', async () => {
+        showingArchivedInventory = !showingArchivedInventory;
+        const items = await fetchAndStoreInventoryItems();
+        if (items) displayPaginatedTable('inventory', items, 1);
+        updateArchivedInventoryButtonText();
+    });
     // --- Financials UI Listeners (from staff.js) ---
     document.getElementById('add-financial-record-btn')?.addEventListener('click', openFinancialRecordModal);
     document.getElementById('generate-report-btn')?.addEventListener('click', handleGenerateReport);
@@ -237,7 +243,24 @@ function renderAppointmentsRow(tableBody, appt) {
 
     const statusCell = row.insertCell();
     const statusText = appt.status || 'Scheduled';
-    statusCell.innerHTML = `<span class="status-badge status-${statusText.toLowerCase()}">${statusText}</span>`;
+    let badgeClass = '';
+    switch (statusText) {
+        case 'Scheduled':
+            badgeClass = 'status-scheduled';
+            break;
+        case 'Completed':
+            badgeClass = 'status-completed';
+            break;
+        case 'Cancelled':
+            badgeClass = 'status-cancelled';
+            break;
+        case 'Rescheduled':
+            badgeClass = 'status-rescheduled'; // This handles the new status
+            break;
+        default:
+            badgeClass = 'status-other'; // A fallback for any unexpected status
+    }
+    statusCell.innerHTML = `<span class="status-badge ${badgeClass}">${statusText}</span>`;
 
     const actionsCell = row.insertCell();
     const archiveButtonIcon = appt.isArchived ? 'fa-box-open' : 'fa-archive';
@@ -278,6 +301,9 @@ function renderStaffRow(tableBody, staffMember) {
 
 function renderInventoryRow(tableBody, item) {
     const row = tableBody.insertRow();
+    // Add a class to faded out archived rows
+    if (item.isArchived) row.classList.add('archived-row');
+
     row.insertCell().textContent = item.itemName || 'N/A';
     row.insertCell().textContent = item.quantity;
     const statusText = item.status || 'N/A';
@@ -285,9 +311,15 @@ function renderInventoryRow(tableBody, item) {
     row.insertCell().textContent = item.reorderLevel;
     row.insertCell().textContent = item.description || 'N/A';
     row.insertCell().textContent = new Date(item.updatedAt || item.createdAt).toLocaleDateString();
+    
     const actionsCell = row.insertCell();
-    actionsCell.innerHTML = `<button class="action-btn delete-btn" data-id="${item._id}" title="Delete"><i class="fas fa-trash"></i></button>`;
-    actionsCell.querySelector('.delete-btn').addEventListener('click', (e) => deleteInventoryItem(e.currentTarget.dataset.id, item.itemName));
+    const archiveButtonIcon = item.isArchived ? 'fa-box-open' : 'fa-archive';
+    const archiveButtonTitle = item.isArchived ? 'Unarchive' : 'Archive';
+    
+    actionsCell.innerHTML = `<button class="action-btn archive-btn" data-id="${item._id}" title="${archiveButtonTitle}"><i class="fas ${archiveButtonIcon}"></i></button>`;
+    
+    // Call the new archive function
+    actionsCell.querySelector('.archive-btn').addEventListener('click', (e) => archiveInventoryItem(e.currentTarget.dataset.id, item.itemName, item.isArchived));
 }
 
 function renderFinancialsRow(tableBody, record) {
@@ -365,13 +397,13 @@ async function fetchAndStoreAppointments() {
 
 async function fetchAndStoreInventoryItems() { 
     try { 
-        const res = await fetch('/api/admin/inventory'); 
+        // Pass the state as a query parameter
+        const url = `/api/admin/inventory?archived=${showingArchivedInventory}`;
+        const res = await fetch(url); 
         dataCaches.inventory = await handleApiResponse(res);
         return dataCaches.inventory; 
     } catch (e) { 
-        console.error('Fetch Inventory Error:', e); 
-        alert(e.message);
-        return null; 
+        // ... (error handling is the same)
     } 
 }
 
@@ -448,19 +480,21 @@ async function archiveAppointment(id, isArchived) {
     } catch (error) { console.error(`Error ${action}ing:`, error); alert(`Error: ${error.message}`); }
 }
 
-async function deleteInventoryItem(id, name) {
-    if (!confirm(`Delete "${name}"? This action cannot be undone.`)) return;
+async function archiveInventoryItem(id, name, isArchived) {
+    const action = isArchived ? 'unarchive' : 'archive';
+    if (!confirm(`Are you sure you want to ${action} "${name}"?`)) return;
+
     try {
-        await fetch(`/api/admin/inventory/${id}`, { method: 'DELETE' });
+        // Call the new PUT route
+        await fetch(`/api/admin/inventory/${id}/archive`, { method: 'PUT' });
         
+        // Refetch the list to update the view
         const data = await fetchAndStoreInventoryItems(); 
         displayPaginatedTable('inventory', data, 1);
         
-        updateDashboardStats({ inventory: dataCaches.inventory.length });
-        
-        alert(`"${name}" deleted.`);
+        alert(`"${name}" has been ${action}d.`);
     } catch (error) { 
-        console.error('Error deleting item:', error); 
+        console.error(`Error ${action}ing item:`, error); 
         alert(`Error: ${error.message}`); 
     }
 }
@@ -711,6 +745,17 @@ function initializeModalEventListeners() {
             btn.addEventListener('click', () => btn.closest('.modal').style.display = 'none');
         }
     });
+}
+
+function updateArchivedInventoryButtonText() {
+    const btn = document.getElementById('toggle-archived-inventory-btn');
+    if (btn) {
+        btn.innerHTML = showingArchivedInventory ? '<i class="fas fa-boxes"></i> View Active' : '<i class="fas fa-archive"></i> View Archived';
+        btn.title = showingArchivedInventory ? "Show active inventory" : "Show archived inventory";
+        
+        const indicator = document.getElementById('inventory-view-indicator');
+        if(indicator) indicator.textContent = showingArchivedInventory ? '(Archived)' : '(Active)';
+    }
 }
 
 function updateDashboardStats(data = {}) {

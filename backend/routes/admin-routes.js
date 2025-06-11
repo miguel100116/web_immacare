@@ -147,91 +147,72 @@ router.put('/appointments/:id/archive', async (req, res) => {
 // GET /api/admin/inventory
 router.get('/inventory', async (req, res) => {
     try {
-    console.log('SERVER: GET /api/admin/inventory - Request received.');
-    const allItems = await InventoryItem.find({}); // Fetch all items for now
+        const showArchived = req.query.archived === 'true';
+        console.log(`SERVER: GET /api/admin/inventory - Fetching ${showArchived ? 'ARCHIVED' : 'ACTIVE'} items.`);
+        
+        const allItems = await InventoryItem.find({ isArchived: showArchived });
+        
+        const customSortOrder = { 'Out of Stock': 1, 'Low Stock': 2, 'In Stock': 3 };
+        allItems.sort((a, b) => {
+            const statusOrderA = customSortOrder[a.status] || 4;
+            const statusOrderB = customSortOrder[b.status] || 4;
+            if (statusOrderA !== statusOrderB) return statusOrderA - statusOrderB;
+            return a.itemName.localeCompare(b.itemName);
+        });
 
-    // Sort in JavaScript to achieve the custom status order
-    // because virtual fields can't be directly sorted in MongoDB find queries easily.
-    const customSortOrder = { 'Out of Stock': 1, 'Low Stock': 2, 'In Stock': 3 };
-    allItems.sort((a, b) => {
-        const statusOrderA = customSortOrder[a.status] || 4; // a.status is the virtual
-        const statusOrderB = customSortOrder[b.status] || 4; // b.status is the virtual
-        if (statusOrderA !== statusOrderB) {
-            return statusOrderA - statusOrderB;
-        }
-        return a.itemName.localeCompare(b.itemName); // Secondary sort by name
-    });
-
-    console.log(`SERVER: Found ${allItems.length} inventory items.`);
-    res.json(allItems);
-  } catch (err) {
-    console.error("SERVER ERROR in GET /api/admin/inventory:", err);
-    res.status(500).json({ error: 'Server error fetching inventory items' });
-  }
+        res.json(allItems);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error fetching inventory items' });
+    }
 });
 
 // POST /api/admin/inventory
 router.post('/inventory', async (req, res) => {
     try {
-        const { itemName, quantity, description, reorderLevel /*, other fields */ } = req.body;
-
-        if (!itemName || quantity === undefined) { // quantity can be 0
+        const { itemName, quantity, description, reorderLevel } = req.body;
+        if (!itemName || quantity === undefined) {
             return res.status(400).json({ error: 'Item name and quantity are required.' });
         }
-        if (await InventoryItem.findOne({ itemName })) {
-             return res.status(400).json({ error: `Inventory item "${itemName}" already exists.` });
+        
+        const existingItem = await InventoryItem.findOne({ itemName: itemName, isArchived: false });
+        if (existingItem) {
+             return res.status(409).json({ error: `An active inventory item named "${itemName}" already exists.` });
         }
 
-        const newItem = new InventoryItem({
-            itemName,
-            quantity,
-            description,
-            reorderLevel: reorderLevel !== undefined ? reorderLevel : 10 // Use provided or default
-            // ... other fields
-        });
+        const newItem = new InventoryItem({ itemName, quantity, description, reorderLevel });
         await newItem.save();
         
-        const adminUser = await Users.findById(req.session.user.id);
-        if (!adminUser) {
-            // This is a very unlikely edge case but good to have
-            return res.status(403).json({ error: 'Admin performing the action could not be found.' });
-        }
-        
-        // --- LOG INVENTORY CREATION ---
-        const invCreateDetails = `Admin '${adminUser.fullname}' created new inventory item '${newItem.itemName}' with quantity ${newItem.quantity}.`;
+        const invCreateDetails = `Admin '${req.session.user.fullname}' created new inventory item '${newItem.itemName}'.`;
         await createLog(req.session.user.id, 'INVENTORY_ITEM_CREATED', invCreateDetails);
 
-        console.log('✅ New inventory item created by admin:', newItem._id);
         res.status(201).json(newItem);
     } catch (err) {
-        console.error('Error creating new inventory item by admin:', err);
-        if (err.name === 'ValidationError') {
-            return res.status(400).json({ error: err.message });
+        if (err.code === 11000) { // Handles the database index uniqueness error
+            return res.status(409).json({ error: `An inventory item named "${req.body.itemName}" already exists.` });
         }
         res.status(500).json({ error: 'Server error creating inventory item.' });
     }
 });
 
-// DELETE /api/admin/inventory/:id
-router.delete('/inventory/:id', async (req, res) => {
+//  /api/admin/inventory/:id
+router.put('/inventory/:id/archive', async (req, res) => {
     try {
         const itemId = req.params.id;
-        const deletedItem = await InventoryItem.findByIdAndDelete(itemId);
-
-        if (!deletedItem) {
+        const item = await InventoryItem.findById(itemId);
+        if (!item) {
             return res.status(404).json({ error: 'Inventory item not found.' });
         }
 
-        // --- LOG INVENTORY DELETION ---
-        const invDeleteDetails = `Admin '${req.session.user.firstName}' deleted inventory item '${deletedItem.itemName}'.`;
-        await createLog(req.session.user.id, 'INVENTORY_ITEM_DELETED', invDeleteDetails);
+        // Toggle the archive status
+        item.isArchived = !item.isArchived;
+        await item.save();
+        
+        const action = item.isArchived ? 'archived' : 'unarchived';
+        console.log(`✅ Inventory item ${itemId} has been ${action}.`);
+        res.json({ message: `Item ${action} successfully.`, item });
 
-
-        console.log(`✅ Inventory item ${itemId} deleted successfully.`);
-        res.json({ message: 'Inventory item deleted successfully.', deletedItem });
     } catch (err) {
-        console.error(`Error deleting inventory item ${req.params.id}:`, err);
-        res.status(500).json({ error: 'Server error deleting inventory item.' });
+        res.status(500).json({ error: 'Server error updating inventory item.' });
     }
 });
 
