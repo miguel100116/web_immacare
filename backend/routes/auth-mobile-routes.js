@@ -55,7 +55,8 @@ const createTransporter = () => {
 router.post('/mobile-register', async (req, res) => {
     // 1. Get the data from the mobile app's request body
     const { name, email, password, age, mobile, address, gender } = req.body;
-
+    const BASE_URL = `https://web-immacare.onrender.com` || `http://localhost:${port}`;
+    
     // --- START OF THE FIX ---
     // These validations are now consistent with the web version
     if (!name || !email || !password) {
@@ -108,7 +109,7 @@ router.post('/mobile-register', async (req, res) => {
                 <h3>Hello ${firstName},</h3>
                 <p>Please click the button below to verify your email address:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="http://localhost:${port}/verify?email=${encodeURIComponent(email)}"
+                  <a href="${BASE_URL}/verify?email=${encodeURIComponent(email)}"
                    style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">
                     Verify Email
                   </a>

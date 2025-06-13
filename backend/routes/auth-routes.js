@@ -55,7 +55,7 @@ router.post('/check-email', async (req, res) => {
 
 router.post('/post', async (req, res) => {
     const { firstName, lastName, suffix, signupEmail, Age, Sex, PhoneNumber, Address, signupPassword, confirmPassword } = req.body;
-
+    const BASE_URL = `https://web-immacare.onrender.com` || `http://localhost:${port}`;
     if (signupPassword !== confirmPassword) {
         return res.status(400).json({ error: "❌ Passwords do not match" });
     }
@@ -100,7 +100,7 @@ router.post('/post', async (req, res) => {
                 <h3>Hello ${firstName},</h3>
                 <p>Please click the button below to verify your email address:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}"
+                  <a href="${BASE_URL}/verify?email=${encodeURIComponent(signupEmail)}"
                    style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">
                     Verify Email
                   </a>
