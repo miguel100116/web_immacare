@@ -3,12 +3,14 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 // Adjust the path to go up one level to find the 'models' directory
 const Users = require('../models/user-model'); 
 
 
 const router = express.Router();
+const port = 5300;
 
 const verifyToken = (req, res, next) => {
     // Get the token from the Authorization header, which is usually "Bearer <TOKEN>"
@@ -30,6 +32,18 @@ const verifyToken = (req, res, next) => {
         req.user = user; 
         // Call next() to pass control to the next function in the chain (the route handler)
         next();
+    });
+};
+
+const createTransporter = () => {
+    return nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false, // Use TLS
+        auth: {
+            user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com",
+            pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"
+        }
     });
 };
 
@@ -80,13 +94,47 @@ router.post('/mobile-register', async (req, res) => {
             PhoneNumber: mobile, // 'PhoneNumber' matches the web registration field
             Address: address,
             signupPassword: hashedPassword,
-            isVerified: true // Mobile users are auto-verified
+            isVerified: false // Mobile users are auto-verified
         });
         
         await user.save();
 
         console.log("✅ Mobile user registered with consistent data:", user.fullname);
         res.status(201).json({ message: "Registration successful! You can now log in." });
+
+        const transporter = createTransporter();
+        const mailOptions = {
+            from: '"ImmaCare+ <deguzmanjatrish@gmail.com>',
+            to: email, // Use the email from the request
+            subject: "Verify your account - ImmaCare+",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #4CAF50;">Welcome to ImmaCare+</h2>
+                <h3>Hello ${firstName},</h3>
+                <p>Please click the button below to verify your email address:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="http://localhost:${port}/verify?email=${encodeURIComponent(email)}"
+                   style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">
+                    Verify Email
+                  </a>
+                </div>
+              </div>`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log("Mobile email sending error:", error);
+                // Note: The user is already saved, so this is a soft failure.
+                // You might want to add logic to handle this case better.
+                return res.status(500).json({ message: "Registration successful, but failed to send verification email." });
+            }
+            console.log("✅ Verification email sent to mobile registrant:", info.response);
+            
+            // --- 3. CHANGE: Update the success response ---
+            res.status(201).json({
+                message: "Registration successful! Please check your email to verify your account."
+            });
+        });
 
     } catch (error) {
         console.error("Mobile registration error:", error);
