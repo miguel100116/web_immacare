@@ -154,6 +154,10 @@ router.post('/mobile-login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials." });
         }
+
+        if (user.isAdmin || user.isDoctor || user.isStaff) {
+            return res.status(403).json({ message: "This account type cannot log in via the mobile app. Please use the web portal." });
+        }
         
         if (!user.isVerified) {
             return res.status(401).json({ message: "Invalid credentials or account not verified." });
