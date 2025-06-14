@@ -3,12 +3,14 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 // Adjust the path to go up one level to find the 'models' directory
 const Users = require('../models/user-model'); 
 
 
 const router = express.Router();
+const port = 5300;
 
 const verifyToken = (req, res, next) => {
     // Get the token from the Authorization header, which is usually "Bearer <TOKEN>"
@@ -33,6 +35,18 @@ const verifyToken = (req, res, next) => {
     });
 };
 
+const createTransporter = () => {
+    return nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false, // Use TLS
+        auth: {
+            user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com",
+            pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"
+        }
+    });
+};
+
 /**
  * @route   POST /api/auth/mobile-register
  * @desc    Handle user registration from the mobile app.
@@ -41,7 +55,8 @@ const verifyToken = (req, res, next) => {
 router.post('/mobile-register', async (req, res) => {
     // 1. Get the data from the mobile app's request body
     const { name, email, password, age, mobile, address, gender } = req.body;
-
+    const BASE_URL = `https://web-immacare.onrender.com` || `http://localhost:${port}`;
+    
     // --- START OF THE FIX ---
     // These validations are now consistent with the web version
     if (!name || !email || !password) {
@@ -64,29 +79,59 @@ router.post('/mobile-register', async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        // This logic correctly handles the 'name' field from the mobile app
         const nameParts = name.trim().split(' ');
-        const firstName = nameParts.shift(); // Takes the first part
-        const lastName = nameParts.join(' '); // Joins the rest
+        const firstName = nameParts.shift();
+        const lastName = nameParts.join(' ');
 
-        // --- THE KEY CHANGE IS HERE ---
-        // We create the user with the exact same field names as auth-routes.js
         const user = new Users({
-            firstName,      // from 'name'
-            lastName,       // from 'name'
+            firstName,
+            lastName,
             signupEmail: email,
             Age: age,
-            Sex: gender,    // 'Sex' matches the web registration field
-            PhoneNumber: mobile, // 'PhoneNumber' matches the web registration field
+            Sex: gender,
+            PhoneNumber: mobile,
             Address: address,
             signupPassword: hashedPassword,
-            isVerified: true // Mobile users are auto-verified
+            isVerified: false // Correct: user is not verified yet
         });
         
         await user.save();
+        console.log("✅ Mobile user created, pending verification:", user.fullname);
 
-        console.log("✅ Mobile user registered with consistent data:", user.fullname);
-        res.status(201).json({ message: "Registration successful! You can now log in." });
+        const transporter = createTransporter();
+        const mailOptions = {
+            from: '"ImmaCare+ <deguzmanjatrish@gmail.com>',
+            to: email,
+            subject: "Verify your account - ImmaCare+",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #4CAF50;">Welcome to ImmaCare+</h2>
+                <h3>Hello ${firstName},</h3>
+                <p>Please click the button below to verify your email address:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${BASE_URL}/verify?email=${encodeURIComponent(email)}"
+                   style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">
+                    Verify Email
+                  </a>
+                </div>
+              </div>`
+        };
+
+        // Send the email, and handle the response inside the callback
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log("Mobile email sending error:", error);
+                // Even if email fails, registration was successful. We can inform the user.
+                return res.status(500).json({ message: "Registration successful, but we failed to send a verification email. Please contact support." });
+            }
+
+            console.log("✅ Verification email sent to mobile registrant:", info.response);
+            
+            // Send the success response to the mobile app ONLY after the email is sent
+            res.status(201).json({
+                message: "Registration successful! Please check your email to verify your account."
+            });
+        });
 
     } catch (error) {
         console.error("Mobile registration error:", error);
@@ -105,8 +150,17 @@ router.post('/mobile-login', async (req, res) => {
         const { email, password } = req.body;
         const user = await Users.findOne({ signupEmail: email });
 
+        
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials." });
+        }
+
+        if (user.isAdmin || user.isDoctor || user.isStaff) {
+            return res.status(403).json({ message: "This account type cannot log in via the mobile app. Please use the web portal." });
+        }
+        
+        if (!user.isVerified) {
+            return res.status(401).json({ message: "Invalid credentials or account not verified." });
         }
 
         const isMatch = await bcrypt.compare(password, user.signupPassword);
