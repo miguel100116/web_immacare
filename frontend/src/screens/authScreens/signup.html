@@ -29,7 +29,7 @@
             <label><input type="radio" name="Sex" value="Male" required /> Male</label>
             <label><input type="radio" name="Sex" value="Female" /> Female</label>
           </div>
-          <input type="tel" id="PhoneNumber" name="PhoneNumber" placeholder="Phone Number (e.g. 09xxxxxxxxx)" required />
+          <input type="tel" id="PhoneNumber" name="PhoneNumber" placeholder="Phone Number (e.g. 09xxxxxxxxx)" pattern="^(09|\+639)\d{9}$" required />
           <input type="password" id="signupPassword" name="signupPassword" placeholder="Password" required />
           <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required />
           <button type="submit">SIGN UP</button>
