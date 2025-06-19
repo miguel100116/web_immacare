@@ -1,0 +1,139 @@
+/* =================================================================== */
+/*             public/src/styles/signup.css                          */
+/*   This file is for the Signup and Login pages ONLY.               */
+/* =================================================================== */
+
+/* --- 1. General Body & Font --- */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f8f5e8; /* A light, clean background */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.container {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* --- 2. Signup Box Wrapper --- */
+/* CORRECTED CLASS NAME */
+.signup-box {
+  width: 100%;
+  max-width: 450px;
+  padding: 30px 40px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.signup-box .logo {
+  width: 100px;
+  margin-bottom: 20px;
+}
+
+.signup-box h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.signup-box p {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.signup-box a {
+  color: #003080;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* --- 3. Form Specific Styling --- */
+/* CORRECTED CLASS NAME */
+.signup-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.signup-form .form-group {
+  width: 100%;
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.signup-form input[type="text"],
+.signup-form input[type="email"],
+.signup-form input[type="number"],
+.signup-form input[type="tel"],
+.signup-form input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box; /* Important for layout */
+  font-size: 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.signup-form input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.signup-form .gender-selection {
+  display: flex;
+  gap: 20px;
+  padding: 10px 0;
+  width: 100%;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.signup-form button[type="submit"] {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: #001f5f;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.signup-form button[type="submit"]:hover {
+  background-color: #003080;
+}
+
+/* --- 4. Validation Feedback Styling --- */
+.message-area {
+  margin-bottom: 15px;
+  font-weight: bold;
+  min-height: 1.2em; /* Prevents layout jump */
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.validation-feedback {
+  min-height: 18px; /* This is the fix for the jumping content */
+  font-size: 0.85em;
+  padding-top: 5px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.validation-feedback.error {
+  color: #dc3545; /* Red */
+}
+
+.validation-feedback.success {
+  color: #28a745; /* Green */
+}

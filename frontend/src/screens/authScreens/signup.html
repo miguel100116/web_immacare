@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign Up - ImmaCare+</title>
+    <link rel="stylesheet" href="/src/styles/signup.css">
     <link rel="stylesheet" href="/src/styles/style.css">
   </head>
   <body>
@@ -14,24 +15,66 @@
         <img src="/assets/images/logo.png" alt="ImmaCare+ Logo" class="logo" />
         <h2>Create an Account</h2>
 
-        <div id="signup-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></div>
+        <div id="signup-message-area" class="message-area"></div>
 
         <form id="signupForm" class="signup-form">
-          <!-- All form inputs are fine -->
-          <input type="text" id="firstName" name="firstName" placeholder="First Name" required />
-          <input type="text" id="lastName" name="lastName" placeholder="Last Name" required />
-          <input type="text" id="suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" />
+          
+          <div class="form-group">
+            <input type="text" name="firstName" placeholder="First Name" required />
+            <!-- Feedback for First Name -->
+            <div id="firstName-feedback" class="validation-feedback"></div>
+          </div>
 
-          <input type="email" id="signupEmail" name="signupEmail" placeholder="Email" required />
-          <input type="number" id="Age" name="Age" placeholder="Age" required />
-          <input type="text" id="Address" name="Address" placeholder="Address" required />
+          <div class="form-group">
+            <input type="text" name="lastName" placeholder="Last Name" required />
+            <!-- Feedback for Last Name -->
+            <div id="lastName-feedback" class="validation-feedback"></div>
+          </div>
+          
+          <div class="form-group">
+            <input type="text" name="suffix" placeholder="Suffix (e.g., Jr., III)" />
+            <!-- Suffix is optional, so no validation feedback needed unless you want it -->
+          </div>
+
+          <div class="form-group">
+            <input type="email" name="signupEmail" placeholder="Email" required />
+            <!-- Feedback for Email -->
+            <div id="email-feedback" class="validation-feedback"></div>
+          </div>
+
+          <div class="form-group">
+            <input type="number" name="Age" placeholder="Age" required />
+            <!-- Age is required, but real-time feedback is less critical here. You could add it if desired. -->
+          </div>
+
+          <div class="form-group">
+            <input type="text" name="Address" placeholder="Address" required />
+            <!-- Address is also less critical for real-time validation -->
+          </div>
+          
           <div class="gender-selection">
             <label><input type="radio" name="Sex" value="Male" required /> Male</label>
             <label><input type="radio" name="Sex" value="Female" /> Female</label>
           </div>
-          <input type="tel" id="PhoneNumber" name="PhoneNumber" placeholder="Phone Number (e.g. 09xxxxxxxxx)" required />
-          <input type="password" id="signupPassword" name="signupPassword" placeholder="Password" required />
-          <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required />
+          
+          <div class="form-group">
+            <input type="tel" name="PhoneNumber" placeholder="Phone Number (11 digits)" required />
+            <!-- Feedback for Phone Number -->
+            <div id="phone-feedback" class="validation-feedback"></div>
+          </div>
+          
+          <div class="form-group">
+            <input type="password" name="signupPassword" placeholder="Password" required />
+            <!-- Feedback for Password Complexity -->
+            <div id="password-feedback" class="validation-feedback"></div>
+          </div>
+
+          <div class="form-group">
+            <input type="password" name="confirmPassword" placeholder="Confirm Password" required />
+            <!-- Feedback for Password Matching -->
+            <div id="confirmPassword-feedback" class="validation-feedback"></div>
+          </div>
+          
           <button type="submit">SIGN UP</button>
         </form>
         <p>Already have an Account? <a href="/login.html">Login Here</a></p>

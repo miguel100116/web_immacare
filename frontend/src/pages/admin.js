@@ -22,8 +22,11 @@ let currentFinancialsFilter = '';
 // --- INITIALIZATION ---
 // =====================================================================
 document.addEventListener('DOMContentLoaded', function() {
+    initializeNavigation(); 
+
     loadAllAdminData();
     initializeAdditionalUIEventListeners();
+    
 });
 
 function initializeAdditionalUIEventListeners() {
@@ -45,6 +48,10 @@ function initializeAdditionalUIEventListeners() {
         const items = await fetchAndStoreInventoryItems();
         if (items) displayPaginatedTable('inventory', items, 1);
         updateArchivedInventoryButtonText();
+    });
+
+    document.getElementById('inventory-sort-select')?.addEventListener('change', (event) => {
+        sortAndDisplayInventory();
     });
     // --- Financials UI Listeners (from staff.js) ---
     document.getElementById('add-financial-record-btn')?.addEventListener('click', openFinancialRecordModal);
@@ -78,25 +85,38 @@ function initializeAdditionalUIEventListeners() {
         });
     }
 
+     document.getElementById('audit-log-text-search')?.addEventListener('input', () => {
+        // When text changes, re-apply all filters
+        applyAuditLogFilters();
+    });
+
+    // Date filter listener
     const dateFilterInput = document.getElementById('audit-log-date-filter');
     if (dateFilterInput) {
         flatpickr(dateFilterInput, {
             dateFormat: "Y-m-d",
-            onChange: async function(selectedDates, dateStr, instance) {
-                const logs = await fetchAndStoreAuditLogs(dateStr);
-                displayPaginatedTable('auditLog', logs, 1);
+            // When date changes, re-apply all filters
+            onChange: function(selectedDates, dateStr, instance) {
+                applyAuditLogFilters();
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                if (instance.input.value === '') {
+                    applyAuditLogFilters();
+                }
             }
         });
     }
-    document.getElementById('audit-log-clear-filter-btn')?.addEventListener('click', async () => {
-        // Clear the calendar input visually
-        if (dateFilterInput) {
-            flatpickr(dateFilterInput).clear();
-        }
-        // Fetch ALL logs again by calling with no date
-        const allLogs = await fetchAndStoreAuditLogs(); 
-        // Display the complete, unfiltered log list
-        displayPaginatedTable('auditLog', allLogs, 1); 
+    
+    // Clear button listener
+    document.getElementById('audit-log-clear-filters-btn')?.addEventListener('click', async () => {
+        // Clear both input fields
+        const textSearchInput = document.getElementById('audit-log-text-search');
+        if (textSearchInput) textSearchInput.value = '';
+        if (dateFilterInput) flatpickr(dateFilterInput).clear();
+        
+        // Fetch ALL logs from the server to reset the cache and view
+        await fetchAndStoreAuditLogs();
+        displayPaginatedTable('auditLog', dataCaches.auditLog, 1);
     });
 
     window.customElements.whenDefined('password-modal').then(() => {
@@ -110,6 +130,43 @@ function initializeAdditionalUIEventListeners() {
             });
         }
     });
+}
+
+async function applyAuditLogFilters() {
+    const dateFilterInput = document.getElementById('audit-log-date-filter');
+    const textSearchInput = document.getElementById('audit-log-text-search');
+    const tableBody = document.querySelector('#auditLog-table tbody');
+
+    // 1. Get current values from both filters
+    const selectedDate = dateFilterInput.value;
+    const searchTerm = textSearchInput.value.toLowerCase().trim();
+
+    // 2. Show a loading state in the table
+    if (tableBody) {
+        const colSpan = tableBody.parentElement.querySelector('thead tr')?.cells.length || 4;
+        tableBody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading logs...</td></tr>`;
+    }
+
+    // 3. Fetch logs from the server, filtered by date.
+    // The server is always the source of truth for the date filter.
+    const logsFromServer = await fetchAndStoreAuditLogs(selectedDate);
+
+    if (!logsFromServer) {
+        displayPaginatedTable('auditLog', [], 1); // Show empty table on fetch failure
+        return;
+    }
+
+    // 4. Apply the text search filter LOCALLY on the data that was just returned.
+    let finalFilteredLogs = logsFromServer;
+    if (searchTerm) {
+        finalFilteredLogs = logsFromServer.filter(log => {
+            const actor = (log.actorName || 'system').toLowerCase();
+            return actor.includes(searchTerm);
+        });
+    }
+
+    // 5. Display the final, fully filtered data
+    displayPaginatedTable('auditLog', finalFilteredLogs, 1);
 }
 
 async function loadAllAdminData() {
@@ -138,7 +195,9 @@ async function loadAllAdminData() {
         updateDashboardStats({
             users: users?.length || 0,
             appointments: appointments?.length || 0,
-            inventory: inventoryItems?.length || 0
+            inventory: inventoryItems?.length || 0,
+            doctors: doctors?.length || 0,
+            staff: staff?.length || 0
         });
         updateArchivedButtonText();
         updateAppointmentsViewIndicator();
@@ -316,9 +375,12 @@ function renderInventoryRow(tableBody, item) {
     const archiveButtonIcon = item.isArchived ? 'fa-box-open' : 'fa-archive';
     const archiveButtonTitle = item.isArchived ? 'Unarchive' : 'Archive';
     
-    actionsCell.innerHTML = `<button class="action-btn archive-btn" data-id="${item._id}" title="${archiveButtonTitle}"><i class="fas ${archiveButtonIcon}"></i></button>`;
-    
+    actionsCell.innerHTML = `
+            <button class="action-btn edit-btn" data-id="${item._id}" title="Edit Item" ${item.isArchived ? 'disabled' : ''}><i class="fas fa-edit"></i></button>
+            <button class="action-btn archive-btn" data-id="${item._id}" title="${archiveButtonTitle}"><i class="fas ${archiveButtonIcon}"></i></button>
+        `;    
     // Call the new archive function
+    actionsCell.querySelector('.edit-btn').addEventListener('click', () => openEditInventoryItemModal(item));
     actionsCell.querySelector('.archive-btn').addEventListener('click', (e) => archiveInventoryItem(e.currentTarget.dataset.id, item.itemName, item.isArchived));
 }
 
@@ -355,6 +417,16 @@ async function handleApiResponse(response) {
 }
 
 // --- Data Fetchers (now using the robust handleApiResponse helper) ---
+
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+}
 
 async function fetchAndStoreAuditLogs(date = null) {
     try {
@@ -397,13 +469,14 @@ async function fetchAndStoreAppointments() {
 
 async function fetchAndStoreInventoryItems() { 
     try { 
-        // Pass the state as a query parameter
         const url = `/api/admin/inventory?archived=${showingArchivedInventory}`;
         const res = await fetch(url); 
         dataCaches.inventory = await handleApiResponse(res);
-        return dataCaches.inventory; 
+        
+        sortAndDisplayInventory(); 
+        
     } catch (e) { 
-        // ... (error handling is the same)
+        console.error("Error fetching inventory:", e);
     } 
 }
 
@@ -499,6 +572,94 @@ async function archiveInventoryItem(id, name, isArchived) {
     }
 }
 
+async function validateInventoryItemName() {
+    const nameInput = document.getElementById('inventory-item-name');
+    const feedbackDiv = document.getElementById('inventory-name-feedback');
+    const itemId = document.getElementById('inventory-item-id').value; // For the edit case
+    
+    const itemName = nameInput.value.trim();
+    feedbackDiv.innerHTML = ''; // Clear previous feedback
+    feedbackDiv.className = 'validation-feedback'; // Reset class
+
+    if (itemName.length < 2) { // Don't check for very short strings
+        return; 
+    }
+
+    try {
+        let url = `/api/admin/inventory/check-name?name=${encodeURIComponent(itemName)}`;
+        if (itemId) {
+            url += `&excludeId=${itemId}`;
+        }
+        
+        const response = await fetch(url);
+
+        if (response.status === 409) { // 409 Conflict means it exists
+            const data = await response.json();
+            feedbackDiv.textContent = data.error;
+            feedbackDiv.classList.add('error');
+        } else if (response.ok) { // 200 OK means it's available
+            feedbackDiv.innerHTML = '<i class="fas fa-check-circle"></i> Name is available';
+            feedbackDiv.classList.add('success');
+        }
+        // We don't need to handle other errors here, as it might confuse the user during typing
+
+    } catch (error) {
+        console.error("Real-time validation network error:", error);
+        // Don't show an error to the user, just fail silently for a better UX
+        feedbackDiv.innerHTML = '';
+    }
+}
+
+function sortAndDisplayInventory() {
+    const sortValue = document.getElementById('inventory-sort-select').value;
+    const itemsToSort = [...dataCaches.inventory]; // Create a mutable copy
+
+    itemsToSort.sort((a, b) => {
+        // --- THIS IS THE NEW DYNAMIC SORTING LOGIC ---
+        if (sortValue.includes('stock_first') || sortValue === 'status') {
+            let statusOrder;
+            
+            // Define the custom sort order based on the selected option
+            if (sortValue === 'low_stock_first') {
+                statusOrder = { 'Low Stock': 1, 'Out of Stock': 2, 'In Stock': 3 };
+            } else if (sortValue === 'in_stock_first') {
+                statusOrder = { 'In Stock': 1, 'Low Stock': 2, 'Out of Stock': 3 };
+            } else { // Default is 'status' (Out of Stock first)
+                statusOrder = { 'Out of Stock': 1, 'Low Stock': 2, 'In Stock': 3 };
+            }
+
+            const orderA = statusOrder[a.status] || 4; // Assign a low priority to any other status
+            const orderB = statusOrder[b.status] || 4;
+            
+            if (orderA !== orderB) {
+                return orderA - orderB;
+            }
+            // If statuses are the same, sort by name as a secondary criterion
+            return a.itemName.localeCompare(b.itemName);
+        }
+
+        // --- The rest of the sorting logic remains the same ---
+        switch (sortValue) {
+            case 'name_asc':
+                return a.itemName.localeCompare(b.itemName);
+            
+            case 'name_desc':
+                return b.itemName.localeCompare(a.itemName);
+
+            case 'qty_asc':
+                return a.quantity - b.quantity;
+
+            case 'qty_desc':
+                return b.quantity - a.quantity;
+
+            default:
+                return 0;
+        }
+    });
+
+    displayPaginatedTable('inventory', itemsToSort, 1);
+}
+
 // --- MODALS ---
 function openAddAppointmentModal() {
     const modal = document.getElementById('appointment-modal');
@@ -545,9 +706,19 @@ function openAddDoctorModal() {
     const modal = document.getElementById('add-doctor-modal');
     const form = document.getElementById('add-doctor-form');
     const messageArea = document.getElementById('add-doctor-message-area');
+
+    const emailInput = document.getElementById('doctor-signupEmail');
+    const feedbackDiv = document.getElementById('doctor-email-feedback');
+
     if (!modal || !form || !messageArea) return;
     form.reset();
     messageArea.textContent = '';
+
+    feedbackDiv.innerHTML = '';
+    feedbackDiv.className = 'validation-feedback';
+    const debouncedEmailValidator = debounce(() => validateUserEmail('doctor-signupEmail', 'doctor-email-feedback'), 500);
+    emailInput.addEventListener('input', debouncedEmailValidator);
+
     modal.style.display = 'flex';
     form.onsubmit = async (e) => {
         e.preventDefault();
@@ -574,9 +745,19 @@ function openAddStaffModal() {
     const modal = document.getElementById('add-staff-modal');
     const form = document.getElementById('add-staff-form');
     const messageArea = document.getElementById('add-staff-message-area');
+
+    const emailInput = document.getElementById('staff-signupEmail');
+    const feedbackDiv = document.getElementById('staff-email-feedback');
+
     if (!modal || !form || !messageArea) return;
     form.reset();
     messageArea.textContent = '';
+    
+    feedbackDiv.innerHTML = '';
+    feedbackDiv.className = 'validation-feedback';
+    const debouncedEmailValidator = debounce(() => validateUserEmail('staff-signupEmail', 'staff-email-feedback'), 500);
+    emailInput.addEventListener('input', debouncedEmailValidator);
+
     modal.style.display = 'flex';
     form.onsubmit = async (e) => {
         e.preventDefault();
@@ -603,12 +784,58 @@ function openAddStaffModal() {
     };
 }
 
+async function validateUserEmail(emailInputId, feedbackDivId) {
+    const emailInput = document.getElementById(emailInputId);
+    const feedbackDiv = document.getElementById(feedbackDivId);
+    
+    const email = emailInput.value.trim();
+    feedbackDiv.innerHTML = ''; // Clear previous feedback
+    feedbackDiv.className = 'validation-feedback'; // Reset class
+
+    // A simple regex to check for a valid email format before hitting the server
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        if (email.length > 0) { // Only show error if user has started typing
+             feedbackDiv.textContent = 'Please enter a valid email format.';
+             feedbackDiv.classList.add('error');
+        }
+        return;
+    }
+
+    try {
+        const url = `/api/admin/users/check-email?email=${encodeURIComponent(email)}`;
+        const response = await fetch(url);
+
+        if (response.status === 409) { // Email exists
+            const data = await response.json();
+            feedbackDiv.textContent = data.error;
+            feedbackDiv.classList.add('error');
+        } else if (response.ok) { // Email is available
+            feedbackDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email is available';
+            feedbackDiv.classList.add('success');
+        }
+
+    } catch (error) {
+        console.error("Real-time email validation network error:", error);
+    }
+}
+
 function openAddInventoryItemModal() {
     const modal = document.getElementById('inventory-item-modal');
     const form = document.getElementById('inventory-item-form');
+
+    const nameInput = document.getElementById('inventory-item-name');
+    const feedbackDiv = document.getElementById('inventory-name-feedback');
+
     if (!modal || !form) return;
     form.reset();
     form.querySelector('#inventory-item-id').value = '';
+
+    feedbackDiv.innerHTML = ''; // Clear feedback when opening modal
+    feedbackDiv.className = 'validation-feedback';
+    const debouncedValidator = debounce(validateInventoryItemName, 400); // 400ms delay
+    nameInput.addEventListener('input', debouncedValidator);
+
     const modalTitle = document.getElementById('inventory-item-modal-title');
     if(modalTitle) modalTitle.textContent = 'Add New Inventory Item';
     modal.style.display = 'flex';
@@ -634,6 +861,115 @@ function openAddInventoryItemModal() {
             alert('Item added!');
         } catch (error) { console.error('Error adding item:', error); alert(`Error: ${error.message}`); }
     };
+}
+
+function openEditInventoryItemModal(item) {
+    const modal = document.getElementById('inventory-item-modal');
+    const form = document.getElementById('inventory-item-form');
+    if (!modal || !form) return;
+
+    // Reset from any previous state and populate with item data
+    form.reset();
+    form.querySelector('#inventory-item-id').value = item._id;
+    form.querySelector('#inventory-item-name').value = item.itemName;
+    form.querySelector('#inventory-item-quantity').value = item.quantity;
+    form.querySelector('#inventory-item-reorder-level').value = item.reorderLevel;
+    form.querySelector('#inventory-item-description').value = item.description || '';
+    
+    // Change modal title for editing
+    const modalTitle = document.getElementById('inventory-item-modal-title');
+    if(modalTitle) modalTitle.textContent = 'Edit Inventory Item';
+
+    // Display the modal
+    modal.style.display = 'flex';
+
+    // Set the form's onsubmit to handle the update logic
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const itemId = form.querySelector('#inventory-item-id').value;
+        const updatedData = {
+            itemName: form.querySelector('#inventory-item-name').value,
+            quantity: parseInt(form.querySelector('#inventory-item-quantity').value, 10),
+            reorderLevel: parseInt(form.querySelector('#inventory-item-reorder-level').value, 10),
+            description: form.querySelector('#inventory-item-description').value,
+        };
+
+        try {
+            const response = await fetch(`/api/admin/inventory/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+            await handleApiResponse(response); // Reuse error handling
+            
+            modal.style.display = 'none';
+
+            // Refresh the data and table
+            const inventory = await fetchAndStoreInventoryItems();
+            displayPaginatedTable('inventory', inventory, 1); 
+
+            alert('Item updated successfully!');
+        } catch (error) {
+            console.error('Error updating item:', error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+}
+
+function initializeNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    const contentSections = document.querySelectorAll('.content-section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', async function(e) {
+            e.preventDefault();
+
+            // Handle active state for nav items
+            navItems.forEach(navItem => navItem.classList.remove('active'));
+            this.classList.add('active');
+
+            // Show the correct content section
+            contentSections.forEach(section => section.classList.remove('active'));
+            const targetId = this.getAttribute('data-target');
+            const targetSection = document.getElementById(targetId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+
+            // --- SPECIAL LOGIC FOR AUDIT LOG REFRESH ---
+              if (targetId === 'audit-log') {
+                console.log("Audit Log tab clicked. Refreshing data and clearing filters...");
+                const tableBody = document.querySelector('#auditLog-table tbody');
+                
+                // --- THIS IS THE CHANGE ---
+                // Clear the filter inputs every time the tab is clicked
+                const textSearchInput = document.getElementById('audit-log-text-search');
+                const dateFilterInput = document.getElementById('audit-log-date-filter');
+                if (textSearchInput) textSearchInput.value = '';
+                if (dateFilterInput) flatpickr(dateFilterInput).clear();
+
+                // Show a loading indicator
+                if (tableBody) {
+                    const colSpan = tableBody.parentElement.querySelector('thead tr')?.cells.length || 4;
+                    tableBody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading latest logs...</td></tr>`;
+                }
+                
+                // Fetch all logs and display them
+                const allLogs = await fetchAndStoreAuditLogs(); // Fetches ALL logs
+                if (allLogs) {
+                    displayPaginatedTable('auditLog', allLogs, 1);
+                }
+            }
+        });
+    });
+
+    const toggleMenu = document.querySelector('.toggle-menu');
+    const sidebar = document.querySelector('.sidebar');
+    if (toggleMenu && sidebar) {
+        toggleMenu.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+        });
+    }
 }
 
 // --- Financials Modals & Handlers (from staff.js) ---
@@ -687,23 +1023,66 @@ function setupSearchListeners() {
     const configs = [
         { 
             type: 'users', 
-            filter: (item, term) => ((item.firstName || '').toLowerCase() + ' ' + (item.lastName || '').toLowerCase()).includes(term) || (item.signupEmail || '').toLowerCase().includes(term)
+            // The scorer returns a number. Lower is better. Infinity means no match.
+            scorer: (item, term) => {
+                const firstName = (item.firstName || '').toLowerCase();
+                const lastName = (item.lastName || '').toLowerCase();
+                const email = (item.signupEmail || '').toLowerCase();
+                const fullName = `${firstName} ${lastName}`;
+
+                if (firstName.startsWith(term)) return 1; // Direct first name match is best
+                if (fullName.startsWith(term)) return 2;   // Full name match is second best
+                if (lastName.startsWith(term)) return 3;   // Last name match
+                if (email.startsWith(term)) return 4;      // Email match
+                return Infinity; // No "starts with" match
+            }
         },
         { 
             type: 'appointments', 
-            filter: (item, term) => (item.patientName || '').toLowerCase().includes(term) || (item.doctorName || '').toLowerCase().includes(term)
+            scorer: (item, term) => {
+                const patientName = (item.patientName || '').toLowerCase();
+                const doctorName = (item.doctorName || '').toLowerCase();
+
+                if (patientName.startsWith(term)) return 1;
+                if (doctorName.startsWith(term)) return 2;
+                return Infinity;
+            }
         },
         { 
             type: 'inventory', 
-            filter: (item, term) => (item.itemName || '').toLowerCase().includes(term)
+            scorer: (item, term) => {
+                const itemName = (item.itemName || '').toLowerCase();
+                return itemName.startsWith(term) ? 1 : Infinity;
+            }
         },
         { 
             type: 'doctors', 
-             filter: (item, term) => ((item.userAccount?.firstName || '').toLowerCase() + ' ' + (item.userAccount?.lastName || '').toLowerCase()).includes(term) || (item.specialization?.name || '').toLowerCase().includes(term)
+            scorer: (item, term) => {
+                const firstName = (item.userAccount?.firstName || '').toLowerCase();
+                const lastName = (item.userAccount?.lastName || '').toLowerCase();
+                const specialization = (item.specialization?.name || '').toLowerCase();
+                const fullName = `${firstName} ${lastName}`;
+
+                if (firstName.startsWith(term)) return 1;
+                if (fullName.startsWith(term)) return 2;
+                if (specialization.startsWith(term)) return 3;
+                return Infinity;
+            }
         },
         { 
             type: 'staff', 
-            filter: (item, term) => ((item.firstName || '').toLowerCase() + ' ' + (item.lastName || '').toLowerCase()).includes(term) || (item.signupEmail || '').toLowerCase().includes(term)
+            scorer: (item, term) => {
+                const firstName = (item.firstName || '').toLowerCase();
+                const lastName = (item.lastName || '').toLowerCase();
+                const email = (item.signupEmail || '').toLowerCase();
+                const fullName = `${firstName} ${lastName}`;
+
+                if (firstName.startsWith(term)) return 1;
+                if (fullName.startsWith(term)) return 2;
+                if (lastName.startsWith(term)) return 3;
+                if (email.startsWith(term)) return 4;
+                return Infinity;
+            }
         }
     ];
 
@@ -721,15 +1100,33 @@ function setupSearchListeners() {
                     return;
                 }
 
-                const filteredData = searchTerm 
-                    ? dataCache.filter(item => config.filter(item, searchTerm))
-                    : dataCache;
+                // If search is empty, show the original, unsorted data
+                if (!searchTerm) {
+                    displayPaginatedTable(config.type, dataCache, 1);
+                    return;
+                }
                 
-                displayPaginatedTable(config.type, filteredData, 1);
+                // 1. Map each item to an object with the item and its score
+                const scoredData = dataCache.map(item => ({
+                    item: item,
+                    score: config.scorer(item, searchTerm)
+                }));
+
+                // 2. Filter out any items that didn't match (score is Infinity)
+                const filteredData = scoredData.filter(scoredItem => scoredItem.score !== Infinity);
+
+                // 3. Sort the matched items by their score (lowest score first)
+                const sortedData = filteredData.sort((a, b) => a.score - b.score);
+                
+                // 4. Extract just the original items from the sorted list
+                const finalData = sortedData.map(scoredItem => scoredItem.item);
+                
+                displayPaginatedTable(config.type, finalData, 1);
             };
 
             btnEl.addEventListener('click', search);
-            inputEl.addEventListener('input', search);
+            // Use 'input' for real-time searching as the user types
+            inputEl.addEventListener('input', search); 
         }
     });
 }
@@ -767,6 +1164,12 @@ function updateDashboardStats(data = {}) {
     }
     if (data.inventory !== undefined) {
         document.getElementById('dashboard-inventory-items').textContent = data.inventory;
+    }
+    if (data.doctors !== undefined) {
+        document.getElementById('dashboard-doctors-count').textContent = data.doctors;
+    }
+    if (data.staff !== undefined) {
+        document.getElementById('dashboard-staff-count').textContent = data.staff;
     }
 }
 
@@ -828,5 +1231,6 @@ function downloadReportAsTxt(content, filename) {
         document.body.removeChild(link);
     }
 }
+
 
 function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }

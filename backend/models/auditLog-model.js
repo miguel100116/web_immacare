@@ -26,7 +26,8 @@ const auditLogSchema = new mongoose.Schema({
             'APPOINTMENT_STATUS_CHANGED',
             'APPOINTMENT_ARCHIVED',
             'APPOINTMENT_UNARCHIVED',
-            'USER_ACCOUNT_CREATED'
+            'USER_ACCOUNT_CREATED',
+            'INVENTORY_ITEM_UPDATED',
         ]
     },
     // A human-readable description of the event.

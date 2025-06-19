@@ -1011,6 +1011,7 @@ nav a {
   cursor: pointer;
 }
 
+
 /* Media Queries for Responsiveness */
 /* @media (max-width: 1200px) {
   .logo img {
@@ -1503,3 +1504,4 @@ label {
 #appointmentsTable tr:hover {
   background-color: #e0f0ff;
 }
+

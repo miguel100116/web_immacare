@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     const timeSelect = document.getElementById('time');
     const appointmentForm = document.getElementById('userDataForm');
 
+    const step1 = document.getElementById('appointment-step-1');
+    const step2 = document.getElementById('appointment-step-2');
+    const nextBtn = document.getElementById('next-step-btn');
+    const backBtn = document.getElementById('back-step-btn');
+
     // --- 2. INITIALIZATION ---
     initializeFlatpickr();
     await populateUserInfo();
@@ -24,7 +29,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     specializationSelect.addEventListener('change', onSpecializationChange);
     doctorSelect.addEventListener('change', onDoctorChange);
     // The date change event is now handled by flatpickr's `onChange`
-
+    nextBtn.addEventListener('click', goToStep2);
+    backBtn.addEventListener('click', goToStep1);
     appointmentForm?.addEventListener('submit', handleFormSubmit);
 
     // --- 3. CORE FUNCTIONS ---
@@ -50,6 +56,70 @@ document.addEventListener('DOMContentLoaded', async function() {
         dateInput.placeholder = "Select a doctor first";
     }
 
+    function goToStep1() {
+        step1.style.display = 'block';
+        step2.style.display = 'none';
+    }
+
+    function goToStep2() {
+        // Validation before proceeding
+        const specValue = specializationSelect.value;
+        const doctorValue = doctorSelect.value;
+        
+        // --- THIS IS THE CHANGE: Use the new, step-specific message area ---
+        const step1MessageArea = document.getElementById('step-1-message-area');
+        step1MessageArea.textContent = ''; // Clear previous messages
+
+        if (!specValue || !doctorValue) {
+            let errorMessage = '';
+            if (!specValue && !doctorValue) {
+                errorMessage = 'Please select a specialization and a doctor.';
+            } else if (!specValue) {
+                errorMessage = 'Please select a specialization.';
+            } else {
+                errorMessage = 'Please select a doctor.';
+            }
+            
+            step1MessageArea.textContent = errorMessage;
+            return; // Stop the function
+        }
+
+        // If validation passes, switch views
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+
+        // Clear the main form message area just in case it had old errors
+        document.getElementById('form-message-area').textContent = '';
+    }
+
+    async function checkForExistingAppointment(doctorId) {
+        // This function will disable the "Next" button and show a message
+        // if the user already has an appointment with the selected doctor.
+        const nextButton = document.getElementById('next-step-btn');
+        const step1MessageArea = document.getElementById('step-1-message-area');
+
+        // Reset state first
+        nextButton.disabled = false;
+        step1MessageArea.textContent = '';
+
+        try {
+            const response = await fetch(`/api/appointments/check-existing?doctorId=${doctorId}`);
+
+            if (response.status === 409) { // 409 Conflict means an appointment exists
+                const data = await response.json();
+                step1MessageArea.textContent = data.message;
+                nextButton.disabled = true; // IMPORTANT: Disable the next button
+            } else if (!response.ok) {
+                // For other errors, log it but don't block the user
+                console.error('Error checking for existing appointment.');
+            }
+            // If response is 200 OK, do nothing, the button remains enabled.
+
+        } catch (error) {
+            console.error('Network error checking for existing appointment:', error);
+        }
+    }
+
     async function onSpecializationChange() {
         await updateDoctorOptions();
         // A new specialization means we need to reset the doctor schedule
@@ -59,11 +129,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function onDoctorChange() {
         const doctorId = doctorSelect.value;
         if (doctorId) {
+            // --- ADD THIS LINE ---
+            await checkForExistingAppointment(doctorId); // Check for existing appointments first
+            
+            // Then proceed with fetching the schedule
             await fetchAndApplyDoctorSchedule(doctorId);
         } else {
             resetDoctorSchedule();
+            // Also reset the button and message area if no doctor is selected
+            document.getElementById('next-step-btn').disabled = false;
+            document.getElementById('step-1-message-area').textContent = '';
         }
     }
+
 
     async function fetchAndApplyDoctorSchedule(doctorId) {
         try {

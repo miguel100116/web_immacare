@@ -48,6 +48,39 @@ router.post('/save-data', async (req, res) => {
         if (existingAppointment) {
             return res.redirect(`/appointment.html?error=${encodeURIComponent(`Dr. ${doctorName} is already booked.`)}`);
         }
+
+        router.get('/check-existing', async (req, res) => {
+            try {
+                const { doctorId } = req.query;
+                const userId = req.session.user.id;
+
+                if (!doctorId || !userId) {
+                    return res.status(400).json({ error: 'Doctor and User ID are required.' });
+                }
+
+                const existingAppointment = await Appointment.findOne({
+                    userId: userId,
+                    doctor: doctorId,
+                    status: 'Scheduled' // Only check for currently active appointments
+                });
+
+                if (existingAppointment) {
+                    // User has an existing appointment. Respond with a 409 Conflict.
+                    return res.status(409).json({
+                        exists: true,
+                        message: `You already have a scheduled appointment with this doctor on ${existingAppointment.date} at ${existingAppointment.time}. Please complete or cancel it before booking a new one.`
+                    });
+                }
+
+                // No active appointment found.
+                res.status(200).json({ exists: false });
+
+            } catch (error) {
+                console.error("Error checking for existing appointment:", error);
+                res.status(500).json({ error: 'Server error while checking appointments.' });
+            }
+        });
+
     
         // User Info Check
         if (!req.session.user || !req.session.user.id) {
