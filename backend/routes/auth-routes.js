@@ -81,8 +81,9 @@ router.get('/signup/check-email', async (req, res) => {
 router.post('/post', async (req, res) => {
     const { firstName, lastName, suffix, signupEmail, Age, Sex, PhoneNumber, Address, signupPassword, confirmPassword } = req.body;
     const BASE_URL = `https://web-immacare.onrender.com` || `http://localhost:${port}`;
+          const validPhilippinesPhone = /^(09|\+639)\d{9}$/;
     if (signupPassword !== confirmPassword) {
-        return res.status(400).json({ error: "❌ Passwords do not match" });
+        return res.status(400).json({ error: "Passwords do not match" });
     }
 
     if (signupPassword.length < 8 || !/[A-Z]/.test(signupPassword) ||
@@ -94,8 +95,10 @@ router.post('/post', async (req, res) => {
     try {
         if (await Users.findOne({ signupEmail })) return res.status(400).json({ error: "Email already registered" });   
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) return res.status(400).json({ error: "Please enter a valid email address" });
-        if (PhoneNumber && PhoneNumber.replace(/\D/g, '').length < 10) return res.status(400).json({ error: "Please enter a valid phone number (at least 10 digits)" });
-
+        if (!validPhilippinesPhone.test(PhoneNumber)) {
+         return res.status(400).json({ error: "Please enter a valid Philippine mobile number (e.g., 09171234567 or +639171234567)" });
+        }
+  
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
 
