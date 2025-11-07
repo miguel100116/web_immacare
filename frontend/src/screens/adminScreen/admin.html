@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmaCare Admin Dashboard</title>
+    
+    <!-- Link to Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Link to Flatpickr for the calendar filter -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Link to Flatpickr Month Select Plugin CSS (for Financials) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <!-- Link to your admin stylesheet -->
+    <link rel="stylesheet" href="/src/styles/adminScreenStyles.css">
+</head>
+
+<body>
+    <div class="container" id="dashboard-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>ImmaCare</h2>
+                <p>Admin Panel</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-target="dashboard"><a href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li class="nav-item" data-target="users"><a href="#"><i class="fas fa-users-cog"></i> Manage Users</a></li>
+                <li class="nav-item" data-target="doctors"><a href="#"><i class="fas fa-user-md"></i> Manage Doctors</a></li>
+                <li class="nav-item" data-target="staff"><a href="#"><i class="fas fa-user-shield"></i> Manage Staff</a></li>
+                <li class="nav-item" data-target="appointments"><a href="#"><i class="fas fa-calendar-check"></i> Appointments</a></li>
+                <li class="nav-item" data-target="inventory"><a href="#"><i class="fas fa-boxes"></i> Inventory</a></li>
+                <li class="nav-item" data-target="financials"><a href="#"><i class="fas fa-file-invoice-dollar"></i> Financials</a></li>
+                <li class="nav-item" data-target="audit-log"><a href="#"><i class="fas fa-history"></i> Audit Log</a></li>
+                <li class="nav-item" data-target="settings"><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+            <div class="user-info">
+                <div class="avatar"><i class="fas fa-user-circle"></i></div>
+                <div class="details">
+                    <h4 id="admin-user-fullname">Admin User</h4>
+                    <a href="/logout" id="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="toggle-menu"><i class="fas fa-bars"></i></div>
+                <div class="search-bar">
+                    <input type="text" placeholder="Global Search (not implemented)" id="global-admin-search">
+                    <button><i class="fas fa-search"></i></button>
+                </div>
+                <div class="quick-actions">
+                    <a href="#" class="notification" title="Notifications"><i class="fas fa-bell"></i><span class="badge">0</span></a>
+                    <a href="#" class="message" title="Messages"><i class="fas fa-envelope"></i><span class="badge">0</span></a>
+                </div>
+            </header>
+
+            <section class="content-section dashboard-section active" id="dashboard">
+                <h1>Dashboard Overview</h1>
+                 <div class="stats-cards">
+                    <div class="card">
+                        <div class="card-icon appointments"><i class="fas fa-calendar-check"></i></div>
+                        <div class="card-info"><h3>Appointments</h3><p class="count" id="dashboard-appointments-count">0</p><p class="description">Total active</p></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon doctors"><i class="fas fa-user-md"></i></div>
+                        <div class="card-info"><h3>Registered Doctors</h3><p class="count" id="dashboard-doctors-count">0</p><p class="description">Total doctor profiles</p></div>
+                    </div>
+                     <div class="card">
+                        <div class="card-icon staff"><i class="fas fa-user-shield"></i></div>
+                        <div class="card-info"><h3>Staff Members</h3><p class="count" id="dashboard-staff-count">0</p><p class="description">Non-doctor staff</p></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon patients"><i class="fas fa-users"></i></div>
+                        <div class="card-info"><h3>Registered Users</h3><p class="count" id="dashboard-total-users">0</p><p class="description">Total registered</p></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon inventory"><i class="fas fa-boxes"></i></div>
+                        <div class="card-info"><h3>Inventory Items</h3><p class="count" id="dashboard-inventory-items">0</p><p class="description">Active items</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content-section" id="users">
+                <div class="section-header"><h1>User Management</h1></div>
+                <div class="filters">
+                    <input type="text" id="users-search" placeholder="Search by name or email...">
+                    <button id="users-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="users-table">
+                         <thead>
+                            <tr>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Age</th>
+                                <th>Sex</th>
+                                <th>Verified</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="users-pagination"></div>
+            </section>
+
+            <section class="content-section" id="doctors">
+                <div class="section-header">
+                    <h1>Doctor Management</h1>
+                    <button class="add-new-btn" id="add-new-doctor-btn"><i class="fas fa-plus"></i> Add Doctor Account</button>
+                </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: -10px; margin-bottom: 20px;"> This table lists all users with doctor profiles. New doctor accounts can be created using the button above..</p>
+                <div class="filters">
+                    <input type="text" id="doctors-search" placeholder="Search by name, email, or specialization...">
+                    <button id="doctors-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="doctors-table">
+                        <thead>
+                            <tr>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Specialization</th>
+                                <th>Profile Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="doctors-pagination"></div>
+            </section>
+
+            <section class="content-section" id="staff">
+                <div class="section-header">
+                    <h1>Staff Management</h1>
+                    <button class="add-new-btn" id="add-new-staff-btn"><i class="fas fa-plus"></i> Add Staff Account</button>
+                </div>
+                <p style="font-size: 0.9em; color: #6c757d; margin-top: -10px; margin-bottom: 20px;">
+                    This table lists all non-doctor staff members. New staff accounts can be created using the button above.
+                </p>
+                <div class="filters">
+                    <input type="text" id="staff-search" placeholder="Search by name or email...">
+                    <button id="staff-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="staff-table">
+                        <thead>
+                            <tr>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="staff-pagination"></div>
+            </section>
+
+            <section class="content-section appointments-section" id="appointments">
+                <div class="section-header">
+                    <h1>Appointments Management <span id="appointments-view-indicator" style="font-size: 0.7em; color: #555;">(Active)</span></h1>
+                    <div>
+                        <button class="secondary-btn" id="toggle-archived-view-btn"><i class="fas fa-archive"></i> View Archived</button>
+                    </div>
+                </div>
+                 <div class="filters">
+                    <input type="text" id="appointments-search" placeholder="Search by patient, email, or doctor...">
+                    <button id="appointments-search-btn" class="filter-button">Search</button>
+                </div>
+                <div class="data-table">
+                    <table id="appointments-table">
+                        <thead><tr><th>Patient</th><th>Email</th><th>Doctor</th><th>Date</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="appointments-pagination"></div>
+            </section>
+
+            <section class="content-section inventory-section" id="inventory">
+                <div class="section-header">
+                    <h1>Inventory Management <span id="inventory-view-indicator" class="view-indicator" style="font-size: 0.7em; color: #555;">(Active)</span></h1>
+                    
+
+                    <div class="header-actions"> 
+                        <button id="toggle-archived-inventory-btn" class="secondary-btn">
+                            <i class="fas fa-archive"></i> View Archived
+                        </button>
+                        <button class="add-new-btn" id="add-new-inventory-item-btn">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+                <div class="filters">
+                    <div class="search-container">
+                        <input type="text" id="inventory-search" placeholder="Search by item name...">
+                        <button id="inventory-search-btn" class="filter-button">Search</button>
+                    </div>
+                    <div class="sort-container">
+                        <label for="inventory-sort-select">Sort by:</label>
+                        <select id="inventory-sort-select" class="filter-select">
+                            <option value="status">Status (Out of Stock first)</option>
+                            <option value="low_stock_first">Status (Low Stock first)</option>
+                            <option value="in_stock_first">Status (In Stock first)</option>
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="qty_asc">Quantity (Low to High)</option>
+                            <option value="qty_desc">Quantity (High to Low)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="data-table">
+                    <table id="inventory-table">
+                        <thead><tr><th>Item Name</th><th>Qty</th><th>Status</th><th>Reorder At</th><th>Description</th><th>Updated</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                    <div class="pagination-controls" id="inventory-pagination"></div>
+            </section>
+            
+            <section class="content-section" id="financials">
+                <div class="section-header">
+                    <h1>Financial Records</h1>
+                    <button class="add-new-btn" id="add-financial-record-btn"><i class="fas fa-plus"></i> Add Expense</button>
+                </div>
+                <div class="filters">
+                    <input type="text" id="financials-month-filter" placeholder="Select Month and Year...">
+                    <button id="generate-report-btn" class="secondary-btn"><i class="fas fa-download"></i> Generate Report</button>
+                </div>
+                <div class="data-table">
+                    <table id="financials-table">
+                         <thead>
+                            <tr>
+                                <th>Purchase Date</th>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Price (Each)</th>
+                                <th>Total Price</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="financials-pagination"></div>
+            </section>
+
+            <section class="content-section" id="audit-log">
+                <div class="section-header">
+                    <h1>System Audit Log</h1>
+                </div>
+                <div class="filters">
+                    <div class="search-container">
+                        <input type="text" id="audit-log-text-search" placeholder="Search by actors">
+                    </div>
+                    <div class="date-filter-container" style="margin-left: auto;">
+                        <input type="text" id="audit-log-date-filter" placeholder="Filter by Date...">
+                        <button id="audit-log-clear-filters-btn" class="secondary-btn">Clear Filters</button>
+                    </div>
+                </div>
+                <div class="data-table">
+                    <table id="auditLog-table"> 
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Timestamp</th>
+                                <th style="width: 15%;">Actor</th>
+                                <th style="width: 20%;">Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls" id="auditLog-pagination"></div>
+            </section>
+
+            <section class="content-section settings-section" id="settings">
+                <h1>System Settings</h1>
+                <button type="button" class="change-password-btn" id="open-password-modal-btn">
+                <i class="fas fa-key"></i> Change Password
+            </button>
+            </section>
+        </main>
+    </div>
+
+    <!-- --- MODALS ARE MOVED OUTSIDE THE MAIN CONTAINER --- -->
+    <div class="modal" id="appointment-modal">
+       <div class="modal-content">
+            <div class="modal-header"><h2 id="appointment-modal-title">Add New Appointment</h2><span class="close-modal">×</span></div>
+            <div class="modal-body">
+                <form id="appointment-form">
+                    <input type="hidden" id="appointment-id">
+                    <div class="form-group"><label for="patient-name">Patient Name:</label><input type="text" id="patient-name" required></div>
+                    <div class="form-group"><label for="patient-email-modal">Patient Email:</label><input type="email" id="patient-email-modal"></div>
+                    <div class="form-group"><label for="doctor-name-modal">Doctor Name:</label><input type="text" id="doctor-name-modal" required></div>
+                    <div class="form-group"><label for="specialization-modal">Specialization:</label><input type="text" id="specialization-modal"></div>
+                    <div class="form-group"><label for="appointment-date">Date:</label><input type="date" id="appointment-date" required></div>
+                    <div class="form-group"><label for="appointment-time">Time:</label><input type="time" id="appointment-time" required></div>
+                    <div class="form-group"><label for="appointment-reason-modal">Reason:</label><textarea id="appointment-reason-modal" rows="2"></textarea></div>
+                    <div class="form-group"><label for="appointment-address-modal">Address:</label><input type="text" id="appointment-address-modal"></div>
+                    <div class="form-group"><label for="appointment-age-modal">Age:</label><input type="number" id="appointment-age-modal" min="0"></div>
+                    <div class="form-group"><label for="appointment-phone-modal">Phone:</label><input type="tel" id="appointment-phone-modal"></div>
+                    <div class="form-group">
+                        <label for="appointment-status-modal">Status:</label>
+                        <select id="appointment-status-modal" required>
+                            <option value="Scheduled">Scheduled</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-actions"><button type="button" class="cancel-btn">Cancel</button><button type="submit" class="save-btn">Save Appointment</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="doctor-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="doctor-modal-title">Edit Doctor Profile</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="doctor-form">
+                    <input type="hidden" id="doctor-profile-id">
+                    <input type="hidden" id="doctor-user-id">
+                    <div class="form-group">
+                        <label for="doctor-name-modal">Doctor Name (from User Profile):</label>
+                        <input type="text" id="doctor-name-modal" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-specialization-modal">Specialization:</label>
+                        <input type="text" id="doctor-specialization-modal" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-schedules-modal">Schedules (comma-separated):</label>
+                        <input type="text" id="doctor-schedules-modal" placeholder="e.g., Mon 9am-12pm, Wed 1pm-4pm">
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-hmos-modal">Accepted HMOs (comma-separated):</label>
+                        <input type="text" id="doctor-hmos-modal" placeholder="e.g., Maxicare, Intellicare">
+                    </div>
+                    <div class="form-group">
+                        <label for="doctor-description-modal">Description / Bio:</label>
+                        <textarea id="doctor-description-modal" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Save Profile</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="inventory-item-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="inventory-item-modal-title">Add New Inventory Item</h2><span class="close-modal">×</span></div>
+            <div class="modal-body">
+                <form id="inventory-item-form">
+                    <input type="hidden" id="inventory-item-id">
+                    <div class="form-group">
+                        <label for="inventory-item-name">Item Name:</label>
+                        <input type="text" id="inventory-item-name" required>
+                        <div class="validation-feedback" id="inventory-name-feedback"></div>
+                    </div>
+                    <div class="form-group"><label for="inventory-item-quantity">Quantity:</label><input type="number" id="inventory-item-quantity" min="0" value="0" required></div>
+                    <div class="form-group"><label for="inventory-item-reorder-level">Reorder Level:</label><input type="number" id="inventory-item-reorder-level" min="0" value="10"></div>
+                    <div class="form-group"><label for="inventory-item-description">Description:</label><textarea id="inventory-item-description" rows="3"></textarea></div>
+                    <div class="form-actions"><button type="button" class="cancel-btn">Cancel</button><button type="submit" class="save-btn">Save Item</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="financial-record-modal">
+       <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Financial Record</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="financial-record-form">
+                    <div class="form-group">
+                        <label for="fr-item-name">Item Name*</label>
+                        <input type="text" id="fr-item-name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fr-quantity">Quantity*</label>
+                            <input type="number" id="fr-quantity" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="fr-price">Price (per item)*</label>
+                            <input type="number" id="fr-price" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fr-purchase-date">Purchase Date*</label>
+                        <input type="date" id="fr-purchase-date" required>
+                    </div>
+                     <div class="form-group">
+                        <label for="fr-description">Description (Optional)</label>
+                        <textarea id="fr-description" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Save Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="add-doctor-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="add-doctor-modal-title">Add New Doctor Account</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-doctor-form">
+                    <p id="add-doctor-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></p>
+                    <div class="form-group"><input type="text" id="doctor-firstName" name="firstName" placeholder="First Name" required /></div>
+                    <div class="form-group"><input type="text" id="doctor-lastName" name="lastName" placeholder="Last Name" required /></div>
+                    <div class="form-group"><input type="text" id="doctor-suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" /></div>
+                    <div class="form-group">
+                    <input type="email" id="doctor-signupEmail" name="signupEmail" placeholder="Email Address" required />
+                    <div class="validation-feedback" id="doctor-email-feedback"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="add-staff-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="add-staff-modal-title">Add New Staff Account</h2>
+                <span class="close-modal">×</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-staff-form">
+                    <p id="add-staff-message-area" style="margin-bottom: 15px; font-weight: bold; min-height: 1.2em;"></p>
+                    <div class="form-group"><input type="text" id="staff-firstName" name="firstName" placeholder="First Name" required /></div>
+                    <div class="form-group"><input type="text" id="staff-lastName" name="lastName" placeholder="Last Name" required /></div>
+                    <div class="form-group"><input type="text" id="staff-suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" /></div>
+                    <div class="form-group">
+                        <input type="email" id="staff-signupEmail" name="signupEmail" placeholder="Email Address" required />
+                        <div class="validation-feedback" id="staff-email-feedback"></div>
+                    </div>
+                    <p style="font-size: 0.8em; color: #666; text-align: center; margin-top: -5px; margin-bottom: 15px;">
+                        A temporary password will be automatically generated.
+                    </p>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit" class="save-btn">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Inline script for immediate UI interactions & admin session check
+    document.addEventListener('DOMContentLoaded', function() {
+            const adminUserFullnameEl = document.getElementById('admin-user-fullname');
+
+            async function verifyAdminSessionAndLoadName() {
+                try {
+                    const response = await fetch('/getUser');
+                    if (response.ok) {
+                        const userData = await response.json();
+                        if (userData.loggedIn && userData.isAdmin) {
+                            if(adminUserFullnameEl) adminUserFullnameEl.textContent = userData.fullname || 'Admin';
+                        } else {
+                            window.location.href = '/login.html?message=Admin_access_required.';
+                        }
+                    } else {
+                        window.location.href = '/login.html?message=Session_expired._Please_login_again.';
+                    }
+                } catch (error) {
+                    console.error("Error verifying admin user session:", error);
+                    window.location.href = '/login.html?message=Error_validating_session.';
+                }
+            }
+            verifyAdminSessionAndLoadName();
+        });
+    </script>
+    <password-modal></password-modal>
+    <script src="/src/components/PasswordModal.js" type="module" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+    <script src="src/app.js" type="module" defer></script>
+    <script src="src/pages/admin.js" defer></script>
+</body>
+</html>

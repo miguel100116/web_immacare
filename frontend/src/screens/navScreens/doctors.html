@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ImmaCare+ Doctors</title>
+  <link rel="stylesheet" href="src/styles/style.css">
+  <script src="navigation.js"></script>
+  
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <main>
+    <h2 class="section-title">MEET OUR DOCTORS</h2>
+
+    <div class="filters">
+      <select id="specializationFilter">
+        <option value="">All Specializations</option>
+      </select>
+
+      <select id="nameFilter">
+        <option value="">All Doctors</option>
+      </select>
+    </div>
+
+    <div class="doctor-list">
+      <p>Loading doctors...</p>
+    </div>
+  </main>
+  
+  <div id="footer-placeholder"></div>
+  <script src="src/pages/doctors.js" defer></script>
+  <script src="src/app.js" type="module" defer></script>
+</body>
+</html>

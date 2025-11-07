@@ -1,0 +1,87 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmaCare+</title>
+    <link rel="stylesheet" href="src/styles/style.css">
+    
+    <!-- 
+      FIX: Remove the incorrect, non-module script tag for navigation.js.
+      The main app.js script will handle everything.
+    -->
+    <!-- <script src="src/navigation.js"></script>  <-- REMOVE THIS LINE -->
+
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="container_services">
+      <div class="title">WE SERVE IN DIFFERENT AREAS FOR OUR PATIENTS</div>
+      <div class="cards_wrapper">
+        <div class="card">
+          <img class="card_icon" src="assets/images/Obstetrics and Gynecology.jfif" alt="Icon">
+          <h3>Obstetrics and Gynecology</h3>
+          <!-- FIX: Updated link format -->
+          <a href="/learnmore/obgyn"><button>Learn More → </button></a>
+        </div>
+        <div class="card">
+          <img class="card_icon" src="assets/images/Pediatrics.jfif" alt="Icon">
+          <h3>Pediatrics</h3>
+          <!-- FIX: Updated link format -->
+          <a href="/learnmore/pediatrics"><button>Learn More →</button></a>
+        </div>
+        <div class="card">
+          <img class="card_icon" src="assets/images/Internal Medicine.jpg" alt="Icon">
+          <h3>Internal Medicine</h3>
+          <!-- FIX: Updated link format -->
+          <a href="/learnmore/internal-medicine"><button>Learn More →</button></a>
+        </div>
+        <div class="card">
+            <img class="card_icon" src="assets/images/surgery.jpg" alt="Icon">
+            <h3>Surgery</h3>
+            <a href="/learnmore/surgery"><button>Learn More →</button></a>
+        </div>
+        <div class="card">
+            <img class="card_icon" src="assets/images/Dermatology.jfif" alt="Icon">
+            <h3>Dermatology</h3>
+            <a href="/learnmore/dermatology"><button>Learn More →</button></a>
+        </div>
+        <div class="card">
+            <img class="card_icon" src="assets/images/Ophthalmology.jfif" alt="Icon">
+            <h3>Ophthalmology</h3>
+            <a href="/learnmore/ophthalmology"><button>Learn More →</button></a>
+        </div>
+        <div class="card">
+            <img class="card_icon" src="assets/images/Urology.jpg" alt="Icon">
+            <h3>Urology</h3>
+            <a href="/learnmore/urology"><button>Learn More →</button></a>
+        </div>
+        <div class="card">
+            <img class="card_icon" src="assets/images/ENT.jpg" alt="Icon">
+            <h3>ENT</h3>
+            <a href="/learnmore/ent"><button>Learn More →</button></a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="container_offer">
+      <div class="header_offer">WE OFFER EXCEPTIONAL CARE WITH THE BEST SERVICES</div>
+      <div class="offers-section">
+          <ul class="offers-list">
+              <li>Comprehensive Checkups</li>
+              <li>24/7 Emergency Services</li>
+              <li>Specialist Consultations</li>
+              <li>Advanced Diagnostic Facilities</li>
+              <li>Personalized Treatment Plans</li>
+              <li>Affordable Healthcare Packages</li>
+          </ul>
+      </div>
+      <div class="button-container">
+          <a href="#" class="cta-button" id="sched-app" data-nav="appointment.html">SCHEDULE AN APPOINTMENT</a>
+      </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+  <script src="src/app.js" type="module" defer></script>
+</body>
+</html>

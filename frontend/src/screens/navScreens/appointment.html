@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="src/styles/style.css">
+    <title>Appointment Form</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        /* --- STYLES (UNCHANGED) --- */
+        .form-section { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
+        .form-section legend { padding: 0 10px; font-weight: bold; color: #333; font-size: 1.2em; }
+        .input-with-button { position: relative; width: 100%; margin-bottom: 15px; }
+        .input-with-button input { width: 100%; padding-right: 85px; box-sizing: border-box; }
+        .edit-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-90%); background-color: #6c757d; color: white; border: none; padding: 5px 10px; font-size: 12px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        .edit-btn:hover { background-color: #5a6268; }
+        input.pre-filled { background-color: #e9ecef; color: #495057; cursor: not-allowed; border: 1px solid #ced4da; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; text-align: center; border-radius: 8px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; }
+        .btn { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px; }
+        .btn:hover { background-color: #0056b3; }
+        .time-box{ margin-top: 25px; margin-left: 18px;  }
+        /* --- STYLES FOR SIDE-BY-SIDE LAYOUT (WITH THE FIX) --- */
+        .form-row {
+            display: flex;
+            gap: 20px; 
+            /* This is the new, corrected alignment property */
+            align-items: baseline; 
+        }
+        .form-group {
+            flex: 1; 
+            margin-bottom: 15px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+        }
+        .form-group-date {
+            flex: none;
+            width: 45%; 
+        }
+        .btn.secondary-btn {
+            background-color: #6c757d;
+        }
+        .btn.secondary-btn:hover {
+            background-color: #5a6268;
+        }
+
+    /* This is a general style for all selects on this page now */
+    select:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+    </style>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+
+    <div class="appointment-wrapper">
+        <div class="appointment-container">
+            <h2 class="form-title">Patient Appointment Form</h2>
+            <div id="form-message-area" style="text-align:center; margin-bottom:15px; font-weight:bold; min-height: 1.2em;"></div>
+
+            <form id="userDataForm">
+
+                <!-- SECTION 1: USER INFORMATION (Unchanged) -->
+                <fieldset class="form-section">
+                    <legend>Your Information</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="patientFirstName">First Name*</label>
+                            <div class="input-with-button">
+                                <input type="text" id="patientFirstName" name="firstName" required placeholder="First Name">
+                                <button type="button" class="edit-btn" data-target="patientFirstName">Change</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="patientLastName">Last Name*</label>
+                            <div class="input-with-button">
+                                <input type="text" id="patientLastName" name="lastName" required placeholder="Last Name">
+                                <button type="button" class="edit-btn" data-target="patientLastName">Change</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Suffix is optional -->
+                    <label for="patientSuffix">Suffix</label>
+                     <div class="input-with-button">
+                        <input type="text" id="patientSuffix" name="suffix" placeholder="e.g., Jr., III">
+                        <button type="button" class="edit-btn" data-target="patientSuffix">Change</button>
+                    </div>
+                    <label for="age">Age*</label>
+                    <div class="input-with-button">
+                        <input type="number" id="age" name="age" required placeholder="Age">
+                        <button type="button" class="edit-btn" data-target="age">Change</button>
+                    </div>
+                    <label for="phone">Phone Number*</label>
+                    <div class="input-with-button">
+                        <input type="tel" id="phone" name="phone" required placeholder="Phone">
+                        <button type="button" class="edit-btn" data-target="phone">Change</button>
+                    </div>
+                    <label for="address">Address*</label>
+                    <div class="input-with-button">
+                        <input type="text" id="address" name="address" required placeholder="Address">
+                        <button type="button" class="edit-btn" data-target="address">Change</button>
+                    </div>
+                </fieldset>
+
+                <!-- SECTION 2: APPOINTMENT DETAILS (Unchanged HTML, but will render correctly with new CSS) -->
+                <fieldset class="form-section">
+                    <legend>Appointment Details</legend>
+                    
+                    <!-- STEP 1: Specialization and Doctor -->
+                    <div id="appointment-step-1">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="specialization">Specialization*</label>
+                                <select id="specialization" name="specialization" required>
+                                    <option value="">Loading specializations...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="doctorName">Doctor*</label>
+                                <select id="doctorName" name="doctor" required disabled>
+                                    <option value="">Select a specialization first</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="step-1-message-area" style="text-align: center; color: red; font-size: 0.9em; min-height: 1.2em; padding-right: 10px;"></div>
+                        <button type="button" id="next-step-btn" class="btn" style="float: right;">Next</button>
+                    </div>
+
+                    <!-- STEP 2: Date, Time, and Reason (Initially Hidden) -->
+                    <div id="appointment-step-2" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group form-group-date">
+                                <label for="date">Date*</label>
+                                <input type="date" id="date" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="time">Time*</label>
+                                <div class="time-box">
+                                    <select id="time" name="time" required disabled>
+                                        <option value="">Select a date first</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="reason">Reason for Appointment*</label>
+                            <textarea id="reason" name="reason" rows="3" placeholder="e.g. Regular Check-up" required></textarea>
+                        </div>
+                        
+                        <!-- Navigation for Step 2 -->
+                        <div style="display: flex; justify-content: space-between;">
+                            <button type="button" id="back-step-btn" class="btn secondary-btn">Back</button>
+                            <!-- The main submit button is now inside step 2 -->
+                            <button type="submit" class="btn">Submit Appointment</button>
+                        </div>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    
+    <div id="footer-placeholder"></div>
+    <div id="confirmationModal" class="modal"></div>
+    <script src="src/pages/appointment.js" defer></script>
+    <script src="src/app.js" type="module" defer></script>
+</body>
+</html>

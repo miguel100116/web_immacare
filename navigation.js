@@ -107,9 +107,58 @@
 //   });
 // });
 
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("signupForm");
+  const fullNameInput = document.getElementById("fullName");
+  const phoneInput = document.getElementById("PhoneNumber");
+  const emailInput = document.getElementById("signupEmail");
+  const password = document.getElementById("signupPassword");
+  const confirmPassword = document.getElementById("confirmPassword");
 
+  // Restrict Full Name: Only letters and spaces
+  fullNameInput.addEventListener("input", () => {
+    fullNameInput.value = fullNameInput.value.replace(/[^A-Za-z\s]/g, "");
+  });
 
+  // Restrict Phone: Only numbers, max 11 digits
+  phoneInput.addEventListener("input", () => {
+    phoneInput.value = phoneInput.value.replace(/[^0-9]/g, "").slice(0, 11);
+  });
 
+  form.addEventListener("submit", (e) => {
+    const fullName = fullNameInput.value.trim();
+    const email = emailInput.value.trim();
+
+    // Full Name Validation
+    if (fullName === "") {
+      e.preventDefault();
+      alert("Full name is required.");
+      return;
+    }
+    if (!/^[A-Za-z\s]+$/.test(fullName)) {
+      e.preventDefault();
+      alert("Full name must contain only letters and spaces.");
+      return;
+    }
+
+    // Email Format Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      e.preventDefault();
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    // Password Match Check
+    if (password.value !== confirmPassword.value) {
+      e.preventDefault();
+      alert("Passwords do not match.");
+      return;
+    }
+
+    // Optional: You can add password strength rules here too
+  });
+});
 
 
 
@@ -301,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const doctor = localStorage.getItem('selectedDoctor');
   const specialization = localStorage.getItem('selectedSpecialization');
   
-  // Set form values if available
+// Set form values if available
   if (doctor && specialization) {
       document.getElementById('doctorName').value = doctor;
       document.getElementById('specialization').value = specialization;
@@ -324,37 +373,38 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-document.getElementById("login-form").addEventListener("submit", async function (e) {
-  e.preventDefault();
+// document.getElementById("login-form").addEventListener("submit", async function (e) {
+//   e.preventDefault();
 
-  const signupEmail = e.target.signupEmail.value;
-  const signupPassword = e.target.signupPassword.value;
+//   const signupEmail = e.target.signupEmail.value;
+//   const signupPassword = e.target.signupPassword.value;
 
-  try {
-    const response = await fetch("/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ signupEmail, signupPassword })
-    });
+//   try {
+//     const response = await fetch("/login", {
+//       method: "POST",
+//       credentials: "include", // Include cookies for session managemen
+//       headers: {
+//         "Content-Type": "application/json"
+//       },
+//       body: JSON.stringify({ signupEmail, signupPassword })
+//     });
 
-    const result = await response.text();
+//     const result = await response.text();
 
-    if (result.includes("✅ Login successful") || response.redirected) {
-      // ✅ Set flag in localStorage
-      localStorage.setItem("isLoggedIn", "true");
+//     if (result.includes("✅ Login successful") || response.redirected) {
+//       // ✅ Set flag in localStorage
+//       localStorage.setItem("isLoggedIn", "true");
 
-      // ✅ Redirect to main.html
-      window.location.href = "/main.html";
-    } else {
-      alert(result); // ❌ Show error message (wrong password/email)
-    }
-  } catch (err) {
-    console.error("Login failed", err);
-    alert("❌ Login failed due to a server error.");
-  }
-});
+//       // ✅ Redirect to main.html
+//       window.location.href = "/main.html";
+//     } else {
+//       alert(result); // ❌ Show error message (wrong password/email)
+//     }
+//   } catch (err) {
+//     console.error("Login failed", err);
+//     alert("❌ Login failed due to a server error.");
+//   }
+// });
 
 
 
@@ -445,3 +495,17 @@ document.getElementById("login-form").addEventListener("submit", async function 
 //   }
 // };
 
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("/check-auth")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.loggedIn) {
+        const loginLink = document.getElementById("login-link");
+        if (loginLink) {
+          loginLink.textContent = "PROFILE";
+          loginLink.href = "profile.html"; // Link to profile page
+        }
+      }
+    })
+    .catch((err) => console.error("Auth check failed:", err));
+});
