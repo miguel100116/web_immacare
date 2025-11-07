@@ -65,12 +65,20 @@
                         <div class="card-info"><h3>Appointments</h3><p class="count" id="dashboard-appointments-count">0</p><p class="description">Total active</p></div>
                     </div>
                     <div class="card">
+                        <div class="card-icon doctors"><i class="fas fa-user-md"></i></div>
+                        <div class="card-info"><h3>Registered Doctors</h3><p class="count" id="dashboard-doctors-count">0</p><p class="description">Total doctor profiles</p></div>
+                    </div>
+                     <div class="card">
+                        <div class="card-icon staff"><i class="fas fa-user-shield"></i></div>
+                        <div class="card-info"><h3>Staff Members</h3><p class="count" id="dashboard-staff-count">0</p><p class="description">Non-doctor staff</p></div>
+                    </div>
+                    <div class="card">
                         <div class="card-icon patients"><i class="fas fa-users"></i></div>
                         <div class="card-info"><h3>Registered Users</h3><p class="count" id="dashboard-total-users">0</p><p class="description">Total registered</p></div>
                     </div>
                     <div class="card">
                         <div class="card-icon inventory"><i class="fas fa-boxes"></i></div>
-                        <div class="card-info"><h3>Inventory Items</h3><p class="count" id="dashboard-inventory-items">0</p><p class="description">Total items</p></div>
+                        <div class="card-info"><h3>Inventory Items</h3><p class="count" id="dashboard-inventory-items">0</p><p class="description">Active items</p></div>
                     </div>
                 </div>
             </section>
@@ -193,8 +201,22 @@
                     </div>
                 </div>
                 <div class="filters">
-                    <input type="text" id="inventory-search" placeholder="Search by item name...">
-                    <button id="inventory-search-btn" class="filter-button">Search</button>
+                    <div class="search-container">
+                        <input type="text" id="inventory-search" placeholder="Search by item name...">
+                        <button id="inventory-search-btn" class="filter-button">Search</button>
+                    </div>
+                    <div class="sort-container">
+                        <label for="inventory-sort-select">Sort by:</label>
+                        <select id="inventory-sort-select" class="filter-select">
+                            <option value="status">Status (Out of Stock first)</option>
+                            <option value="low_stock_first">Status (Low Stock first)</option>
+                            <option value="in_stock_first">Status (In Stock first)</option>
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="qty_asc">Quantity (Low to High)</option>
+                            <option value="qty_desc">Quantity (High to Low)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="data-table">
                     <table id="inventory-table">
@@ -237,8 +259,13 @@
                     <h1>System Audit Log</h1>
                 </div>
                 <div class="filters">
-                    <input type="text" id="audit-log-date-filter" placeholder="Filter by Date...">
-                    <button id="audit-log-clear-filter-btn" class="secondary-btn">Clear Filter</button>
+                    <div class="search-container">
+                        <input type="text" id="audit-log-text-search" placeholder="Search by actors">
+                    </div>
+                    <div class="date-filter-container" style="margin-left: auto;">
+                        <input type="text" id="audit-log-date-filter" placeholder="Filter by Date...">
+                        <button id="audit-log-clear-filters-btn" class="secondary-btn">Clear Filters</button>
+                    </div>
                 </div>
                 <div class="data-table">
                     <table id="auditLog-table"> 
@@ -257,7 +284,7 @@
             </section>
 
             <section class="content-section settings-section" id="settings">
-                <h1>System Settings</h1><p>System settings and configurations will be implemented here.</p>
+                <h1>System Settings</h1>
                 <button type="button" class="change-password-btn" id="open-password-modal-btn">
                 <i class="fas fa-key"></i> Change Password
             </button>
@@ -339,7 +366,11 @@
             <div class="modal-body">
                 <form id="inventory-item-form">
                     <input type="hidden" id="inventory-item-id">
-                    <div class="form-group"><label for="inventory-item-name">Item Name:</label><input type="text" id="inventory-item-name" required></div>
+                    <div class="form-group">
+                        <label for="inventory-item-name">Item Name:</label>
+                        <input type="text" id="inventory-item-name" required>
+                        <div class="validation-feedback" id="inventory-name-feedback"></div>
+                    </div>
                     <div class="form-group"><label for="inventory-item-quantity">Quantity:</label><input type="number" id="inventory-item-quantity" min="0" value="0" required></div>
                     <div class="form-group"><label for="inventory-item-reorder-level">Reorder Level:</label><input type="number" id="inventory-item-reorder-level" min="0" value="10"></div>
                     <div class="form-group"><label for="inventory-item-description">Description:</label><textarea id="inventory-item-description" rows="3"></textarea></div>
@@ -400,7 +431,10 @@
                     <div class="form-group"><input type="text" id="doctor-firstName" name="firstName" placeholder="First Name" required /></div>
                     <div class="form-group"><input type="text" id="doctor-lastName" name="lastName" placeholder="Last Name" required /></div>
                     <div class="form-group"><input type="text" id="doctor-suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" /></div>
-                    <div class="form-group"><input type="email" id="doctor-signupEmail" name="signupEmail" placeholder="Email Address" required /></div>
+                    <div class="form-group">
+                    <input type="email" id="doctor-signupEmail" name="signupEmail" placeholder="Email Address" required />
+                    <div class="validation-feedback" id="doctor-email-feedback"></div>
+                    </div>
                     <div class="form-actions">
                         <button type="button" class="cancel-btn">Cancel</button>
                         <button type="submit" class="save-btn">Create Account</button>
@@ -422,7 +456,10 @@
                     <div class="form-group"><input type="text" id="staff-firstName" name="firstName" placeholder="First Name" required /></div>
                     <div class="form-group"><input type="text" id="staff-lastName" name="lastName" placeholder="Last Name" required /></div>
                     <div class="form-group"><input type="text" id="staff-suffix" name="suffix" placeholder="Suffix (e.g., Jr., III)" /></div>
-                    <div class="form-group"><input type="email" id="staff-signupEmail" name="signupEmail" placeholder="Email Address" required /></div>
+                    <div class="form-group">
+                        <input type="email" id="staff-signupEmail" name="signupEmail" placeholder="Email Address" required />
+                        <div class="validation-feedback" id="staff-email-feedback"></div>
+                    </div>
                     <p style="font-size: 0.8em; color: #666; text-align: center; margin-top: -5px; margin-bottom: 15px;">
                         A temporary password will be automatically generated.
                     </p>
@@ -436,10 +473,8 @@
     </div>
 
     <script>
-        // Inline script for immediate UI interactions & admin session check
-        document.addEventListener('DOMContentLoaded', function() {
-            const navItems = document.querySelectorAll('.nav-item');
-            const contentSections = document.querySelectorAll('.content-section');
+    // Inline script for immediate UI interactions & admin session check
+    document.addEventListener('DOMContentLoaded', function() {
             const adminUserFullnameEl = document.getElementById('admin-user-fullname');
 
             async function verifyAdminSessionAndLoadName() {
@@ -453,7 +488,7 @@
                             window.location.href = '/login.html?message=Admin_access_required.';
                         }
                     } else {
-                         window.location.href = '/login.html?message=Session_expired._Please_login_again.';
+                        window.location.href = '/login.html?message=Session_expired._Please_login_again.';
                     }
                 } catch (error) {
                     console.error("Error verifying admin user session:", error);
@@ -461,26 +496,6 @@
                 }
             }
             verifyAdminSessionAndLoadName();
-
-            navItems.forEach(item => {
-                item.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    navItems.forEach(navItem => navItem.classList.remove('active'));
-                    this.classList.add('active');
-                    contentSections.forEach(section => section.classList.remove('active'));
-                    const targetId = this.getAttribute('data-target');
-                    const targetSection = document.getElementById(targetId);
-                    if (targetSection) targetSection.classList.add('active');
-                });
-            });
-
-            const toggleMenu = document.querySelector('.toggle-menu');
-            const sidebar = document.querySelector('.sidebar');
-            if (toggleMenu && sidebar) {
-                toggleMenu.addEventListener('click', function() {
-                    sidebar.classList.toggle('active');
-                });
-            }
         });
     </script>
     <password-modal></password-modal>

@@ -32,12 +32,37 @@ const createTransporter = () => {
 
 // --- PRE-REGISTRATION CHECKS ---
 
+
 router.post('/check-email', async (req, res) => {
     try {
         const user = await Users.findOne({ signupEmail: req.body.signupEmail });
         res.json({ exists: !!user });
     } catch (error) {
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+router.get('/signup/check-email', async (req, res) => {
+    try {
+        const { email } = req.query; // Use req.query for GET requests
+
+        if (!email) {
+            return res.status(200).json({ available: true });
+        }
+
+        const existingUser = await Users.findOne({ signupEmail: email });
+
+        if (existingUser) {
+            // Email is taken, return a 409 Conflict status
+            return res.status(409).json({ error: 'This email is already registered.' });
+        }
+
+        // Email is available
+        res.status(200).json({ available: true });
+
+    } catch (error) {
+        console.error("Error in public /signup/check-email route:", error);
+        res.status(500).json({ error: 'Server error during email validation.' });
     }
 });
 

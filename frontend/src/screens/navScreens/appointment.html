@@ -43,6 +43,12 @@
             flex: none;
             width: 45%; 
         }
+        .btn.secondary-btn {
+            background-color: #6c757d;
+        }
+        .btn.secondary-btn:hover {
+            background-color: #5a6268;
+        }
 
     /* This is a general style for all selects on this page now */
     select:disabled {
@@ -107,43 +113,56 @@
                 <fieldset class="form-section">
                     <legend>Appointment Details</legend>
                     
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="specialization">Specialization*</label>
-                            <select id="specialization" name="specialization" required>
-                                <option value="">Loading specializations...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="doctorName">Doctor*</label>
-                            <select id="doctorName" name="doctor" required disabled>
-                                <option value="">Select a specialization first</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group form-group-date">
-                            <label for="date">Date*</label>
-                            <input type="date" id="date" name="date" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="time">Time*</label>
-                            <div class="time-box">
-                                <select id="time" name="time" required disabled>
-                                    <option value="">Select a date first</option>
+                    <!-- STEP 1: Specialization and Doctor -->
+                    <div id="appointment-step-1">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="specialization">Specialization*</label>
+                                <select id="specialization" name="specialization" required>
+                                    <option value="">Loading specializations...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="doctorName">Doctor*</label>
+                                <select id="doctorName" name="doctor" required disabled>
+                                    <option value="">Select a specialization first</option>
                                 </select>
                             </div>
                         </div>
+                        <div id="step-1-message-area" style="text-align: center; color: red; font-size: 0.9em; min-height: 1.2em; padding-right: 10px;"></div>
+                        <button type="button" id="next-step-btn" class="btn" style="float: right;">Next</button>
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="reason">Reason for Appointment*</label>
-                        <textarea id="reason" name="reason" rows="3" placeholder="e.g. Regular Check-up" required></textarea>
+                    <!-- STEP 2: Date, Time, and Reason (Initially Hidden) -->
+                    <div id="appointment-step-2" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group form-group-date">
+                                <label for="date">Date*</label>
+                                <input type="date" id="date" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="time">Time*</label>
+                                <div class="time-box">
+                                    <select id="time" name="time" required disabled>
+                                        <option value="">Select a date first</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="reason">Reason for Appointment*</label>
+                            <textarea id="reason" name="reason" rows="3" placeholder="e.g. Regular Check-up" required></textarea>
+                        </div>
+                        
+                        <!-- Navigation for Step 2 -->
+                        <div style="display: flex; justify-content: space-between;">
+                            <button type="button" id="back-step-btn" class="btn secondary-btn">Back</button>
+                            <!-- The main submit button is now inside step 2 -->
+                            <button type="submit" class="btn">Submit Appointment</button>
+                        </div>
                     </div>
                 </fieldset>
-
-                <button type="submit">Submit Appointment</button>
             </form>
         </div>
     </div>

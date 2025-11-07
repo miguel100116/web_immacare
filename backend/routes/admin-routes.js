@@ -169,28 +169,96 @@ router.get('/inventory', async (req, res) => {
 // POST /api/admin/inventory
 router.post('/inventory', async (req, res) => {
     try {
-        const { itemName, quantity, description, reorderLevel } = req.body;
+        let { itemName, quantity, description, reorderLevel } = req.body;
         if (!itemName || quantity === undefined) {
             return res.status(400).json({ error: 'Item name and quantity are required.' });
         }
-        
-        const existingItem = await InventoryItem.findOne({ itemName: itemName, isArchived: false });
+
+        const normalizedItemName = itemName.trim().toLowerCase();
+
+        const existingItem = await InventoryItem.findOne({ itemName: normalizedItemName });
+
         if (existingItem) {
-             return res.status(409).json({ error: `An active inventory item named "${itemName}" already exists.` });
+            if (!existingItem.isArchived) {
+                return res.status(409).json({ error: `An active inventory item named "${itemName}" already exists.` });
+            } else {
+                return res.status(409).json({ error: `An inventory item named "${itemName}" already exists in archive.` });
+            }
         }
 
-        const newItem = new InventoryItem({ itemName, quantity, description, reorderLevel });
+        const newItem = new InventoryItem({ 
+            itemName: normalizedItemName, 
+            quantity, 
+            description, 
+            reorderLevel 
+        });
         await newItem.save();
-        
+
         const invCreateDetails = `Admin '${req.session.user.fullname}' created new inventory item '${newItem.itemName}'.`;
         await createLog(req.session.user.id, 'INVENTORY_ITEM_CREATED', invCreateDetails);
 
         res.status(201).json(newItem);
     } catch (err) {
-        if (err.code === 11000) { // Handles the database index uniqueness error
+        if (err.code === 11000) {
             return res.status(409).json({ error: `An inventory item named "${req.body.itemName}" already exists.` });
         }
         res.status(500).json({ error: 'Server error creating inventory item.' });
+    }
+});
+
+router.put('/inventory/:id', async (req, res) => {
+    try {
+        const itemId = req.params.id;
+        let { itemName, quantity, description, reorderLevel } = req.body;
+
+        if (!itemName || quantity === undefined) {
+            return res.status(400).json({ error: 'Item name and quantity are required.' });
+        }
+
+        const itemToUpdate = await InventoryItem.findById(itemId);
+        if (!itemToUpdate) {
+            return res.status(404).json({ error: 'Inventory item not found.' });
+        }
+
+        const normalizedItemName = itemName.trim().toLowerCase();
+
+        // Check for duplicate name ONLY if the name has been changed
+        if (itemToUpdate.itemName !== normalizedItemName) {
+            const existingItem = await InventoryItem.findOne({ 
+                itemName: normalizedItemName,
+                _id: { $ne: itemId } // Exclude the current item from the search
+            });
+
+            if (existingItem) {
+                 if (!existingItem.isArchived) {
+                    return res.status(409).json({ error: `An active inventory item named "${itemName}" already exists.` });
+                } else {
+                    return res.status(409).json({ error: `An inventory item named "${itemName}" already exists in the archive.` });
+                }
+            }
+        }
+
+        // Update fields
+        itemToUpdate.itemName = normalizedItemName;
+        itemToUpdate.quantity = quantity;
+        itemToUpdate.description = description;
+        itemToUpdate.reorderLevel = reorderLevel;
+        // The 'status' will be automatically updated by the pre-save hook in the model
+
+        const updatedItem = await itemToUpdate.save();
+
+        // Note: You may need to add 'INVENTORY_ITEM_UPDATED' to your AuditLog model's action enum
+        const invUpdateDetails = `Admin '${req.session.user.fullname}' updated inventory item '${updatedItem.itemName}'.`;
+        await createLog(req.session.user.id, 'INVENTORY_ITEM_UPDATED', invUpdateDetails);
+
+        res.json(updatedItem);
+
+    } catch (err) {
+        console.error(`Error updating inventory item ${req.params.id}:`, err);
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ error: err.message });
+        }
+        res.status(500).json({ error: 'Server error updating inventory item.' });
     }
 });
 
@@ -215,6 +283,68 @@ router.put('/inventory/:id/archive', async (req, res) => {
         res.status(500).json({ error: 'Server error updating inventory item.' });
     }
 });
+
+router.get('/inventory/check-name', async (req, res) => {
+    try {
+        const { name, excludeId } = req.query;
+
+        if (!name) {
+            // No name provided, so it's technically "valid" in this context
+            return res.status(200).json({ available: true });
+        }
+
+        const normalizedItemName = name.trim().toLowerCase();
+
+        let query = { itemName: normalizedItemName };
+
+        // If we are editing an item, we need to exclude its own ID from the check
+        if (excludeId) {
+            query._id = { $ne: excludeId };
+        }
+
+        const existingItem = await InventoryItem.findOne(query);
+
+        if (existingItem) {
+            // Name is taken, return a 409 Conflict status
+            const message = existingItem.isArchived 
+                ? `"${name}" exists in the archive.` 
+                : `"${name}" already exists.`;
+            return res.status(409).json({ error: message });
+        }
+
+        // Name is available
+        res.status(200).json({ available: true });
+
+    } catch (error) {
+        console.error("Error in check-name route:", error);
+        res.status(500).json({ error: 'Server error during name validation.' });
+    }
+});
+
+router.get('/users/check-email', async (req, res) => {
+    try {
+        const { email } = req.query;
+
+        if (!email) {
+            return res.status(200).json({ available: true });
+        }
+
+        const existingUser = await Users.findOne({ signupEmail: email });
+
+        if (existingUser) {
+            // Email is taken, return 409 Conflict
+            return res.status(409).json({ error: 'This email is already registered.' });
+        }
+
+        // Email is available
+        res.status(200).json({ available: true });
+
+    } catch (error) {
+        console.error("Error in check-email route:", error);
+        res.status(500).json({ error: 'Server error during email validation.' });
+    }
+});
+
 
 router.get('/doctors', async (req, res) => {
    try {
