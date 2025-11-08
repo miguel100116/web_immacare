@@ -179,14 +179,40 @@ app.get('/confirmation.html', (req, res) => res.sendFile(path.join(__dirname, 'c
 
 // Check routes
 // ... (your /check-email and /check-fullname routes are fine) ...
+// app.post('/check-email', async (req, res) => {
+//     try {
+//         const user = await Users.findOne({ signupEmail: req.body.signupEmail });
+//         res.json({ exists: !!user });
+//     } catch (error) {
+//         res.status(500).json({ error: "Server error" });
+//     }
+// });
+
+// ✅ CORRECT - Always returns JSON
 app.post('/check-email', async (req, res) => {
     try {
-        const user = await Users.findOne({ signupEmail: req.body.signupEmail });
-        res.json({ exists: !!user });
+        const email = req.body.signupEmail;
+        
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        const user = await Users.findOne({ signupEmail: email });
+        
+        if (user) {
+            // Email exists - return 200 with exists: true
+            return res.status(200).json({ exists: true });
+        } else {
+            // Email available - return 200 with exists: false
+            return res.status(200).json({ exists: false });
+        }
     } catch (error) {
-        res.status(500).json({ error: "Server error" });
+        console.error("Check email error:", error);
+        res.status(500).json({ error: "Server error checking email" });
     }
 });
+
+
 app.post('/check-fullname', async (req, res) => {
     try {
         const user = await Users.findOne({ fullname: req.body.fullname });

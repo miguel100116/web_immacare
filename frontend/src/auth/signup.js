@@ -50,9 +50,15 @@ function validateName(inputEl, feedbackEl, fieldName) {
 }
 
 async function validateEmail(inputEl, feedbackEl) {
-    // ...
+    const email = inputEl.value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+        updateFeedback(feedbackEl, email.length > 0 ? 'Please enter a valid email format.' : '', false);
+        return false;
+    }
+
     try {
-        // ✅ CORRECT: Using POST without /signup/ prefix
         const response = await fetch('/check-email', {
             method: 'POST',
             headers: {
@@ -60,6 +66,13 @@ async function validateEmail(inputEl, feedbackEl) {
             },
             body: JSON.stringify({ signupEmail: email })
         });
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Server did not return JSON:', await response.text());
+            return true; // Allow submission if server error
+        }
 
         const data = await response.json();
 
@@ -72,11 +85,9 @@ async function validateEmail(inputEl, feedbackEl) {
         }
     } catch (error) {
         console.error("Email validation fetch error:", error);
+        return true; // Allow submission on network error
     }
-    // Assume true if server check fails, to avoid blocking user on network issues
-    return true; 
 }
-
 function validatePhoneNumber(inputEl, feedbackEl) {
     const phone = inputEl.value.trim();
     // Phone number is optional, so only validate if it has a value

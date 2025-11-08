@@ -24,11 +24,20 @@ const authMobileRoutes = require('./routes/auth-mobile-routes');
 const userMobileRoutes = require('./routes/user-mobile-routes');
 
 // --- 2. CORE MIDDLEWARE ---
+// app.use(cors({
+//   origin: ['http://localhost:5300',
+//    'https://web-immacare.onrender.com',
+//   ],
+//   credentials: true
+// }));
 app.use(cors({
-  origin: ['http://localhost:5300',
-   'https://web-immacare.onrender.com',
+  origin: [
+    'http://localhost:5300',
+    'https://web-immacare.onrender.com'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Add this
+  allowedHeaders: ['Content-Type', 'Authorization'] // Add this
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
