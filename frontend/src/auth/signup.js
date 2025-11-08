@@ -50,24 +50,23 @@ function validateName(inputEl, feedbackEl, fieldName) {
 }
 
 async function validateEmail(inputEl, feedbackEl) {
-    const email = inputEl.value.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-        updateFeedback(feedbackEl, email.length > 0 ? 'Please enter a valid email format.' : '', false);
-        return false;
-    }
-
+    // ...
     try {
-        // Using the new, specific route for the public signup page
-        const url = `/signup/check-email?email=${encodeURIComponent(email)}`;
-        const response = await fetch(url);
+        // ✅ CORRECT: Using POST without /signup/ prefix
+        const response = await fetch('/check-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ signupEmail: email })
+        });
 
-        if (response.status === 409) {
-            const data = await response.json();
-            updateFeedback(feedbackEl, data.error || 'This email is already registered.', false);
+        const data = await response.json();
+
+        if (data.exists) {
+            updateFeedback(feedbackEl, 'This email is already registered.', false);
             return false;
-        } else if (response.ok) {
+        } else {
             updateFeedback(feedbackEl, 'Email is available!', true);
             return true;
         }
