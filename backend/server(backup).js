@@ -227,6 +227,7 @@ app.post('/api/admin/inventory', ensureAdmin, async (req, res) => {
 });
 // Registration Route
 // ... (your /post registration route is fine) ...
+// Registration Route with Fixed Email Verification Link
 app.post('/post', async (req, res) => {
     const { fullname, signupEmail, Age, Sex, PhoneNumber, signupPassword, confirmPassword } = req.body;
 
@@ -239,7 +240,6 @@ app.post('/post', async (req, res) => {
         !/[^A-Za-z0-9]/.test(signupPassword)) {
         return res.status(400).json({ error: "Password must meet complexity requirements" });
     }
-
 
     try {
         const emailExists = await Users.findOne({ signupEmail });
@@ -260,37 +260,38 @@ app.post('/post', async (req, res) => {
             return res.status(400).json({ error: "Please enter a valid phone number (at least 10 digits)" });
         }
 
-     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
 
-const user = new Users({
-    fullname,
-    signupEmail,
-    Age,
-    Sex,
-    PhoneNumber,
-    signupPassword: hashedPassword,
-    confirmPassword: hashedPassword // Note: Storing confirmPassword hash is usually not necessary
-});
-await user.save();
+        const user = new Users({
+            fullname,
+            signupEmail,
+            Age,
+            Sex,
+            PhoneNumber,
+            signupPassword: hashedPassword
+        });
+        await user.save();
 
-        // Do not set session on registration, make them verify and login
-        // req.session.user = { fullname, signupEmail };
-        console.log("✅ User registered:", user.fullname); // Changed user to user.fullname
+        console.log("✅ User registered:", user.fullname);
 
-        // === Email Sending Setup with Brevo ===
+        // ✅ FIXED: Use BASE_URL from environment variable
+        const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+        const verificationUrl = `${baseUrl}/verify?email=${encodeURIComponent(signupEmail)}`;
+
+        // Email Sending Setup with Brevo
         const transporter = nodemailer.createTransport({
             host: "smtp-relay.brevo.com",
             port: 587,
-            secure: false, // Use TLS
+            secure: false,
             auth: {
-                user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com", // Use .env
-                pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"      // Use .env
+                user: process.env.BREVO_SMTP_USER,
+                pass: process.env.BREVO_SMTP_PASS
             }
         });
 
         const mailOptions = {
-            from: '"ImmaCare+ <deguzmanjatrish@gmail.com>',
+            from: '"ImmaCare+" <deguzmanjatrish@gmail.com>',
             to: signupEmail,
             subject: "Verify your account - ImmaCare+",
             html: `
@@ -299,13 +300,13 @@ await user.save();
                 <h3>Hello ${fullname},</h3>
                 <p>Thank you for registering at ImmaCare+. Please click the button below to verify your email address:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}"
+                  <a href="${verificationUrl}"
                    style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
                     Verify Email
                   </a>
                 </div>
                 <p>If the button doesn't work, copy and paste this link into your browser:</p>
-                <p><a href="http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}">http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}</a></p>
+                <p><a href="${verificationUrl}">${verificationUrl}</a></p>
                 <p>If you didn't create an account with us, please ignore this email.</p>
                 <hr style="margin: 30px 0;">
                 <p style="color: #666; font-size: 12px;">This is an automated message from ImmaCare+</p>
@@ -330,6 +331,110 @@ await user.save();
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+// app.post('/post', async (req, res) => {
+//     const { fullname, signupEmail, Age, Sex, PhoneNumber, signupPassword, confirmPassword } = req.body;
+
+//     if (signupPassword !== confirmPassword) {
+//         return res.status(400).json({ error: "❌ Passwords do not match" });
+//     }
+
+//     if (signupPassword.length < 8 || !/[A-Z]/.test(signupPassword) ||
+//         !/[a-z]/.test(signupPassword) || !/[0-9]/.test(signupPassword) ||
+//         !/[^A-Za-z0-9]/.test(signupPassword)) {
+//         return res.status(400).json({ error: "Password must meet complexity requirements" });
+//     }
+
+
+//     try {
+//         const emailExists = await Users.findOne({ signupEmail });
+//         if (emailExists) return res.status(400).json({ error: "Email already registered" });
+
+//         const nameExists = await Users.findOne({ fullname });
+//         if (nameExists) return res.status(400).json({ error: "Full name already registered" });
+
+//         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail)) {
+//             return res.status(400).json({ error: "Please enter a valid email address" });
+//         }
+
+//         if (fullname.split(/\s+/).length < 2) {
+//             return res.status(400).json({ error: "Please enter your full name (first and last name)" });
+//         }
+
+//         if (PhoneNumber && PhoneNumber.replace(/\D/g, '').length < 10) {
+//             return res.status(400).json({ error: "Please enter a valid phone number (at least 10 digits)" });
+//         }
+
+//      const saltRounds = 10;
+//     const hashedPassword = await bcrypt.hash(signupPassword, saltRounds);
+
+// const user = new Users({
+//     fullname,
+//     signupEmail,
+//     Age,
+//     Sex,
+//     PhoneNumber,
+//     signupPassword: hashedPassword,
+//     confirmPassword: hashedPassword // Note: Storing confirmPassword hash is usually not necessary
+// });
+// await user.save();
+
+//         // Do not set session on registration, make them verify and login
+//         // req.session.user = { fullname, signupEmail };
+//         console.log("✅ User registered:", user.fullname); // Changed user to user.fullname
+
+//         // === Email Sending Setup with Brevo ===
+//         const transporter = nodemailer.createTransport({
+//             host: "smtp-relay.brevo.com",
+//             port: 587,
+//             secure: false, // Use TLS
+//             auth: {
+//                 user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com", // Use .env
+//                 pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"      // Use .env
+//             }
+//         });
+
+//         const mailOptions = {
+//             from: '"ImmaCare+ <deguzmanjatrish@gmail.com>',
+//             to: signupEmail,
+//             subject: "Verify your account - ImmaCare+",
+//             html: `
+//               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+//                 <h2 style="color: #4CAF50;">Welcome to ImmaCare+</h2>
+//                 <h3>Hello ${fullname},</h3>
+//                 <p>Thank you for registering at ImmaCare+. Please click the button below to verify your email address:</p>
+//                 <div style="text-align: center; margin: 30px 0;">
+//                   <a href="http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}"
+//                    style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+//                     Verify Email
+//                   </a>
+//                 </div>
+//                 <p>If the button doesn't work, copy and paste this link into your browser:</p>
+//                 <p><a href="http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}">http://localhost:${port}/verify?email=${encodeURIComponent(signupEmail)}</a></p>
+//                 <p>If you didn't create an account with us, please ignore this email.</p>
+//                 <hr style="margin: 30px 0;">
+//                 <p style="color: #666; font-size: 12px;">This is an automated message from ImmaCare+</p>
+//               </div>
+//             `
+//         };
+
+//         transporter.sendMail(mailOptions, (error, info) => {
+//             if (error) {
+//                 console.log("Email sending error:", error);
+//                 return res.status(500).json({ error: "Error sending verification email." });
+//             }
+//             console.log("✅ Verification email sent:", info.response);
+//             res.status(201).json({
+//                 success: true,
+//                 message: "Registration successful! Please check your email to verify your account."
+//             });
+//         });
+
+//     } catch (error) {
+//         console.error("Registration error:", error);
+//         res.status(500).json({ error: "Internal Server Error" });
+//     }
+// });
 
 
 // Email Verification Route
@@ -437,144 +542,253 @@ app.post('/login', async (req, res) => {
 // ... (your /forgotpassword, /request-reset, /reset-password routes are fine) ...
 // Consider using process.env for Brevo credentials here too.
 // Make sure reset URLs use `localhost:${port}`
+
 app.post('/forgotpassword', async (req, res) => {
-  const { signupEmail } = req.body;
-  const transporter = nodemailer.createTransport({ // Define transporter if not globally available
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,
-      auth: {
-          user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com",
-          pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"
-      }
-  });
-  try {
-    const user = await Users.findOne({ signupEmail });
-    if (!user) {
-      return res.status(400).json({ error: "No account with that email found." });
-    }
-
-    const token = crypto.randomBytes(20).toString('hex');
-    const expiration = Date.now() + 3600000; // 1 hour
-
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = expiration;
-    await user.save();
-
-    const resetUrl = `http://localhost:${port}/reset-password?token=${token}`;
-
-    const mailOptions = {
-      from: '"ImmaCare+ Support" <deguzmanjatrish@gmail.com>',
-      to: signupEmail,
-      subject: "Password Reset Request - ImmaCare+",
-      html: `
-        <p>Hello ${user.fullname},</p>
-        <p>You requested a password reset. Click the link below to reset your password:</p>
-        <a href="${resetUrl}">Reset Password</a>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log("Email sending error:", error);
-        return res.status(500).json({ error: "Failed to send reset email." });
-      }
-      console.log("Password reset email sent:", info.response);
-      res.json({ success: true, message: "Password reset email sent." });
+    const { signupEmail } = req.body;
+    const transporter = nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.BREVO_SMTP_USER,
+            pass: process.env.BREVO_SMTP_PASS
+        }
     });
+    
+    try {
+        const user = await Users.findOne({ signupEmail });
+        if (!user) {
+            return res.status(400).json({ error: "No account with that email found." });
+        }
 
-  } catch (error) {
-    console.error("Forgot password error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+        const token = crypto.randomBytes(20).toString('hex');
+        const expiration = Date.now() + 3600000; // 1 hour
+
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = expiration;
+        await user.save();
+
+        // ✅ FIXED: Use BASE_URL from environment variable
+        const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+        const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+
+        const mailOptions = {
+            from: '"ImmaCare+ Support" <deguzmanjatrish@gmail.com>',
+            to: signupEmail,
+            subject: "Password Reset Request - ImmaCare+",
+            html: `
+                <p>Hello ${user.fullname},</p>
+                <p>You requested a password reset. Click the link below to reset your password:</p>
+                <a href="${resetUrl}">Reset Password</a>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you didn't request this, please ignore this email.</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log("Email sending error:", error);
+                return res.status(500).json({ error: "Failed to send reset email." });
+            }
+            console.log("Password reset email sent:", info.response);
+            res.json({ success: true, message: "Password reset email sent." });
+        });
+
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
 });
 
 app.post('/request-reset', async (req, res) => {
-  const { signupEmail } = req.body;
-  const transporter = nodemailer.createTransport({ // Define transporter
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,
-      auth: {
-          user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com",
-          pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"
-      }
-  });
-  try {
-    const user = await Users.findOne({ signupEmail });
-    if (!user) return res.status(400).json({ error: "Email not found" });
-
-    const token = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000;
-    await user.save();
-
-    const resetUrl = `http://localhost:${port}/reset-password?token=${token}`;
-
-    const mailOptions = {
-      from: `"ImmaCare+" <deguzmanjatrish@gmail.com>`,
-      to: signupEmail,
-      subject: "Password Reset Request",
-      html: `
-        <h3>Hello ${user.fullname},</h3>
-        <p>You requested a password reset. Click the link below to reset your password. This link is valid for 1 hour.</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>If you didn't request this, please ignore this email.</p>
-      `
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Password reset email error:", error);
-        return res.status(500).json({ error: "Error sending password reset email" });
-      }
-      console.log("✅ Password reset email sent:", info.response);
-      res.status(200).json({ message: "Password reset email sent. Please check your inbox." });
+    const { signupEmail } = req.body;
+    const transporter = nodemailer.createTransport({
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.BREVO_SMTP_USER,
+            pass: process.env.BREVO_SMTP_PASS
+        }
     });
+    
+    try {
+        const user = await Users.findOne({ signupEmail });
+        if (!user) return res.status(400).json({ error: "Email not found" });
 
-  } catch (error) {
-    console.error("Request reset error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-app.post('/reset-password', async (req, res) => {
-  const { token, newPassword, confirmPassword } = req.body;
+        const token = crypto.randomBytes(20).toString('hex');
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = Date.now() + 3600000;
+        await user.save();
 
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: "Passwords do not match" });
-  }
+        // ✅ FIXED: Use BASE_URL from environment variable
+        const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+        const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-  if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) ||
-      !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) ||
-      !/[^A-Za-z0-9]/.test(newPassword)) {
-    return res.status(400).json({ error: "Password must meet complexity requirements" });
-  }
+        const mailOptions = {
+            from: '"ImmaCare+" <deguzmanjatrish@gmail.com>',
+            to: signupEmail,
+            subject: "Password Reset Request",
+            html: `
+                <h3>Hello ${user.fullname},</h3>
+                <p>You requested a password reset. Click the link below to reset your password. This link is valid for 1 hour.</p>
+                <a href="${resetUrl}">${resetUrl}</a>
+                <p>If you didn't request this, please ignore this email.</p>
+            `
+        };
 
-  try {
-    const user = await Users.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Password reset email error:", error);
+                return res.status(500).json({ error: "Error sending password reset email" });
+            }
+            console.log("✅ Password reset email sent:", info.response);
+            res.status(200).json({ message: "Password reset email sent. Please check your inbox." });
+        });
 
-    if (!user) {
-      return res.status(400).json({ error: "Password reset token is invalid or has expired" });
+    } catch (error) {
+        console.error("Request reset error:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.signupPassword = hashedPassword;
-    // user.confirmPassword = hashedPassword; // No need to store confirmPassword in DB
-
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-
-    res.status(200).json({ message: "Password has been reset successfully." });
-  } catch (error) {
-    console.error("Reset password error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
 });
+// app.post('/forgotpassword', async (req, res) => {
+//   const { signupEmail } = req.body;
+//   const transporter = nodemailer.createTransport({ // Define transporter if not globally available
+//       host: "smtp-relay.brevo.com",
+//       port: 587,
+//       secure: false,
+//       auth: {
+//           user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com",
+//           pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"
+//       }
+//   });
+//   try {
+//     const user = await Users.findOne({ signupEmail });
+//     if (!user) {
+//       return res.status(400).json({ error: "No account with that email found." });
+//     }
+
+//     const token = crypto.randomBytes(20).toString('hex');
+//     const expiration = Date.now() + 3600000; // 1 hour
+
+//     user.resetPasswordToken = token;
+//     user.resetPasswordExpires = expiration;
+//     await user.save();
+
+//     const resetUrl = `http://localhost:${port}/reset-password?token=${token}`;
+
+//     const mailOptions = {
+//       from: '"ImmaCare+ Support" <deguzmanjatrish@gmail.com>',
+//       to: signupEmail,
+//       subject: "Password Reset Request - ImmaCare+",
+//       html: `
+//         <p>Hello ${user.fullname},</p>
+//         <p>You requested a password reset. Click the link below to reset your password:</p>
+//         <a href="${resetUrl}">Reset Password</a>
+//         <p>This link will expire in 1 hour.</p>
+//         <p>If you didn't request this, please ignore this email.</p>
+//       `
+//     };
+
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.log("Email sending error:", error);
+//         return res.status(500).json({ error: "Failed to send reset email." });
+//       }
+//       console.log("Password reset email sent:", info.response);
+//       res.json({ success: true, message: "Password reset email sent." });
+//     });
+
+//   } catch (error) {
+//     console.error("Forgot password error:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+// app.post('/request-reset', async (req, res) => {
+//   const { signupEmail } = req.body;
+//   const transporter = nodemailer.createTransport({ // Define transporter
+//       host: "smtp-relay.brevo.com",
+//       port: 587,
+//       secure: false,
+//       auth: {
+//           user: process.env.BREVO_SMTP_USER || "8e2a3f001@smtp-brevo.com",
+//           pass: process.env.BREVO_SMTP_PASS || "8hDCQ6NnwAV5JBHs"
+//       }
+//   });
+//   try {
+//     const user = await Users.findOne({ signupEmail });
+//     if (!user) return res.status(400).json({ error: "Email not found" });
+
+//     const token = crypto.randomBytes(20).toString('hex');
+//     user.resetPasswordToken = token;
+//     user.resetPasswordExpires = Date.now() + 3600000;
+//     await user.save();
+
+//     const resetUrl = `http://localhost:${port}/reset-password?token=${token}`;
+
+//     const mailOptions = {
+//       from: `"ImmaCare+" <deguzmanjatrish@gmail.com>`,
+//       to: signupEmail,
+//       subject: "Password Reset Request",
+//       html: `
+//         <h3>Hello ${user.fullname},</h3>
+//         <p>You requested a password reset. Click the link below to reset your password. This link is valid for 1 hour.</p>
+//         <a href="${resetUrl}">${resetUrl}</a>
+//         <p>If you didn't request this, please ignore this email.</p>
+//       `
+//     };
+
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.error("Password reset email error:", error);
+//         return res.status(500).json({ error: "Error sending password reset email" });
+//       }
+//       console.log("✅ Password reset email sent:", info.response);
+//       res.status(200).json({ message: "Password reset email sent. Please check your inbox." });
+//     });
+
+//   } catch (error) {
+//     console.error("Request reset error:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+// app.post('/reset-password', async (req, res) => {
+//   const { token, newPassword, confirmPassword } = req.body;
+
+//   if (newPassword !== confirmPassword) {
+//     return res.status(400).json({ error: "Passwords do not match" });
+//   }
+
+//   if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) ||
+//       !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) ||
+//       !/[^A-Za-z0-9]/.test(newPassword)) {
+//     return res.status(400).json({ error: "Password must meet complexity requirements" });
+//   }
+
+//   try {
+//     const user = await Users.findOne({
+//       resetPasswordToken: token,
+//       resetPasswordExpires: { $gt: Date.now() }
+//     });
+
+//     if (!user) {
+//       return res.status(400).json({ error: "Password reset token is invalid or has expired" });
+//     }
+//     const hashedPassword = await bcrypt.hash(newPassword, 10);
+//     user.signupPassword = hashedPassword;
+//     // user.confirmPassword = hashedPassword; // No need to store confirmPassword in DB
+
+//     user.resetPasswordToken = undefined;
+//     user.resetPasswordExpires = undefined;
+//     await user.save();
+
+//     res.status(200).json({ message: "Password has been reset successfully." });
+//   } catch (error) {
+//     console.error("Reset password error:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 
 // Appointment Routes (apply ensureAuthenticated)

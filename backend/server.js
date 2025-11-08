@@ -32,12 +32,30 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// app.use(session({
+//   secret: 'immacareSecretKey123',
+//   resave: false,
+//   saveUninitialized: true,
+//   cookie: { secure: false } 
+// }));
+const MongoStore = require('connect-mongo');
+
 app.use(session({
-  secret: 'immacareSecretKey123',
+  secret: process.env.SESSION_SECRET || 'immacareSecretKey123', // fallback if .env not set
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } 
+  saveUninitialized: false, // more secure for production
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,       // your MongoDB Atlas URI
+    collectionName: 'sessions',            // optional: collection to store sessions
+    ttl: 14 * 24 * 60 * 60                 // session expiration in seconds (14 days)
+  }),
+  cookie: {
+    maxAge: 14 * 24 * 60 * 60 * 1000,      // 14 days in milliseconds
+    httpOnly: true,                         // prevents client-side JS from accessing the cookie
+    secure: process.env.NODE_ENV === 'production' // true if using HTTPS in production
+  }
 }));
+
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 
