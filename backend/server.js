@@ -7,7 +7,8 @@ const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const app = express();
-const port = 5300;
+const port = process.env.PORT || 5300;
+
 
 // --- 1. IMPORT MODELS, MIDDLEWARE, and ROUTES ---
 const Users = require('./models/user-model');
@@ -24,7 +25,9 @@ const userMobileRoutes = require('./routes/user-mobile-routes');
 
 // --- 2. CORE MIDDLEWARE ---
 app.use(cors({
-  origin: 'http://localhost:5300',
+  origin: ['http://localhost:5300',
+   'https://web-immacare.onrender.com',
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -40,7 +43,8 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 
 // --- 3. DATABASE CONNECTION ---
-mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.net/accounts?retryWrites=true&w=majority')
+// mongoose.connect('mongodb+srv://bernejojoshua:immacare@immacare.xr6wcn1.mongodb.net/accounts?retryWrites=true&w=majority')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Atlas connected successfully."))
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
